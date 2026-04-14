@@ -65,14 +65,14 @@ export interface GHESummary {
     archived: boolean;
     fork: boolean;
   }>;
-  reposTotalPages: number | null;
+  reposTotalCount: number;
   members: Array<{
     id: number;
     login: string;
     avatar_url: string;
     type: string;
   }>;
-  membersTotalPages: number | null;
+  membersTotalCount: number;
   teams: Array<{
     id: number;
     name: string;
@@ -82,7 +82,7 @@ export interface GHESummary {
     members_count?: number;
     repos_count?: number;
   }>;
-  teamsTotalPages: number | null;
+  teamsTotalCount: number;
   billingActions: GHEBillingActions | null;
   billingStorage: GHEBillingStorage | null;
   copilot: GHECopilot | null;

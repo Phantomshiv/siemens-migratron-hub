@@ -72,11 +72,9 @@ const GitHubDashboard = () => {
   const { data, isLoading, error } = useGitHubSummary("open");
 
   // Derive stats
-  const totalRepos = data?.org?.public_repos
-    ? (data.org.public_repos + (data.org.total_private_repos || 0))
-    : data?.repos?.length || 0;
-  const totalMembers = data?.membersTotalPages ?? data?.members?.length ?? 0;
-  const totalTeams = data?.teamsTotalPages ?? data?.teams?.length ?? 0;
+  const totalRepos = data?.reposTotalCount ?? data?.repos?.length ?? 0;
+  const totalMembers = data?.membersTotalCount ?? data?.members?.length ?? 0;
+  const totalTeams = data?.teamsTotalCount ?? data?.teams?.length ?? 0;
   const activeRepos = data?.repos?.filter((r) => !r.archived).length || 0;
   const archivedRepos = data?.repos?.filter((r) => r.archived).length || 0;
   const totalStars = data?.repos?.reduce((s, r) => s + r.stargazers_count, 0) || 0;
