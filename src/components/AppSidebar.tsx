@@ -13,6 +13,7 @@ import {
   Github,
   BookOpen,
   Megaphone,
+  Briefcase,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -41,6 +42,7 @@ const mainItems = [
   { title: "GitHub", url: "/github", icon: Github },
   { title: "Backstage", url: "/backstage", icon: BookOpen },
   { title: "Comms & Growth", url: "/communication", icon: Megaphone },
+  { title: "Client Mgmt", url: "/clients", icon: Briefcase },
 ];
 
 const secondaryItems = [

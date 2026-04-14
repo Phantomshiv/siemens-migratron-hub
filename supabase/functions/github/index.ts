@@ -500,7 +500,128 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ error: "Unknown action. Use: org, repos, members, teams, summary, or activity" }), {
+    // Projects V2: fetch all items from a GitHub Projects V2 board
+    if (action === "projects") {
+      const projectOrg = url.searchParams.get("project_org") || "foundation";
+      const projectNumber = parseInt(url.searchParams.get("project_number") || "5");
+      const cacheKey = `github:projects:${projectOrg}:${projectNumber}`;
+
+      if (!noCache) {
+        const cached = await getCache(cacheKey);
+        if (cached) {
+          return new Response(JSON.stringify(cached), {
+            headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "HIT" },
+          });
+        }
+      }
+
+      const graphqlHeaders = { ...gheHeaders, "Content-Type": "application/json" };
+      const allItems: unknown[] = [];
+      let hasNext = true;
+      let cursor: string | null = null;
+
+      while (hasNext) {
+        const afterClause = cursor ? `, after: "${cursor}"` : "";
+        const query = `{
+          organization(login: "${projectOrg}") {
+            projectV2(number: ${projectNumber}) {
+              title
+              items(first: 100${afterClause}) {
+                totalCount
+                pageInfo { hasNextPage endCursor }
+                nodes {
+                  id
+                  fieldValues(first: 25) {
+                    nodes {
+                      ... on ProjectV2ItemFieldTextValue { text field { ... on ProjectV2Field { name } } }
+                      ... on ProjectV2ItemFieldNumberValue { number field { ... on ProjectV2Field { name } } }
+                      ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2SingleSelectField { name } } }
+                      ... on ProjectV2ItemFieldDateValue { date field { ... on ProjectV2Field { name } } }
+                    }
+                  }
+                  content {
+                    ... on Issue {
+                      title number url state
+                      assignees(first: 5) { nodes { login name } }
+                    }
+                    ... on DraftIssue { title }
+                  }
+                }
+              }
+            }
+          }
+        }`;
+
+        const resp = await fetch(`${GHE_API_BASE}/api/graphql`, {
+          method: "POST",
+          headers: graphqlHeaders,
+          body: JSON.stringify({ query }),
+        });
+
+        if (!resp.ok) {
+          const body = await resp.text();
+          console.error("GraphQL projects error:", resp.status, body);
+          break;
+        }
+
+        const result = await resp.json();
+        const connection = result?.data?.organization?.projectV2?.items;
+        if (!connection?.nodes) break;
+
+        for (const node of connection.nodes) {
+          const fields: Record<string, string | number | null> = {};
+          for (const fv of (node.fieldValues?.nodes || [])) {
+            const fieldName = fv?.field?.name;
+            if (!fieldName) continue;
+            if ("text" in fv) fields[fieldName] = fv.text;
+            else if ("name" in fv && fv.name) fields[fieldName] = fv.name;
+            else if ("number" in fv) fields[fieldName] = fv.number;
+            else if ("date" in fv) fields[fieldName] = fv.date;
+          }
+
+          const content = node.content || {};
+          allItems.push({
+            id: node.id,
+            title: content.title || fields["Title"] || "Untitled",
+            number: content.number,
+            url: content.url,
+            state: content.state,
+            assignees: (content.assignees?.nodes || []).map((a: any) => ({ login: a.login, name: a.name })),
+            status: fields["Status"] || null,
+            organization: fields["Organization"] || null,
+            originScm: fields["Origin SCM"] || null,
+            wave: fields["Wave"] || null,
+            size: fields["Size"] || null,
+            migrationStage: fields["Migration stage"] || null,
+            migrationCategory: fields["Migration Category"] || null,
+            buContacts: fields["BU Contacts"] || null,
+            migrationLead: fields["Migration Lead"] || null,
+            migrationArchitect: fields["Migration Architect"] || null,
+            migrationEngineers: fields["Migration Engineers"] || null,
+            noOfRepos: fields["No of Repos"] || null,
+            noOfDevelopers: fields["No of Developers"] || null,
+            deploymentType: fields["Deployment Type"] || null,
+            developerPersona: fields["Developer Persona"] || null,
+            startDate: fields["Start date"] || null,
+            targetDate: fields["Target date"] || null,
+            estimate: fields["Estimate"] || null,
+            osesCrmLink: fields["OSES CRM Link"] || null,
+            pilotSharepoint: fields["Pilot Sharepoint"] || null,
+          });
+        }
+
+        hasNext = connection.pageInfo?.hasNextPage ?? false;
+        cursor = connection.pageInfo?.endCursor ?? null;
+      }
+
+      const projectsResult = { totalCount: allItems.length, items: allItems };
+      await setCache(cacheKey, projectsResult, 10);
+      return new Response(JSON.stringify(projectsResult), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
+      });
+    }
+
+    return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
