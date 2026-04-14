@@ -164,6 +164,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    // GraphQL: run arbitrary GraphQL query for testing
+    if (action === "graphql") {
+      const body = await req.json();
+      const query = body.query;
+      const variables = body.variables || {};
+      const resp = await fetch(`${GHE_API_BASE}/api/graphql`, {
+        method: "POST",
+        headers: { ...gheHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ query, variables }),
+      });
+      const data = await resp.json();
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Summary: fetch org + paginate repos/members/teams + billing + copilot
     if (action === "summary") {
       const errors: string[] = [];
