@@ -13,6 +13,7 @@ import RoadmapPage from "./pages/RoadmapPage.tsx";
 import RisksPage from "./pages/Risks.tsx";
 import GitHubDashboard from "./pages/GitHubDashboard.tsx";
 import BackstageDashboard from "./pages/BackstageDashboard.tsx";
+import CommunicationGrowth from "./pages/CommunicationGrowth.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/risks" element={<RisksPage />} />
             <Route path="/github" element={<GitHubDashboard />} />
             <Route path="/backstage" element={<BackstageDashboard />} />
+            <Route path="/communication" element={<CommunicationGrowth />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
