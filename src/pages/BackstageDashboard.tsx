@@ -42,6 +42,17 @@ const BackstageDashboard = () => {
           <BackstageAPICatalog />
         </div>
 
+        {/* Adoption Metrics Section */}
+        <Separator className="my-2" />
+        <div>
+          <h2 className="text-lg font-heading font-bold">Adoption & Completeness</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Team onboarding, catalog quality & technology adoption
+          </p>
+        </div>
+
+        <AdoptionMetrics />
+
         {/* Communication & Growth Section */}
         <Separator className="my-2" />
         <div>
