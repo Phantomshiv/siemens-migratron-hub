@@ -22,7 +22,7 @@ export function ComputeUsageChart() {
       if (Array.isArray(result) && result.length > 5) {
         chartData = result.map((row: any) => ({
           date: new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-          usageHours: parseFloat(row.usage_hours || "0"),
+          usageHours: parseFloat(row.unblended_cost || "0"),
           cost: parseFloat(row.total_amortized_cost || "0"),
         }));
       }
