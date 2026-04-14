@@ -10,6 +10,7 @@ import Capabilities from "./pages/Capabilities.tsx";
 import ReleasesPage from "./pages/Releases.tsx";
 import RoadmapPage from "./pages/RoadmapPage.tsx";
 import RisksPage from "./pages/Risks.tsx";
+import GitHubDashboard from "./pages/GitHubDashboard.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/releases" element={<ReleasesPage />} />
           <Route path="/roadmap" element={<RoadmapPage />} />
           <Route path="/risks" element={<RisksPage />} />
+          <Route path="/github" element={<GitHubDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
