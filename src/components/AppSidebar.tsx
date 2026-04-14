@@ -7,6 +7,7 @@ import {
   Settings,
   Boxes,
   FileText,
+  SquareKanban,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -27,6 +28,7 @@ import {
 const mainItems = [
   { title: "Overview", url: "/", icon: LayoutDashboard },
   { title: "Metrics", url: "/metrics", icon: BarChart3 },
+  { title: "Jira Board", url: "/jira", icon: SquareKanban },
   { title: "Roadmap", url: "/roadmap", icon: Map },
   { title: "Risks & Decisions", url: "/risks", icon: AlertTriangle },
 ];
