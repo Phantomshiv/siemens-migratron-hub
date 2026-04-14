@@ -9,6 +9,7 @@ import JiraDashboard from "./pages/JiraDashboard.tsx";
 import Capabilities from "./pages/Capabilities.tsx";
 import ReleasesPage from "./pages/Releases.tsx";
 import RoadmapPage from "./pages/RoadmapPage.tsx";
+import RisksPage from "./pages/Risks.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
