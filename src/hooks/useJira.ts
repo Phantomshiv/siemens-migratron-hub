@@ -4,7 +4,7 @@ import {
   getSprintIssues,
   getEpics,
   getBlockers,
-  getStatusDistribution,
+  countIssues,
   searchIssues,
 } from "@/lib/jira";
 
@@ -48,7 +48,30 @@ export function useBlockers() {
 export function useStatusDistribution() {
   return useQuery({
     queryKey: ["jira", "status-distribution"],
-    queryFn: () => getStatusDistribution(PROJECT_KEY),
+    queryFn: async () => {
+      // Use separate count queries per status category to avoid the 500/1000 row limit
+      const categories = [
+        { key: "done", name: "Done", jql: `project = ${PROJECT_KEY} AND statusCategory = Done` },
+        { key: "indeterminate", name: "In Progress", jql: `project = ${PROJECT_KEY} AND statusCategory = "In Progress"` },
+        { key: "new", name: "To Do", jql: `project = ${PROJECT_KEY} AND statusCategory = "To Do"` },
+      ];
+
+      const results = await Promise.all(
+        categories.map(async (cat) => {
+          const count = await countIssues(cat.jql);
+          return { ...cat, count };
+        })
+      );
+
+      const counts: Record<string, { name: string; count: number; key: string }> = {};
+      results.forEach((r) => {
+        if (r.count > 0) {
+          counts[r.key] = { name: r.name, count: r.count, key: r.key };
+        }
+      });
+
+      return counts;
+    },
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });

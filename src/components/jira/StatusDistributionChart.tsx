@@ -1,5 +1,6 @@
 import { useStatusDistribution } from "@/hooks/useJira";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const STATUS_COLORS: Record<string, string> = {
   done: "hsl(152, 60%, 45%)",
@@ -12,26 +13,25 @@ export function StatusDistributionChart() {
   const { data, isLoading } = useStatusDistribution();
 
   if (isLoading) {
-    return <div className="glass-card p-5 h-[280px] animate-pulse" />;
+    return <Skeleton className="h-[280px]" />;
   }
 
-  const issues = (data as any)?.issues || [];
-
-  // Group by status category
-  const counts: Record<string, { name: string; count: number; key: string }> = {};
-  issues.forEach((issue: any) => {
-    const cat = issue.fields?.status?.statusCategory;
-    const key = cat?.key || "undefined";
-    const name = cat?.name || "Unknown";
-    if (!counts[key]) counts[key] = { name, count: 0, key };
-    counts[key].count++;
-  });
+  const counts = data as Record<string, { name: string; count: number; key: string }> | undefined;
+  if (!counts || Object.keys(counts).length === 0) {
+    return (
+      <div className="glass-card p-5 h-[280px] flex items-center justify-center text-xs text-muted-foreground">
+        No status data available
+      </div>
+    );
+  }
 
   const chartData = Object.values(counts).map((c) => ({
     name: c.name,
     value: c.count,
     fill: STATUS_COLORS[c.key] || STATUS_COLORS["undefined"],
   }));
+
+  const total = chartData.reduce((s, d) => s + d.value, 0);
 
   return (
     <div className="glass-card p-5">
@@ -61,6 +61,7 @@ export function StatusDistributionChart() {
                   borderRadius: "8px",
                   fontSize: "11px",
                 }}
+                formatter={(value: number) => [`${value} (${Math.round((value / total) * 100)}%)`, ""]}
               />
             </PieChart>
           </ResponsiveContainer>
