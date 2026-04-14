@@ -43,6 +43,16 @@ function countModule(m: OrgModule): number {
   return c;
 }
 
+function PersonChip({ name, badge, badgeClass }: { name: string; badge?: string; badgeClass?: string }) {
+  return (
+    <div className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-secondary/50 transition-colors">
+      <Avatar name={name} />
+      <p className="text-xs truncate">{name}</p>
+      {badge && <Badge variant="secondary" className={`text-[9px] shrink-0 ${badgeClass}`}>{badge}</Badge>}
+    </div>
+  );
+}
+
 function ModuleListCard({ module, depth = 0 }: { module: OrgModule; depth?: number }) {
   const [expanded, setExpanded] = useState(false);
   const total = countModule(module);
