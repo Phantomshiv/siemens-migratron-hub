@@ -1,16 +1,31 @@
 import { useActiveSprint } from "@/hooks/useJira";
 import { KPICard } from "@/components/KPICard";
-import { Target, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { Target, CheckCircle, Clock, AlertTriangle, Info } from "lucide-react";
 
 export function SprintKPIs() {
-  const { data, isLoading } = useActiveSprint();
+  const { data, isLoading, isError } = useActiveSprint();
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="glass-card p-5 h-[120px] animate-pulse" />
         ))}
+      </div>
+    );
+  }
+
+  // No active sprint — show a helpful empty state
+  if (!data || isError) {
+    return (
+      <div className="glass-card p-5 flex items-center gap-3">
+        <Info className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+        <div>
+          <p className="text-sm font-medium">No active sprint</p>
+          <p className="text-xs text-muted-foreground">
+            There is currently no active sprint on the OSES board. Sprint KPIs will appear once a sprint is started.
+          </p>
+        </div>
       </div>
     );
   }
@@ -26,7 +41,6 @@ export function SprintKPIs() {
   }).length;
   const completionPct = total > 0 ? Math.round((done / total) * 100) : 0;
 
-  // Story points
   const totalSP = issues.reduce((s: number, i: any) => s + (i.fields?.customfield_10016 || 0), 0);
   const doneSP = issues
     .filter((i: any) => i.fields?.status?.statusCategory?.key === "done")
