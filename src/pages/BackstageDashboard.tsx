@@ -6,6 +6,7 @@ import { BackstageComponentTypesChart } from "@/components/backstage/ComponentTy
 import { BackstageResourceTypesChart } from "@/components/backstage/ResourceTypesChart";
 import { BackstageSystemsList } from "@/components/backstage/SystemsList";
 import { BackstageBUChart } from "@/components/backstage/BUChart";
+import { BackstageAPICatalog } from "@/components/backstage/APICatalog";
 
 const BackstageDashboard = () => {
   return (
@@ -31,7 +32,10 @@ const BackstageDashboard = () => {
           <BackstageSystemsList />
         </div>
 
-        <BackstageComponentsTable />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <BackstageComponentsTable />
+          <BackstageAPICatalog />
+        </div>
       </div>
     </DashboardLayout>
   );
