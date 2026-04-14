@@ -12,6 +12,7 @@ import {
   Rocket,
   Github,
   BookOpen,
+  Megaphone,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -39,6 +40,7 @@ const mainItems = [
   { title: "Risks & Decisions", url: "/risks", icon: AlertTriangle },
   { title: "GitHub", url: "/github", icon: Github },
   { title: "Backstage", url: "/backstage", icon: BookOpen },
+  { title: "Comms & Growth", url: "/communication", icon: Megaphone },
 ];
 
 const secondaryItems = [
