@@ -16,6 +16,7 @@ import BackstageDashboard from "./pages/BackstageDashboard.tsx";
 import CommunicationGrowth from "./pages/CommunicationGrowth.tsx";
 import ClientManagement from "./pages/ClientManagement.tsx";
 import BudgetDashboard from "./pages/BudgetDashboard.tsx";
+import PeopleDashboard from "./pages/PeopleDashboard.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/communication" element={<CommunicationGrowth />} />
             <Route path="/clients" element={<ClientManagement />} />
             <Route path="/budget" element={<BudgetDashboard />} />
+            <Route path="/people" element={<PeopleDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
