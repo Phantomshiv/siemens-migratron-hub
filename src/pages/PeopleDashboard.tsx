@@ -147,7 +147,7 @@ const PeopleDashboard = () => {
 
   const filteredModules = search
     ? orgData.modules.filter((m) => {
-        const text = `${m.name} ${m.lead} ${m.coLead || ""} ${m.members.map((p) => p.name).join(" ")}`.toLowerCase();
+        const text = `${m.name} ${m.lead} ${m.coLead || ""} ${m.pmo?.map((p) => p.name).join(" ") || ""} ${m.members.map((p) => p.name).join(" ")}`.toLowerCase();
         return text.includes(search.toLowerCase());
       })
     : orgData.modules;
