@@ -57,7 +57,7 @@ export function useStatusDistribution() {
 
       const results = await Promise.all(
         categories.map(async (cat) => {
-          const res: any = await searchIssues(cat.jql, 0, ["status"]);
+          const res: any = await searchIssues(cat.jql, 1, ["status"]);
           return { ...cat, count: res?.total ?? 0 };
         })
       );
