@@ -1,5 +1,5 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { useGitHubSummary, useGitHubActivity } from "@/hooks/useGitHub";
+import { useGitHubSummary, useGitHubActivity, useGitHubMembersDetail } from "@/hooks/useGitHub";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +22,7 @@ import {
   GitPullRequest,
   GitCommit,
   TrendingUp,
+  Building2,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -74,6 +75,7 @@ function StatCard({ icon: Icon, label, value, sub }: { icon: React.ElementType; 
 const GitHubDashboard = () => {
   const { data, isLoading, error } = useGitHubSummary("open");
   const { data: activity, isLoading: activityLoading } = useGitHubActivity("open");
+  const { data: membersDetail, isLoading: membersLoading } = useGitHubMembersDetail("open");
 
   // Derive stats
   const totalRepos = data?.reposTotalCount ?? data?.repos?.length ?? 0;
@@ -413,6 +415,79 @@ const GitHubDashboard = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Department Breakdown */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-sm font-heading flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-primary" /> Members by Department
+              </CardTitle>
+              {membersDetail && (
+                <p className="text-[10px] text-muted-foreground">
+                  {membersDetail.totalMembers} members across {membersDetail.departments.length} departments
+                </p>
+              )}
+            </CardHeader>
+            <CardContent>
+              {membersLoading ? (
+                <Skeleton className="h-[350px] w-full" />
+              ) : membersDetail?.departments && membersDetail.departments.length > 0 ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={membersDetail.departments.slice(0, 15)} layout="vertical" margin={{ left: 60 }}>
+                    <XAxis type="number" stroke="hsl(215, 15%, 55%)" fontSize={11} />
+                    <YAxis type="category" dataKey="name" stroke="hsl(215, 15%, 55%)" fontSize={11} width={55} />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Bar dataKey="count" fill="hsl(174, 100%, 40%)" radius={[0, 4, 4, 0]} name="Members" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-xs text-muted-foreground">No department data available</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-sm font-heading flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" /> Department Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {membersLoading ? (
+                <Skeleton className="h-[350px] w-full" />
+              ) : membersDetail?.departments && membersDetail.departments.length > 0 ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <PieChart>
+                    <Pie
+                      data={(() => {
+                        const top10 = membersDetail.departments.slice(0, 10);
+                        const rest = membersDetail.departments.slice(10);
+                        const otherCount = rest.reduce((s, d) => s + d.count, 0);
+                        return otherCount > 0 ? [...top10, { name: "Other", count: otherCount }] : top10;
+                      })()}
+                      dataKey="count"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={110}
+                      paddingAngle={2}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {membersDetail.departments.slice(0, 11).map((_, idx) => (
+                        <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={tooltipStyle} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-xs text-muted-foreground">No department data available</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Contributor Activity Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

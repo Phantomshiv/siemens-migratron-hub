@@ -155,3 +155,33 @@ export function useGitHubActivity(org = "open") {
     retry: 1,
   });
 }
+
+export interface GHEMembersDetail {
+  totalMembers: number;
+  departments: Array<{ name: string; count: number }>;
+  members: Array<{ login: string; name: string; email: string; department: string }>;
+}
+
+async function fetchGHEMembersDetail(org = "open"): Promise<GHEMembersDetail> {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/github?action=members-detail&org=${org}`;
+  const resp = await fetch(url, {
+    headers: {
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+  });
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new Error(`GitHub Members API error: ${resp.status} - ${body}`);
+  }
+  return resp.json();
+}
+
+export function useGitHubMembersDetail(org = "open") {
+  return useQuery<GHEMembersDetail>({
+    queryKey: ["github-members-detail", org],
+    queryFn: () => fetchGHEMembersDetail(org),
+    staleTime: 15 * 60 * 1000,
+    retry: 1,
+  });
+}
