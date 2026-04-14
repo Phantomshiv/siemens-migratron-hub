@@ -1,0 +1,114 @@
+import {
+  LayoutDashboard,
+  GitBranch,
+  BarChart3,
+  AlertTriangle,
+  Map,
+  Settings,
+  Boxes,
+  FileText,
+} from "lucide-react";
+import { NavLink } from "@/components/NavLink";
+import { useLocation } from "react-router-dom";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarHeader,
+  SidebarFooter,
+  useSidebar,
+} from "@/components/ui/sidebar";
+
+const mainItems = [
+  { title: "Overview", url: "/", icon: LayoutDashboard },
+  { title: "Metrics", url: "/metrics", icon: BarChart3 },
+  { title: "Roadmap", url: "/roadmap", icon: Map },
+  { title: "Risks & Decisions", url: "/risks", icon: AlertTriangle },
+];
+
+const secondaryItems = [
+  { title: "Systems", url: "/systems", icon: Boxes },
+  { title: "Migration Log", url: "/log", icon: FileText },
+  { title: "Settings", url: "/settings", icon: Settings },
+];
+
+export function AppSidebar() {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+  const location = useLocation();
+  const isActive = (path: string) =>
+    path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
+
+  return (
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
+            <GitBranch className="h-4 w-4 text-primary-foreground" />
+          </div>
+          {!collapsed && (
+            <div>
+              <h2 className="font-heading text-sm font-bold text-sidebar-accent-foreground">
+                SCM Migration
+              </h2>
+              <p className="text-xs text-sidebar-foreground">Siemens → GitHub</p>
+            </div>
+          )}
+        </div>
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Program</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {mainItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <NavLink to={item.url} end={item.url === "/"}>
+                      <item.icon className="h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Management</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {secondaryItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <NavLink to={item.url}>
+                      <item.icon className="h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="p-4">
+        {!collapsed && (
+          <div className="glass-card p-3">
+            <p className="text-xs text-muted-foreground">
+              Last sync: 2 min ago
+            </p>
+          </div>
+        )}
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
