@@ -31,8 +31,8 @@ export function DailyCostTrendChart() {
           const date = row.date;
           if (!byDate[date]) byDate[date] = { aws: 0, azure: 0, other: 0 };
           const cost = parseFloat(row.unblended_cost || "0");
-          const vendor = (row.vendor_name || "").toLowerCase();
-          if (vendor.includes("aws") || vendor.includes("amazon")) byDate[date].aws += cost;
+          const vendor = (row.vendor || "").toLowerCase();
+          if (vendor.includes("amazon") || vendor.includes("aws")) byDate[date].aws += cost;
           else if (vendor.includes("azure") || vendor.includes("microsoft")) byDate[date].azure += cost;
           else byDate[date].other += cost;
         }

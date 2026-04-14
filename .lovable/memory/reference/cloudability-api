@@ -7,5 +7,9 @@ type: reference
 - Auth: Basic Auth with API key as username, empty password
 - Date params: `start_date` and `end_date` (NOT `start`/`end`)
 - Response field: `results` array (NOT `result`)
-- Key endpoints: /v3/reporting/cost/run, /v3/rightsizing, /v3/budgets, /v3/anomalies
-- Environment ID: f2ee502f-2f35-45c1-8bc5-7d4748f637b6 (for UI reference only, not used in API)
+- Dimension for vendor: `vendor` (NOT `vendor_name`). Values: "Amazon", "Azure"
+- Sort parameter does NOT work with v3 cost reports — sort client-side
+- `/v3/rightsizing` returns 404 — endpoint not available with Basic Auth key
+- `usage_hours` metric with `category4==Compute` filter returns 0 results
+- Key working endpoints: /v3/reporting/cost/run
+- Environment ID: f2ee502f-2f35-45c1-8bc5-7d4748f637b6 (for UI reference only)

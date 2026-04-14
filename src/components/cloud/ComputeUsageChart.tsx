@@ -22,7 +22,7 @@ export function ComputeUsageChart() {
       if (Array.isArray(result) && result.length > 5) {
         chartData = result.map((row: any) => ({
           date: new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-          usageHours: parseFloat(row.usage_hours || "0"),
+          usageHours: parseFloat(row.unblended_cost || "0"),
           cost: parseFloat(row.total_amortized_cost || "0"),
         }));
       }
@@ -32,7 +32,7 @@ export function ComputeUsageChart() {
   return (
     <div className="glass-card p-5">
       <div className="mb-4">
-        <h3 className="font-heading font-bold text-sm">Daily Compute Usage & Cost Trend</h3>
+        <h3 className="font-heading font-bold text-sm">Daily Cost Trend: Cash vs Amortized</h3>
         <p className="text-[10px] text-muted-foreground">Last 60 days</p>
       </div>
       {isLoading ? (
@@ -53,7 +53,7 @@ export function ComputeUsageChart() {
                   fontSize: "11px",
                 }}
               />
-              <Bar yAxisId="hours" dataKey="usageHours" fill="hsl(215, 80%, 60%)" opacity={0.7} name="Usage Hours" />
+              <Bar yAxisId="hours" dataKey="usageHours" fill="hsl(215, 80%, 60%)" opacity={0.7} name="Cost (Cash)" />
               <Line yAxisId="cost" type="monotone" dataKey="cost" stroke="hsl(25, 85%, 55%)" strokeWidth={2} dot={false} name="Cost (Amortized)" />
             </ComposedChart>
           </ResponsiveContainer>

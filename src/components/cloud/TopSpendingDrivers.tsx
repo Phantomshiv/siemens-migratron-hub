@@ -20,11 +20,13 @@ export function TopSpendingDrivers() {
     try {
       const result = (data as any)?.results;
       if (Array.isArray(result) && result.length > 0) {
-        drivers = result.map((row: any) => ({
-          service: row.enhanced_service_name || "Unknown",
-          usage: row.usage_family || "",
-          cost: parseFloat(row.unblended_cost || "0"),
-        }));
+        drivers = result
+          .map((row: any) => ({
+            service: row.enhanced_service_name || "Unknown",
+            usage: "",
+            cost: parseFloat(row.unblended_cost || "0"),
+          }))
+          .sort((a: any, b: any) => b.cost - a.cost);
       }
     } catch { /* use mock */ }
   }
