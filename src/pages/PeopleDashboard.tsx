@@ -53,7 +53,7 @@ function LeadershipCard({ title, name, icon: Icon }: { title: string; name: stri
 
 function ModuleCard({ module }: { module: typeof orgData.modules[0] }) {
   const [expanded, setExpanded] = useState(false);
-  const totalMembers = module.members.length + 1 + (module.coLead ? 1 : 0);
+  const totalMembers = module.members.length + (module.lead ? 1 : 0) + (module.coLead ? 1 : 0) + (module.pmo?.length || 0);
 
   return (
     <div className="glass-card overflow-hidden">
