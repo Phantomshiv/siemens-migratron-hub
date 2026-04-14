@@ -5,6 +5,7 @@ import { BackstageLifecycleChart } from "@/components/backstage/LifecycleChart";
 import { BackstageComponentTypesChart } from "@/components/backstage/ComponentTypesChart";
 import { BackstageResourceTypesChart } from "@/components/backstage/ResourceTypesChart";
 import { BackstageSystemsList } from "@/components/backstage/SystemsList";
+import { BackstageBUChart } from "@/components/backstage/BUChart";
 
 const BackstageDashboard = () => {
   return (
@@ -26,9 +27,11 @@ const BackstageDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <BackstageComponentsTable />
+          <BackstageBUChart />
           <BackstageSystemsList />
         </div>
+
+        <BackstageComponentsTable />
       </div>
     </DashboardLayout>
   );
