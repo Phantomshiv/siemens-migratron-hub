@@ -4,6 +4,7 @@ import {
   getSprintIssues,
   getEpics,
   getBlockers,
+  countIssues,
   searchIssues,
 } from "@/lib/jira";
 
@@ -57,8 +58,8 @@ export function useStatusDistribution() {
 
       const results = await Promise.all(
         categories.map(async (cat) => {
-          const res: any = await searchIssues(cat.jql, 1, ["status"]);
-          return { ...cat, count: res?.total ?? 0 };
+          const count = await countIssues(cat.jql);
+          return { ...cat, count };
         })
       );
 

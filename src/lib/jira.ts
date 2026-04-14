@@ -73,11 +73,15 @@ export async function getBlockers(projectKey: string) {
   );
 }
 
-// --- Status distribution ---
-export async function getStatusDistribution(projectKey: string) {
-  return searchIssues(
-    `project = ${projectKey} ORDER BY status ASC`,
-    500,
-    ["status", "issuetype"],
-  );
+// --- Status distribution (count only, uses v2 which returns total) ---
+export async function countIssues(jql: string): Promise<number> {
+  const res: any = await callJira({
+    endpoint: "/rest/api/2/search",
+    params: {
+      jql,
+      maxResults: "0" as any,
+      fields: "" as any,
+    },
+  });
+  return res?.total ?? 0;
 }
