@@ -21,7 +21,6 @@ serve(async (req) => {
       });
     }
 
-    const CLOUDABILITY_ENV_ID = Deno.env.get("CLOUDABILITY_ENV_ID") || "f2ee502f-2f35-45c1-8bc5-7d4748f637b6";
     const { endpoint, method = "GET", params = {}, body: reqBody } = await req.json();
 
     if (!endpoint || typeof endpoint !== "string") {
@@ -39,18 +38,10 @@ serve(async (req) => {
       }
     }
 
-    // Support both Cloudability API key (Basic Auth) and Apptio OpenToken
     const headers: Record<string, string> = {
       Accept: "application/json",
+      Authorization: `Basic ${btoa(CLOUDABILITY_API_KEY + ":")}`,
     };
-
-    // Try Apptio OpenToken first (works with Frontdoor keys), fallback to Basic Auth
-    if (CLOUDABILITY_ENV_ID) {
-      headers["Apptio-Opentoken"] = CLOUDABILITY_API_KEY;
-      headers["Apptio-Current-Environment"] = CLOUDABILITY_ENV_ID;
-    } else {
-      headers["Authorization"] = `Basic ${btoa(CLOUDABILITY_API_KEY + ":")}`;
-    }
 
     const fetchOptions: RequestInit = {
       method,
