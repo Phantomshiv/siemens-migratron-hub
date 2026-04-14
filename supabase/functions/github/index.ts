@@ -311,12 +311,14 @@ Deno.serve(async (req) => {
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count);
 
-      return new Response(JSON.stringify({
+      const membersResult = {
         totalMembers: members.length,
         departments,
         members,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      };
+      await setCache(`github:members-detail:${org}`, membersResult, CACHE_TTL["members-detail"]);
+      return new Response(JSON.stringify(membersResult), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
       });
     }
 
@@ -340,7 +342,7 @@ Deno.serve(async (req) => {
       const billingStorage = billingStorageResp.ok ? await billingStorageResp.json() : (errors.push(`billing_storage: ${billingStorageResp.status}`), null);
       const copilot = copilotResp.ok ? await copilotResp.json() : (errors.push(`copilot: ${copilotResp.status}`), null);
 
-      return new Response(JSON.stringify({
+      const summaryResult = {
         org: orgData,
         repos: allRepos,
         reposTotalCount: allRepos.length,
@@ -352,8 +354,10 @@ Deno.serve(async (req) => {
         billingStorage,
         copilot,
         errors: errors.length > 0 ? errors : undefined,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      };
+      await setCache(`github:summary:${org}`, summaryResult, CACHE_TTL["summary"]);
+      return new Response(JSON.stringify(summaryResult), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
       });
     }
 
@@ -482,15 +486,17 @@ Deno.serve(async (req) => {
         .sort((a, b) => b.commits - a.commits)
         .slice(0, 20);
 
-      return new Response(JSON.stringify({
+      const activityResult = {
         weeklyCommits: weeklyCommitData,
         prStats,
         prWeeklyData,
         topContributors,
         reposAnalyzed: topRepos.length,
         errors: errors.length > 0 ? errors : undefined,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      };
+      await setCache(`github:activity:${org}`, activityResult, CACHE_TTL["activity"]);
+      return new Response(JSON.stringify(activityResult), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
       });
     }
 
