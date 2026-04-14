@@ -1,5 +1,4 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { useRightsizing } from "@/hooks/useCloudability";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingDown } from "lucide-react";
 
@@ -19,7 +18,7 @@ const avgCoin = mockSavings.reduce((s, d) => s + d.coin, 0) / mockSavings.length
 const pieData = mockSavings.map(s => ({ name: s.service, value: s.savings }));
 
 export function ResourceOptimization() {
-  const { isLoading } = useRightsizing();
+  const isLoading = false;
 
   const fmt = (n: number) => `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 
