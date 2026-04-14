@@ -414,6 +414,100 @@ const GitHubDashboard = () => {
           </Card>
         )}
 
+        {/* Contributor Activity Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Weekly Commits (last year) */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-sm font-heading flex items-center gap-2">
+                <GitCommit className="h-4 w-4 text-primary" /> Weekly Commit Activity
+              </CardTitle>
+              {activity?.reposAnalyzed && (
+                <p className="text-[10px] text-muted-foreground">Across top {activity.reposAnalyzed} repos</p>
+              )}
+            </CardHeader>
+            <CardContent>
+              {activityLoading ? (
+                <Skeleton className="h-[250px] w-full" />
+              ) : activity?.weeklyCommits && activity.weeklyCommits.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <AreaChart data={activity.weeklyCommits.slice(-26).map((w) => ({
+                    week: new Date(w.week * 1000).toLocaleDateString("en", { month: "short", day: "numeric" }),
+                    commits: w.total,
+                  }))}>
+                    <XAxis dataKey="week" stroke="hsl(215, 15%, 55%)" fontSize={10} interval="preserveStartEnd" />
+                    <YAxis stroke="hsl(215, 15%, 55%)" fontSize={11} />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Area type="monotone" dataKey="commits" stroke="hsl(174, 100%, 40%)" fill="hsl(174, 100%, 40%)" fillOpacity={0.15} strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-xs text-muted-foreground">No commit data available</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* PR Activity (last 90 days) */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-sm font-heading flex items-center gap-2">
+                <GitPullRequest className="h-4 w-4 text-primary" /> Pull Request Activity (90 days)
+              </CardTitle>
+              {activity?.prStats && (
+                <div className="flex gap-3 mt-1">
+                  <Badge variant="outline" className="text-[10px]">Open: {activity.prStats.open}</Badge>
+                  <Badge variant="outline" className="text-[10px] border-green-500/50 text-green-400">Merged: {activity.prStats.merged}</Badge>
+                  <Badge variant="outline" className="text-[10px] border-destructive/50 text-destructive">Closed: {activity.prStats.closed}</Badge>
+                </div>
+              )}
+            </CardHeader>
+            <CardContent>
+              {activityLoading ? (
+                <Skeleton className="h-[250px] w-full" />
+              ) : activity?.prWeeklyData && activity.prWeeklyData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={activity.prWeeklyData.map((w) => ({
+                    week: new Date(w.week).toLocaleDateString("en", { month: "short", day: "numeric" }),
+                    opened: w.opened,
+                    merged: w.merged,
+                  }))}>
+                    <XAxis dataKey="week" stroke="hsl(215, 15%, 55%)" fontSize={10} />
+                    <YAxis stroke="hsl(215, 15%, 55%)" fontSize={11} />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar dataKey="opened" fill="hsl(215, 20%, 40%)" radius={[4, 4, 0, 0]} name="Opened" />
+                    <Bar dataKey="merged" fill="hsl(174, 100%, 40%)" radius={[4, 4, 0, 0]} name="Merged" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-xs text-muted-foreground">No PR data available</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Top Contributors */}
+        {activity?.topContributors && activity.topContributors.length > 0 && (
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-sm font-heading flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" /> Top Contributors
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={activity.topContributors.slice(0, 15)} layout="vertical" margin={{ left: 80 }}>
+                  <XAxis type="number" stroke="hsl(215, 15%, 55%)" fontSize={11} />
+                  <YAxis type="category" dataKey="login" stroke="hsl(215, 15%, 55%)" fontSize={11} width={75} />
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="commits" fill="hsl(174, 100%, 40%)" radius={[0, 4, 4, 0]} name="Commits" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Recent Repos Table */}
         <Card className="glass-card">
           <CardHeader>
