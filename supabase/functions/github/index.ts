@@ -35,6 +35,17 @@ async function fetchAllPages(url: string, headers: Record<string, string>, maxPa
   return all;
 }
 
+// Fetch with retry for GitHub stats endpoints that return 202 while computing
+async function fetchWithStatsRetry(url: string, headers: Record<string, string>, retries = 3): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    const resp = await fetch(url, { headers });
+    if (resp.status !== 202) return resp;
+    // Wait before retrying (GitHub is computing stats)
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  return fetch(url, { headers });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -191,10 +202,10 @@ Deno.serve(async (req) => {
       const commitStatsResults = await Promise.all(
         topRepos.map(async (repo) => {
           try {
-            const resp = await fetch(`${GHE_BASE}/repos/${repo.full_name}/stats/commit_activity`, { headers: gheHeaders });
-            if (!resp.ok) return null;
+            const resp = await fetchWithStatsRetry(`${GHE_BASE}/repos/${repo.full_name}/stats/commit_activity`, gheHeaders);
+            if (!resp.ok && resp.status !== 202) return null;
             const data = await resp.json();
-            return { repo: repo.name, weeks: data };
+            return { repo: repo.name, weeks: Array.isArray(data) ? data : [] };
           } catch {
             return null;
           }
@@ -270,9 +281,10 @@ Deno.serve(async (req) => {
       const contributorStatsResults = await Promise.all(
         topRepos.slice(0, 10).map(async (repo) => {
           try {
-            const resp = await fetch(`${GHE_BASE}/repos/${repo.full_name}/stats/contributors`, { headers: gheHeaders });
-            if (!resp.ok) return [];
-            return await resp.json();
+            const resp = await fetchWithStatsRetry(`${GHE_BASE}/repos/${repo.full_name}/stats/contributors`, gheHeaders);
+            if (!resp.ok && resp.status !== 202) return [];
+            const data = await resp.json();
+            return Array.isArray(data) ? data : [];
           } catch {
             return [];
           }
