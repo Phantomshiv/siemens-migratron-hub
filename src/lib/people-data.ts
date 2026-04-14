@@ -3,231 +3,174 @@
 
 export type Person = {
   name: string;
-  role?: string;
   type: "internal" | "external";
 };
 
 export type OrgModule = {
   name: string;
-  lead: string;
-  coLead?: string;
-  pmo?: Person[];
-  members: Person[];
+  leads: string[];
+  pmo: string[];
+  members: string[];
+  externals: string[];
 };
 
 export type OrgStructure = {
   program: string;
-  leadership: {
-    programLead: string;
-    productManagement: string;
-    finance: string;
-    ai: string;
-  };
-  pmo: Person[];
+  programLeaders: string[];
+  pmoLead: string;
   modules: OrgModule[];
-  externals: Person[];
 };
 
 export const orgData: OrgStructure = {
   program: "ONE Software Engineering System (OSES)",
-  leadership: {
-    programLead: "Dr. Henrik Thiele",
-    productManagement: "Christopher Leach",
-    finance: "Lachezar Zarov",
-    ai: "Mgr. Vladimír Kulla",
-  },
-  pmo: [
-    { name: "Jacqueline Müller", type: "internal" },
-    { name: "Nisha DeThomas", type: "internal" },
-    { name: "Elena Fuchs", type: "internal" },
-    { name: "PHILIP HALL", type: "internal" },
-    { name: "Borja Martinez Yllera", type: "internal" },
-  ],
+  programLeaders: ["Nizar Chaouch", "Dr. Henrik Thiele", "Christopher Leach", "Alexander Schatz"],
+  pmoLead: "Dr. Henrik Thiele",
   modules: [
     {
       name: "Project Leadership",
-      lead: "Christopher Leach",
-      coLead: "Nizar Chaouch",
-      pmo: [
-        { name: "Jacqueline Müller", type: "internal" },
-        { name: "Nisha DeThomas", type: "internal" },
-        { name: "Elena Fuchs", type: "internal" },
-        { name: "PHILIP HALL", type: "internal" },
-        { name: "Borja Martinez Yllera", type: "internal" },
-      ],
-      members: [
-        { name: "Alexander Schatz", type: "internal" },
-      ],
+      leads: ["Christopher Leach", "Nizar Chaouch", "Alexander Schatz"],
+      pmo: ["Jacqueline Müller", "Nisha DeThomas", "Elena Fuchs", "PHILIP HALL", "Borja Martinez Yllera"],
+      members: [],
+      externals: [],
     },
     {
       name: "Product Management",
-      lead: "Christopher Leach",
-      pmo: [{ name: "Nisha DeThomas", type: "internal" }],
+      leads: ["Christopher Leach"],
+      pmo: ["Nisha DeThomas"],
       members: [
-        { name: "Divya Sree Dinnepati", type: "internal" },
-        { name: "Traci Dyson", type: "internal" },
-        { name: "dr. Ede Heltovics", type: "internal" },
-        { name: "Eike Hensler", type: "internal" },
-        { name: "William Kaupp", type: "internal" },
-        { name: "Sebastian Mittnacht", type: "internal" },
-        { name: "Fabiola Paulina Moyon Constante", type: "internal" },
-        { name: "Shubham Srivastava", type: "internal" },
-        { name: "Parth Srivastav", type: "internal" },
+        "Divya Sree Dinnepati", "Traci Dyson", "dr. Ede Heltovics", "Eike Hensler",
+        "William Kaupp", "Sebastian Mittnacht", "Fabiola Paulina Moyon Constante",
+        "Shubham Srivastava", "Parth Srivastav",
       ],
+      externals: [],
     },
     {
       name: "Finance",
-      lead: "Lachezar Zarov",
+      leads: ["Lachezar Zarov"],
+      pmo: [],
       members: [
-        { name: "Ioana Both", type: "internal" },
-        { name: "Bc. Patrik Hovorka", type: "internal" },
-        { name: "Natalia Lazareva", type: "internal" },
-        { name: "Lorena Oppel", type: "internal" },
-        { name: "Thorsten Schlüter", type: "internal" },
+        "Ioana Both", "Bc. Patrik Hovorka", "Natalia Lazareva", "Lorena Oppel", "Thorsten Schlüter",
       ],
+      externals: [],
     },
     {
       name: "AI Initiatives",
-      lead: "Mgr. Vladimír Kulla",
-      coLead: "Khosro Rahbar",
-      pmo: [{ name: "Michael Volkmer", type: "internal" }],
+      leads: ["Mgr. Vladimír Kulla", "Khosro Rahbar"],
+      pmo: ["Michael Volkmer"],
       members: [
-        { name: "Adrian Dischinger", type: "internal" },
-        { name: "Henrike Hardt", type: "internal" },
-        { name: "Pedro Andre Pinheiro Sequeira", type: "internal" },
-        { name: "Thomas Rettenmaier", type: "internal" },
-        { name: "Stephan Rödiger", type: "internal" },
-        { name: "Imke Sophia Schmidt", type: "internal" },
-        { name: "Sinthujan Senthilrajah", type: "internal" },
-        { name: "Jörg Wiersbitzki", type: "internal" },
+        "Adrian Dischinger", "Henrike Hardt", "Pedro Andre Pinheiro Sequeira",
+        "Thomas Rettenmaier", "Stephan Rödiger", "Imke Sophia Schmidt",
+        "Sinthujan Senthilrajah", "Jörg Wiersbitzki",
       ],
+      externals: [],
     },
     {
       name: "Platform Development",
-      lead: "Jamie Florence",
-      pmo: [{ name: "Nisha DeThomas", type: "internal" }],
+      leads: ["Jamie Florence"],
+      pmo: ["Nisha DeThomas"],
       members: [
-        { name: "Divya Sree Dinnepati", type: "internal" },
-        { name: "Traci Dyson", type: "internal" },
-        { name: "Mohamed Elmorsy Elbendary Elshaer", type: "internal" },
-        { name: "Brandon Jones", type: "internal" },
-        { name: "dr. Ede Heltovics", type: "internal" },
-        { name: "Eike Hensler", type: "internal" },
-        { name: "William Kaupp", type: "internal" },
-        { name: "Gerard Malone", type: "internal" },
-        { name: "Sebastian Mittnacht", type: "internal" },
-        { name: "Fabiola Paulina Moyon Constante", type: "internal" },
-        { name: "Ramanagouda Patil", type: "internal" },
-        { name: "Parth Srivastav", type: "internal" },
-        { name: "Shubham Srivastava", type: "internal" },
-        { name: "Kavirajacholan Selvaraj", type: "internal" },
-        { name: "Scott Schwartz", type: "internal" },
+        "Divya Sree Dinnepati", "Traci Dyson", "Mohamed Elmorsy Elbendary Elshaer",
+        "Brandon Jones", "dr. Ede Heltovics", "Eike Hensler", "William Kaupp",
+        "Gerard Malone", "Sebastian Mittnacht", "Fabiola Paulina Moyon Constante",
+        "Ramanagouda Patil", "Parth Srivastav", "Shubham Srivastava",
+        "Kavirajacholan Selvaraj", "Scott Schwartz",
       ],
+      externals: [],
     },
     {
       name: "Architecture & Governance",
-      lead: "Gregory Haynes",
-      coLead: "Holger Heise",
-      pmo: [{ name: "Gabriel Osburn", type: "internal" }],
+      leads: ["Gregory Haynes"],
+      pmo: ["Gabriel Osburn"],
       members: [
-        { name: "Christian Beining", type: "internal" },
-        { name: "Nisha DeThomas", type: "internal" },
-        { name: "Jamie Florence", type: "internal" },
-        { name: "Dirk Arne Lehmann", type: "internal" },
-        { name: "Mohamed Mohamed", type: "internal" },
-        { name: "Igor Milovanovic", type: "internal" },
-        { name: "Peter Stoll", type: "internal" },
-        { name: "Jörg Wiersbitzki", type: "internal" },
+        "Christian Beining", "Nisha DeThomas", "Jamie Florence", "Gregory Haynes",
+        "Dirk Arne Lehmann", "Mohamed Mohamed", "Igor Milovanovic",
+        "Peter Stoll", "Jörg Wiersbitzki",
       ],
+      externals: [],
+    },
+    {
+      name: "ONE Operations Team",
+      leads: ["Holger Heise"],
+      pmo: [],
+      members: ["Jörg Scheiderer", "Temenuga Bakalska-Takev"],
+      externals: [],
     },
     {
       name: "Migration & Harmonization",
-      lead: "Mamun Natour",
-      coLead: "Andreas Degraf",
-      pmo: [
-        { name: "Elena Fuchs", type: "internal" },
-        { name: "Dr. Isabell Meiners", type: "internal" },
-      ],
+      leads: ["Mamun Natour"],
+      pmo: ["Elena Fuchs", "Dr. Isabell Meiners"],
       members: [
-        { name: "Jörg Scheiderer", type: "internal" },
-        { name: "Temenuga Bakalska-Takev", type: "internal" },
-        { name: "Andreas Atug", type: "internal" },
-        { name: "Sofia Cefaliello", type: "internal" },
-        { name: "Sara Huerta De Castro", type: "internal" },
-        { name: "Ruth Madrid Dusik", type: "internal" },
-        { name: "PHILIP HALL", type: "internal" },
-        { name: "Carsten Hammerstein", type: "internal" },
-        { name: "Franziska Kraus", type: "internal" },
-        { name: "Lorena Oppel", type: "internal" },
-        { name: "Steffen Wagner", type: "internal" },
+        "Andreas Atug", "Sofia Cefaliello", "Sara Huerta De Castro", "Ruth Madrid Dusik",
+        "PHILIP HALL", "Carsten Hammerstein", "Franziska Kraus", "Lorena Oppel", "Steffen Wagner",
       ],
+      externals: [],
+    },
+    {
+      name: "Tools & Code",
+      leads: ["Andreas Degraf"],
+      pmo: ["Elena Fuchs", "Dr. Isabell Meiners"],
+      members: [
+        "Lisa Demlehner", "Carsten Hammerstein", "Thomas Maier",
+        "Florian Oberste", "Jan-Patrik Patt",
+      ],
+      externals: ["Saurabh Singh", "Sai Pranava Paidimarri", "Deepak Pandit", "Ajeet Kumar Chouksey"],
+    },
+    {
+      name: "Reusability",
+      leads: ["Dr. Marie-Catherine Fritsch"],
+      pmo: [],
+      members: [
+        "Attila Beczök", "Muhammet Bilgin", "Antje Finger", "Adrian Neumann",
+        "Elmar Schilling", "Ion-Catalin Tudor", "Alexander Schmidt",
+      ],
+      externals: [],
     },
     {
       name: "Communication & Growth",
-      lead: "Dr. Marie-Catherine Fritsch",
-      coLead: "Conrad Reisch",
-      pmo: [
-        { name: "Elena Fuchs", type: "internal" },
-        { name: "Dr. Isabell Meiners", type: "internal" },
-        { name: "PHILIP HALL", type: "internal" },
-      ],
-      members: [
-        { name: "Lisa Demlehner", type: "internal" },
-        { name: "Carsten Hammerstein", type: "internal" },
-        { name: "Thomas Maier", type: "internal" },
-        { name: "Florian Oberste", type: "internal" },
-        { name: "Jan-Patrik Patt", type: "internal" },
-        { name: "Attila Beczök", type: "internal" },
-        { name: "Muhammet Bilgin", type: "internal" },
-        { name: "Antje Finger", type: "internal" },
-        { name: "Adrian Neumann", type: "internal" },
-        { name: "Elmar Schilling", type: "internal" },
-        { name: "Ion-Catalin Tudor", type: "internal" },
-        { name: "Alexander Schmidt", type: "internal" },
-      ],
+      leads: ["Conrad Reisch"],
+      pmo: ["PHILIP HALL"],
+      members: [],
+      externals: [],
     },
     {
       name: "Community Management & Learning",
-      lead: "",
+      leads: [],
+      pmo: [],
       members: [
-        { name: "Ana Cristina Alves de Almeida", type: "internal" },
-        { name: "Aenne Barnard", type: "internal" },
-        { name: "PHILIP HALL", type: "internal" },
-        { name: "Pamela Angelica Pacheco Tellez", type: "internal" },
-        { name: "Adrian Strauß", type: "internal" },
+        "Ana Cristina Alves de Almeida", "Aenne Barnard", "PHILIP HALL",
+        "Pamela Angelica Pacheco Tellez", "Adrian Strauß",
       ],
+      externals: [],
     },
     {
       name: "Client Management",
-      lead: "Dr. Johannes Ixmeier",
-      coLead: "Tim Westhoff",
-      members: [],
+      leads: [],
+      pmo: [],
+      members: ["Dr. Johannes Ixmeier", "Tim Westhoff"],
+      externals: [],
     },
-  ],
-  externals: [
-    { name: "Saurabh Singh", type: "external" },
-    { name: "Sai Pranava Paidimarri", type: "external" },
-    { name: "Deepak Pandit", type: "external" },
-    { name: "Ajeet Kumar Chouksey", type: "external" },
   ],
 };
 
 export function getOrgStats() {
-  const allMembers = new Set<string>();
+  const allPeople = new Set<string>();
+  const externalPeople = new Set<string>();
 
-  Object.values(orgData.leadership).forEach((n) => allMembers.add(n));
-  orgData.pmo.forEach((p) => allMembers.add(p.name));
+  orgData.programLeaders.forEach((n) => allPeople.add(n));
   orgData.modules.forEach((m) => {
-    if (m.lead) allMembers.add(m.lead);
-    if (m.coLead) allMembers.add(m.coLead);
-    m.pmo?.forEach((p) => allMembers.add(p.name));
-    m.members.forEach((p) => allMembers.add(p.name));
+    m.leads.forEach((n) => allPeople.add(n));
+    m.pmo.forEach((n) => allPeople.add(n));
+    m.members.forEach((n) => allPeople.add(n));
+    m.externals.forEach((n) => {
+      allPeople.add(n);
+      externalPeople.add(n);
+    });
   });
 
   return {
-    totalPeople: allMembers.size + orgData.externals.length,
-    internalCount: allMembers.size,
-    externalCount: orgData.externals.length,
+    totalPeople: allPeople.size,
+    internalCount: allPeople.size - externalPeople.size,
+    externalCount: externalPeople.size,
     moduleCount: orgData.modules.length,
   };
 }
