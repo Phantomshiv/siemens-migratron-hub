@@ -18,7 +18,7 @@ export function TopSpendingDrivers() {
   let drivers = mockDrivers;
   if (data && !isError) {
     try {
-      const result = (data as any)?.result;
+      const result = (data as any)?.results;
       if (Array.isArray(result) && result.length > 0) {
         drivers = result.map((row: any) => ({
           service: row.enhanced_service_name || "Unknown",
