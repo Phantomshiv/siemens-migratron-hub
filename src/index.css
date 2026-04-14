@@ -53,6 +53,12 @@
 
     --font-heading: 'Urbanist', sans-serif;
     --font-body: 'Epilogue', sans-serif;
+
+    --chart-1: 174 100% 32%;
+    --chart-2: 38 92% 50%;
+    --chart-3: 280 60% 55%;
+    --chart-4: 200 80% 50%;
+    --chart-5: 340 65% 50%;
   }
 
   .dark {
@@ -98,6 +104,12 @@
     --sidebar-accent-foreground: 210 20% 92%;
     --sidebar-border: 215 20% 15%;
     --sidebar-ring: 174 100% 40%;
+
+    --chart-1: 174 100% 45%;
+    --chart-2: 38 92% 55%;
+    --chart-3: 280 60% 60%;
+    --chart-4: 200 80% 55%;
+    --chart-5: 340 65% 55%;
   }
 }
 
