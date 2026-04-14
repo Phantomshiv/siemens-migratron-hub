@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
 export interface GHESummary {
   org: {
@@ -54,14 +53,6 @@ export interface GHESummary {
 }
 
 async function fetchGHESummary(org = "open"): Promise<GHESummary> {
-  const { data, error } = await supabase.functions.invoke("github", {
-    body: null,
-    headers: { "Content-Type": "application/json" },
-    method: "GET",
-  });
-
-  // supabase.functions.invoke doesn't support query params natively for GET,
-  // so we'll use a direct fetch instead
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/github?action=summary&org=${org}`;
   const resp = await fetch(url, {
     headers: {
