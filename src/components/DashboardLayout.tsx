@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <GlobalSearch />
             <div className="flex-1" />
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
                 <span className="text-xs font-heading font-bold text-primary">PM</span>
               </div>
