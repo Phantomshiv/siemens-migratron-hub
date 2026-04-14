@@ -110,13 +110,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Summary: fetch org info + first page of repos, members, teams in parallel
+    // Summary: fetch org info + repos + members + teams + billing + copilot in parallel
     if (action === "summary") {
-      const [orgResp, reposResp, membersResp, teamsResp] = await Promise.all([
+      const [orgResp, reposResp, membersResp, teamsResp, billingActionsResp, billingStorageResp, copilotResp] = await Promise.all([
         fetch(`${GHE_BASE}/orgs/${org}`, { headers: gheHeaders }),
         fetch(`${GHE_BASE}/orgs/${org}/repos?per_page=100&page=1&sort=updated&direction=desc`, { headers: gheHeaders }),
         fetch(`${GHE_BASE}/orgs/${org}/members?per_page=100&page=1`, { headers: gheHeaders }),
         fetch(`${GHE_BASE}/orgs/${org}/teams?per_page=100&page=1`, { headers: gheHeaders }),
+        fetch(`${GHE_BASE}/orgs/${org}/settings/billing/actions`, { headers: gheHeaders }),
+        fetch(`${GHE_BASE}/orgs/${org}/settings/billing/shared-storage`, { headers: gheHeaders }),
+        fetch(`${GHE_BASE}/orgs/${org}/copilot/billing`, { headers: gheHeaders }),
       ]);
 
       const errors: string[] = [];
@@ -124,6 +127,9 @@ Deno.serve(async (req) => {
       const reposData = reposResp.ok ? await reposResp.json() : (errors.push(`repos: ${reposResp.status}`), []);
       const membersData = membersResp.ok ? await membersResp.json() : (errors.push(`members: ${membersResp.status}`), []);
       const teamsData = teamsResp.ok ? await teamsResp.json() : (errors.push(`teams: ${teamsResp.status}`), []);
+      const billingActions = billingActionsResp.ok ? await billingActionsResp.json() : (errors.push(`billing_actions: ${billingActionsResp.status}`), null);
+      const billingStorage = billingStorageResp.ok ? await billingStorageResp.json() : (errors.push(`billing_storage: ${billingStorageResp.status}`), null);
+      const copilot = copilotResp.ok ? await copilotResp.json() : (errors.push(`copilot: ${copilotResp.status}`), null);
 
       // Parse total counts from Link headers when available
       const parseLinkCount = (header: string | null): number | null => {
@@ -140,6 +146,9 @@ Deno.serve(async (req) => {
         membersTotalPages: parseLinkCount(membersResp.headers.get("Link")),
         teams: teamsData,
         teamsTotalPages: parseLinkCount(teamsResp.headers.get("Link")),
+        billingActions,
+        billingStorage,
+        copilot,
         errors: errors.length > 0 ? errors : undefined,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
