@@ -10,6 +10,7 @@ import {
   SquareKanban,
   Layers,
   Rocket,
+  Github,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -35,6 +36,7 @@ const mainItems = [
   { title: "Releases", url: "/releases", icon: Rocket },
   { title: "Roadmap", url: "/roadmap", icon: Map },
   { title: "Risks & Decisions", url: "/risks", icon: AlertTriangle },
+  { title: "GitHub", url: "/github", icon: Github },
 ];
 
 const secondaryItems = [
