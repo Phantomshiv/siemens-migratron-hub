@@ -106,11 +106,52 @@ async function fetchGHESummary(org = "open"): Promise<GHESummary> {
   return resp.json();
 }
 
+export interface GHEActivity {
+  weeklyCommits: Array<{ week: number; total: number }>;
+  prStats: { open: number; closed: number; merged: number };
+  prWeeklyData: Array<{ week: string; opened: number; merged: number; closed: number }>;
+  topContributors: Array<{
+    login: string;
+    avatar_url: string;
+    commits: number;
+    additions: number;
+    deletions: number;
+  }>;
+  reposAnalyzed: number;
+  errors?: string[];
+}
+
+async function fetchGHEActivity(org = "open"): Promise<GHEActivity> {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/github?action=activity&org=${org}`;
+  const resp = await fetch(url, {
+    headers: {
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+  });
+
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new Error(`GitHub Activity API error: ${resp.status} - ${body}`);
+  }
+
+  return resp.json();
+}
+
 export function useGitHubSummary(org = "open") {
   return useQuery<GHESummary>({
     queryKey: ["github-summary", org],
     queryFn: () => fetchGHESummary(org),
     staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+export function useGitHubActivity(org = "open") {
+  return useQuery<GHEActivity>({
+    queryKey: ["github-activity", org],
+    queryFn: () => fetchGHEActivity(org),
+    staleTime: 10 * 60 * 1000,
     retry: 1,
   });
 }
