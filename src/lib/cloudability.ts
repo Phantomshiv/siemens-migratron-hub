@@ -32,29 +32,18 @@ export interface CostReportParams {
 }
 
 export async function getCostReport(params: CostReportParams) {
-  const queryParams: Record<string, string | number | undefined> = {
-    start: params.start,
-    end: params.end,
-    limit: params.limit,
-  };
-
-  // Add dimensions and metrics as repeated params via endpoint
   const dimStr = params.dimensions.map(d => `dimensions=${d}`).join("&");
   const metStr = params.metrics.map(m => `metrics=${m}`).join("&");
   let filterStr = "";
   if (params.filters?.length) {
     filterStr = "&" + params.filters.map(f => `filters=${encodeURIComponent(f)}`).join("&");
   }
-  if (params.sort) {
-    queryParams.sort = params.sort;
-  }
+  let sortStr = params.sort ? `&sort=${params.sort}` : "";
+  let limitStr = params.limit ? `&limit=${params.limit}` : "";
 
-  const endpoint = `/v3/reporting/cost/run?${dimStr}&${metStr}${filterStr}`;
+  const endpoint = `/v3/reporting/cost/run?${dimStr}&${metStr}&start_date=${params.start}&end_date=${params.end}${filterStr}${sortStr}${limitStr}`;
 
-  return callCloudability({
-    endpoint,
-    params: queryParams,
-  });
+  return callCloudability({ endpoint });
 }
 
 // --- Rightsizing / Optimization ---
