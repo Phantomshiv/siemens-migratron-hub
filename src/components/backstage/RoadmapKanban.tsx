@@ -113,7 +113,7 @@ export function RoadmapKanban() {
         </div>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="w-full">
+        <div className="w-full overflow-x-auto">
           <div className="flex gap-4 min-w-max pb-2">
             {columns.map((col) => (
               <div key={col.title} className="w-[260px] flex-shrink-0">
@@ -129,7 +129,7 @@ export function RoadmapKanban() {
               </div>
             ))}
           </div>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );
