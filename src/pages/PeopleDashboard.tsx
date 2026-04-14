@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { orgData, getOrgStats } from "@/lib/people-data";
-import { Users, Crown, Building2, UserCheck, ExternalLink, ChevronDown, ChevronRight, Search } from "lucide-react";
+import { orgData, getOrgStats, type OrgModule } from "@/lib/people-data";
+import { Users, Crown, Building2, UserCheck, ExternalLink, ChevronDown, ChevronRight, Search, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,152 +36,72 @@ function Avatar({ name, size = "sm" }: { name: string; size?: "sm" | "md" | "lg"
   );
 }
 
-/* ── Org Chart Card (visual tree) ── */
+/* ── Org Chart Card ── */
 function OrgCard({
-  code,
   title,
-  lead,
+  leads,
   headcount,
   accent = false,
+  children,
 }: {
-  code?: string;
   title: string;
-  lead: string;
+  leads: string[];
   headcount: number;
   accent?: boolean;
+  children?: OrgModule[];
 }) {
   return (
-    <div
-      className={`rounded-lg border p-4 min-w-[200px] max-w-[240px] transition-shadow hover:shadow-md ${
-        accent
-          ? "bg-primary/10 border-primary/30 shadow-sm shadow-primary/10"
-          : "bg-card border-border/60"
-      }`}
-    >
-      {code && (
-        <p className="text-[10px] font-mono text-muted-foreground mb-1 tracking-wider">{code}</p>
-      )}
-      <h4 className="text-sm font-heading font-bold leading-tight mb-2">{title}</h4>
-      <div className="flex items-center gap-2">
-        <Avatar name={lead} size="sm" />
-        <p className="text-xs text-muted-foreground truncate">{lead}</p>
-      </div>
-      <div className="flex items-center gap-1 mt-3 pt-2 border-t border-border/40">
-        <Users className="h-3 w-3 text-muted-foreground" />
-        <span className="text-[10px] text-muted-foreground">{headcount}</span>
-      </div>
-    </div>
-  );
-}
-
-/* ── Vertical connector line ── */
-function VLine({ height = 32 }: { height?: number }) {
-  return (
-    <div className="flex justify-center" style={{ height }}>
-      <div className="w-px bg-border" />
-    </div>
-  );
-}
-
-/* ── Horizontal connector with branches ── */
-function HBranch({ count }: { count: number }) {
-  if (count <= 1) return <VLine height={24} />;
-  return (
-    <div className="relative flex justify-center" style={{ height: 24 }}>
-      <div className="w-px bg-border h-full" />
+    <div className="flex flex-col items-center">
       <div
-        className="absolute top-full left-0 right-0 h-px bg-border"
-        style={{ marginTop: -1 }}
-      />
-    </div>
-  );
-}
-
-/* ── Visual Org Chart Tab ── */
-function OrgChartView() {
-  const topModules = orgData.modules.slice(0, 6);
-  const bottomModules = orgData.modules.slice(6);
-
-  return (
-    <div className="space-y-8 overflow-x-auto pb-4">
-      {/* Program Leadership - Top Card */}
-      <div className="flex justify-center">
-        <div className="rounded-xl border-2 border-primary/40 bg-primary/5 p-5 shadow-lg shadow-primary/5 min-w-[280px] max-w-[320px]">
-          <p className="text-[10px] font-mono text-primary/60 tracking-wider mb-1">OSES PROGRAM</p>
-          <h3 className="text-base font-heading font-bold mb-3">Program Leadership</h3>
-          <div className="space-y-2">
-            {orgData.programLeaders.map((name) => (
-              <div key={name} className="flex items-center gap-2">
-                <Avatar name={name} size="sm" />
-                <p className="text-xs font-medium">{name}</p>
-              </div>
-            ))}
+        className={`rounded-lg border p-4 w-[220px] transition-shadow hover:shadow-md ${
+          accent
+            ? "bg-primary/10 border-primary/30 shadow-sm shadow-primary/10"
+            : "bg-card border-border/60"
+        }`}
+      >
+        <h4 className="text-xs font-heading font-bold leading-tight mb-2">{title}</h4>
+        {leads.map((n) => (
+          <div key={n} className="flex items-center gap-2 mb-1">
+            <Avatar name={n} size="sm" />
+            <p className="text-[11px] text-muted-foreground truncate">{n}</p>
           </div>
-          <div className="flex items-center gap-1 mt-3 pt-2 border-t border-primary/20">
-            <Users className="h-3 w-3 text-primary/60" />
-            <span className="text-[10px] text-primary/60">{stats.totalPeople} total</span>
-          </div>
+        ))}
+        <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border/40">
+          <Users className="h-3 w-3 text-muted-foreground" />
+          <span className="text-[10px] text-muted-foreground">{headcount}</span>
         </div>
       </div>
 
-      {/* Connector */}
-      <VLine height={28} />
-
-      {/* Departments label */}
-      <div className="relative">
-        <div className="border border-border/60 rounded-lg p-1 px-3 w-fit mx-auto -mb-4 bg-card z-10 relative">
-          <p className="text-xs font-heading font-semibold text-muted-foreground">Modules</p>
-        </div>
-      </div>
-
-      {/* Top row connectors */}
-      <div className="flex justify-center">
-        <div className="relative flex items-end" style={{ height: 24 }}>
-          <div className="absolute left-1/2 -translate-x-px top-0 w-px h-3 bg-border" />
-          <div
-            className="h-px bg-border"
-            style={{ width: `${(topModules.length - 1) * 220}px` }}
-          />
-        </div>
-      </div>
-
-      {/* Top row of modules */}
-      <div className="flex justify-center">
-        <div className="flex gap-4 flex-wrap justify-center">
-          {topModules.map((m) => {
-            const hc = m.leads.length + m.pmo.length + m.members.length + m.externals.length;
-            return (
-              <div key={m.name} className="flex flex-col items-center">
-                <VLine height={16} />
-                <OrgCard
-                  title={m.name}
-                  lead={m.leads[0] || "—"}
-                  headcount={hc}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Bottom row of modules */}
-      {bottomModules.length > 0 && (
+      {/* Sub-modules */}
+      {children && children.length > 0 && (
         <>
-          <div className="flex justify-center">
-            <div className="flex gap-4 flex-wrap justify-center">
-              {bottomModules.map((m) => {
-                const hc = m.leads.length + m.pmo.length + m.members.length + m.externals.length;
-                return (
-                  <div key={m.name} className="flex flex-col items-center">
-                    <OrgCard
-                      title={m.name}
-                      lead={m.leads[0] || "—"}
-                      headcount={hc}
-                    />
+          <div className="w-px h-5 bg-border" />
+          <div className="relative flex gap-3">
+            {/* horizontal connector */}
+            {children.length > 1 && (
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px bg-border" style={{ width: `${(children.length - 1) * 190}px` }} />
+            )}
+            {children.map((c) => {
+              const hc = c.leads.length + c.pmo.length + c.members.length + c.externals.length;
+              return (
+                <div key={c.name} className="flex flex-col items-center">
+                  <div className="w-px h-4 bg-border" />
+                  <div className="rounded-lg border border-border/50 bg-card/60 p-3 w-[180px]">
+                    <h5 className="text-[11px] font-heading font-semibold leading-tight mb-1.5">{c.name}</h5>
+                    {c.leads.map((n) => (
+                      <div key={n} className="flex items-center gap-1.5 mb-0.5">
+                        <Avatar name={n} size="sm" />
+                        <p className="text-[10px] text-muted-foreground truncate">{n}</p>
+                      </div>
+                    ))}
+                    <div className="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-border/30">
+                      <Users className="h-2.5 w-2.5 text-muted-foreground" />
+                      <span className="text-[9px] text-muted-foreground">{hc}</span>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
         </>
       )}
@@ -189,7 +109,94 @@ function OrgChartView() {
   );
 }
 
-/* ── List View Tab ── */
+function countModule(m: OrgModule): number {
+  let c = m.leads.length + m.pmo.length + m.members.length + m.externals.length;
+  m.children?.forEach((ch) => (c += countModule(ch)));
+  return c;
+}
+
+/* ── Visual Org Chart ── */
+function OrgChartView() {
+  return (
+    <div className="space-y-4 overflow-x-auto pb-8">
+      {/* Co-Leads */}
+      <div className="flex justify-center">
+        <div className="rounded-xl border-2 border-primary/40 bg-primary/5 p-5 shadow-lg shadow-primary/5 w-[300px]">
+          <p className="text-[10px] font-mono text-primary/60 tracking-wider mb-1">PROJECT LEADERSHIP</p>
+          <h3 className="text-sm font-heading font-bold mb-3">Co-Leads</h3>
+          <div className="space-y-2">
+            {orgData.coLeads.map((name) => (
+              <div key={name} className="flex items-center gap-2">
+                <Avatar name={name} size="sm" />
+                <p className="text-xs font-medium">{name}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* PMO branch + connector */}
+      <div className="flex justify-center gap-16 items-start">
+        {/* PMO */}
+        <div className="flex flex-col items-center">
+          <div className="w-px h-5 bg-border" />
+          <div className="rounded-lg border border-chart-2/30 bg-chart-2/5 p-4 w-[200px]">
+            <p className="text-[10px] font-mono text-chart-2/60 tracking-wider mb-1">PMO</p>
+            <div className="flex items-center gap-2 mb-2">
+              <Avatar name={orgData.pmoLead} size="sm" />
+              <p className="text-xs font-medium">{orgData.pmoLead}</p>
+            </div>
+            <div className="space-y-1">
+              {orgData.pmoMembers.map((n) => (
+                <p key={n} className="text-[10px] text-muted-foreground pl-9">{n}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main connector down */}
+      <div className="flex justify-center">
+        <div className="w-px h-6 bg-border" />
+      </div>
+
+      {/* Modules label */}
+      <div className="flex justify-center">
+        <div className="border border-border/60 rounded-md px-3 py-1 bg-card">
+          <p className="text-[10px] font-heading font-semibold text-muted-foreground uppercase tracking-wider">Modules</p>
+        </div>
+      </div>
+
+      <div className="flex justify-center">
+        <div className="w-px h-4 bg-border" />
+      </div>
+
+      {/* Horizontal connector bar */}
+      <div className="flex justify-center">
+        <div className="h-px bg-border" style={{ width: `${(orgData.modules.length - 1) * 240}px`, maxWidth: "100%" }} />
+      </div>
+
+      {/* Module cards */}
+      <div className="flex justify-center">
+        <div className="flex gap-4 flex-wrap justify-center">
+          {orgData.modules.map((m) => (
+            <div key={m.name} className="flex flex-col items-center">
+              <div className="w-px h-4 bg-border" />
+              <OrgCard
+                title={m.name}
+                leads={m.leads}
+                headcount={countModule(m)}
+                children={m.children}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── List View ── */
 function PersonChip({ name, badge, badgeClass }: { name: string; badge?: string; badgeClass?: string }) {
   return (
     <div className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-secondary/50 transition-colors">
@@ -200,12 +207,12 @@ function PersonChip({ name, badge, badgeClass }: { name: string; badge?: string;
   );
 }
 
-function ModuleCard({ module }: { module: typeof orgData.modules[0] }) {
+function ModuleListCard({ module, depth = 0 }: { module: OrgModule; depth?: number }) {
   const [expanded, setExpanded] = useState(false);
-  const total = module.leads.length + module.pmo.length + module.members.length + module.externals.length;
+  const total = countModule(module);
 
   return (
-    <div className="glass-card overflow-hidden">
+    <div className={`glass-card overflow-hidden ${depth > 0 ? "ml-6 border-l-2 border-primary/20" : ""}`}>
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full p-4 flex items-center gap-3 hover:bg-secondary/50 transition-colors text-left"
@@ -214,7 +221,7 @@ function ModuleCard({ module }: { module: typeof orgData.modules[0] }) {
           {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
           <div className="min-w-0">
             <p className="text-sm font-heading font-bold truncate">{module.name}</p>
-            <p className="text-[10px] text-muted-foreground">{total} people</p>
+            <p className="text-[10px] text-muted-foreground">{total} people{module.children ? ` · ${module.children.length} sub-teams` : ""}</p>
           </div>
         </div>
         {module.leads.length > 0 && (
@@ -232,11 +239,9 @@ function ModuleCard({ module }: { module: typeof orgData.modules[0] }) {
         <div className="border-t border-border px-4 pb-4">
           {module.leads.length > 0 && (
             <div className="py-3 border-b border-border/50">
-              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Module Lead</p>
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Lead</p>
               <div className="flex flex-wrap gap-2">
-                {module.leads.map((n) => (
-                  <PersonChip key={n} name={n} badge="Lead" badgeClass="bg-primary/20 text-primary" />
-                ))}
+                {module.leads.map((n) => <PersonChip key={n} name={n} badge="Lead" badgeClass="bg-primary/20 text-primary" />)}
               </div>
             </div>
           )}
@@ -244,9 +249,7 @@ function ModuleCard({ module }: { module: typeof orgData.modules[0] }) {
             <div className="py-3 border-b border-border/50">
               <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">PMO</p>
               <div className="flex flex-wrap gap-2">
-                {module.pmo.map((n) => (
-                  <PersonChip key={n} name={n} badge="PMO" badgeClass="bg-chart-2/20 text-chart-2" />
-                ))}
+                {module.pmo.map((n) => <PersonChip key={n} name={n} badge="PMO" badgeClass="bg-chart-2/20 text-chart-2" />)}
               </div>
             </div>
           )}
@@ -254,9 +257,7 @@ function ModuleCard({ module }: { module: typeof orgData.modules[0] }) {
             <div className="pt-3">
               <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Members</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
-                {module.members.map((n) => (
-                  <PersonChip key={n} name={n} />
-                ))}
+                {module.members.map((n) => <PersonChip key={n} name={n} />)}
               </div>
             </div>
           )}
@@ -264,12 +265,19 @@ function ModuleCard({ module }: { module: typeof orgData.modules[0] }) {
             <div className="pt-3 mt-3 border-t border-border/50">
               <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Externals</p>
               <div className="flex flex-wrap gap-2">
-                {module.externals.map((n) => (
-                  <PersonChip key={n} name={n} badge="EXT" badgeClass="bg-chart-3/20 text-chart-3" />
-                ))}
+                {module.externals.map((n) => <PersonChip key={n} name={n} badge="EXT" badgeClass="bg-chart-3/20 text-chart-3" />)}
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Render children */}
+      {expanded && module.children && (
+        <div className="px-2 pb-3 space-y-2">
+          {module.children.map((c) => (
+            <ModuleListCard key={c.name} module={c} depth={depth + 1} />
+          ))}
         </div>
       )}
     </div>
@@ -277,31 +285,52 @@ function ModuleCard({ module }: { module: typeof orgData.modules[0] }) {
 }
 
 function ListView({ search }: { search: string }) {
-  const filteredModules = search
+  const allModules = orgData.modules.flatMap((m) => [m, ...(m.children || [])]);
+  const filtered = search
     ? orgData.modules.filter((m) => {
-        const text = `${m.name} ${m.leads.join(" ")} ${m.pmo.join(" ")} ${m.members.join(" ")} ${m.externals.join(" ")}`.toLowerCase();
+        const text = `${m.name} ${m.leads.join(" ")} ${m.pmo.join(" ")} ${m.members.join(" ")} ${m.children?.map(c => `${c.name} ${c.leads.join(" ")} ${c.members.join(" ")}`).join(" ") || ""}`.toLowerCase();
         return text.includes(search.toLowerCase());
       })
     : orgData.modules;
 
   return (
     <div className="space-y-6">
-      {/* Program Leadership */}
-      <div>
-        <h2 className="text-sm font-heading font-bold mb-3 flex items-center gap-2">
-          <Crown className="h-4 w-4 text-primary" />
-          Program Leadership
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {orgData.programLeaders.map((name) => (
-            <div key={name} className="glass-card p-4 flex items-center gap-3">
-              <Avatar name={name} size="md" />
-              <div className="min-w-0">
-                <p className="text-xs font-heading font-bold truncate">{name}</p>
-                <p className="text-[10px] text-muted-foreground">Program Leader</p>
+      {/* Co-Leads + PMO */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div>
+          <h2 className="text-sm font-heading font-bold mb-3 flex items-center gap-2">
+            <Crown className="h-4 w-4 text-primary" />
+            Project Co-Leads
+          </h2>
+          <div className="glass-card p-4 space-y-2">
+            {orgData.coLeads.map((name) => (
+              <div key={name} className="flex items-center gap-3">
+                <Avatar name={name} size="md" />
+                <div>
+                  <p className="text-xs font-heading font-bold">{name}</p>
+                  <p className="text-[10px] text-muted-foreground">Co-Lead</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h2 className="text-sm font-heading font-bold mb-3 flex items-center gap-2">
+            <Shield className="h-4 w-4 text-chart-2" />
+            PMO
+          </h2>
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <Avatar name={orgData.pmoLead} size="md" />
+              <div>
+                <p className="text-xs font-heading font-bold">{orgData.pmoLead}</p>
+                <p className="text-[10px] text-muted-foreground">PMO Lead</p>
               </div>
             </div>
-          ))}
+            <div className="flex flex-wrap gap-2">
+              {orgData.pmoMembers.map((n) => <PersonChip key={n} name={n} />)}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -309,11 +338,11 @@ function ListView({ search }: { search: string }) {
       <div>
         <h2 className="text-sm font-heading font-bold mb-3 flex items-center gap-2">
           <Building2 className="h-4 w-4 text-chart-2" />
-          Modules ({filteredModules.length})
+          Modules ({filtered.length})
         </h2>
         <div className="space-y-2">
-          {filteredModules.map((m) => (
-            <ModuleCard key={m.name} module={m} />
+          {filtered.map((m) => (
+            <ModuleListCard key={m.name} module={m} />
           ))}
         </div>
       </div>
@@ -360,17 +389,14 @@ const PeopleDashboard = () => {
           ))}
         </div>
 
-        {/* Tabs: Org Chart / List */}
         <Tabs defaultValue="chart" className="w-full">
           <TabsList className="w-fit">
             <TabsTrigger value="chart" className="text-xs">Org Chart</TabsTrigger>
             <TabsTrigger value="list" className="text-xs">Detail View</TabsTrigger>
           </TabsList>
-
           <TabsContent value="chart" className="mt-4">
             <OrgChartView />
           </TabsContent>
-
           <TabsContent value="list" className="mt-4">
             <ListView search={search} />
           </TabsContent>
