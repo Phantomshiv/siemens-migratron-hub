@@ -8,6 +8,8 @@ import {
   Boxes,
   FileText,
   SquareKanban,
+  Layers,
+  Rocket,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -29,6 +31,8 @@ const mainItems = [
   { title: "Overview", url: "/", icon: LayoutDashboard },
   { title: "Metrics", url: "/metrics", icon: BarChart3 },
   { title: "Jira Board", url: "/jira", icon: SquareKanban },
+  { title: "Capabilities", url: "/capabilities", icon: Layers },
+  { title: "Releases", url: "/releases", icon: Rocket },
   { title: "Roadmap", url: "/roadmap", icon: Map },
   { title: "Risks & Decisions", url: "/risks", icon: AlertTriangle },
 ];
