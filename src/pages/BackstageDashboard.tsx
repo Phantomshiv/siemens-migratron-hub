@@ -1,0 +1,37 @@
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { BackstageCatalogOverview } from "@/components/backstage/CatalogOverview";
+import { BackstageComponentsTable } from "@/components/backstage/ComponentsTable";
+import { BackstageLifecycleChart } from "@/components/backstage/LifecycleChart";
+import { BackstageComponentTypesChart } from "@/components/backstage/ComponentTypesChart";
+import { BackstageResourceTypesChart } from "@/components/backstage/ResourceTypesChart";
+import { BackstageSystemsList } from "@/components/backstage/SystemsList";
+
+const BackstageDashboard = () => {
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-heading font-bold">Backstage Catalog</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Powered by OSES Portal · Software catalog & service ownership
+          </p>
+        </div>
+
+        <BackstageCatalogOverview />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <BackstageLifecycleChart />
+          <BackstageComponentTypesChart />
+          <BackstageResourceTypesChart />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <BackstageComponentsTable />
+          <BackstageSystemsList />
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default BackstageDashboard;
