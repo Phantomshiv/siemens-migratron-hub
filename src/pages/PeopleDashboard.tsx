@@ -69,11 +69,15 @@ function ModuleCard({ module }: { module: typeof orgData.modules[0] }) {
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <Avatar name={module.lead} size="sm" />
-          <div className="hidden sm:block min-w-0">
-            <p className="text-xs font-medium truncate">{module.lead}</p>
-            <p className="text-[10px] text-muted-foreground">Lead</p>
-          </div>
+          {module.lead && (
+            <>
+              <Avatar name={module.lead} size="sm" />
+              <div className="hidden sm:block min-w-0">
+                <p className="text-xs font-medium truncate">{module.lead}</p>
+                <p className="text-[10px] text-muted-foreground">Lead</p>
+              </div>
+            </>
+          )}
         </div>
       </button>
 
