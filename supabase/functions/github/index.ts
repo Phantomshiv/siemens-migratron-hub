@@ -1,3 +1,5 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -5,6 +7,55 @@ const corsHeaders = {
 
 const GHE_BASE = "https://siemens.ghe.com/api/v3";
 const GHE_API_BASE = "https://api.siemens.ghe.com";
+
+// Cache TTLs in minutes
+const CACHE_TTL: Record<string, number> = {
+  summary: 10,
+  activity: 15,
+  "members-detail": 30,
+};
+
+function getSupabase() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+}
+
+async function getCache(key: string): Promise<unknown | null> {
+  try {
+    const sb = getSupabase();
+    const { data } = await sb
+      .from("api_cache")
+      .select("data, expires_at")
+      .eq("cache_key", key)
+      .single();
+    if (!data) return null;
+    if (new Date(data.expires_at) < new Date()) {
+      // Expired — delete async, return null
+      sb.from("api_cache").delete().eq("cache_key", key).then(() => {});
+      return null;
+    }
+    return data.data;
+  } catch {
+    return null;
+  }
+}
+
+async function setCache(key: string, value: unknown, ttlMinutes: number): Promise<void> {
+  try {
+    const sb = getSupabase();
+    const expires_at = new Date(Date.now() + ttlMinutes * 60 * 1000).toISOString();
+    await sb.from("api_cache").upsert({
+      cache_key: key,
+      data: value,
+      expires_at,
+      created_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn("Cache write failed:", err);
+  }
+}
 
 // Paginate through all pages of a GHE list endpoint
 async function fetchAllPages(url: string, headers: Record<string, string>, maxPages = 50): Promise<unknown[]> {
