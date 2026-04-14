@@ -30,8 +30,8 @@ import {
 
 const mainItems = [
   { title: "Overview", url: "/", icon: LayoutDashboard },
-  { title: "Metrics", url: "/metrics", icon: BarChart3 },
-  { title: "Jira Board", url: "/jira", icon: SquareKanban },
+  { title: "Cloud Usage", url: "/metrics", icon: BarChart3 },
+  { title: "Jira", url: "/jira", icon: SquareKanban },
   { title: "Capabilities", url: "/capabilities", icon: Layers },
   { title: "Releases", url: "/releases", icon: Rocket },
   { title: "Roadmap", url: "/roadmap", icon: Map },
