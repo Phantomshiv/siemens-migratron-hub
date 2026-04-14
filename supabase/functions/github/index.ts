@@ -4,6 +4,7 @@ const corsHeaders = {
 };
 
 const GHE_BASE = "https://siemens.ghe.com/api/v3";
+const GHE_API_BASE = "https://api.siemens.ghe.com";
 
 // Paginate through all pages of a GHE list endpoint
 async function fetchAllPages(url: string, headers: Record<string, string>, maxPages = 50): Promise<unknown[]> {
@@ -158,9 +159,9 @@ Deno.serve(async (req) => {
       // Parallel: org info, billing, copilot (single requests) + full pagination for repos/members/teams
       const [orgResp, billingActionsResp, billingStorageResp, copilotResp, allRepos, allMembers, allTeams] = await Promise.all([
         fetch(`${GHE_BASE}/orgs/${org}`, { headers: gheHeaders }),
-        fetch(`${GHE_BASE}/orgs/${org}/settings/billing/actions`, { headers: gheHeaders }),
-        fetch(`${GHE_BASE}/orgs/${org}/settings/billing/shared-storage`, { headers: gheHeaders }),
-        fetch(`${GHE_BASE}/orgs/${org}/copilot/billing`, { headers: gheHeaders }),
+        fetch(`${GHE_API_BASE}/orgs/${org}/settings/billing/actions`, { headers: gheHeaders }),
+        fetch(`${GHE_API_BASE}/orgs/${org}/settings/billing/shared-storage`, { headers: gheHeaders }),
+        fetch(`${GHE_API_BASE}/orgs/${org}/copilot/billing`, { headers: gheHeaders }),
         fetchAllPages(`${GHE_BASE}/orgs/${org}/repos?sort=updated&direction=desc`, gheHeaders),
         fetchAllPages(`${GHE_BASE}/orgs/${org}/members`, gheHeaders),
         fetchAllPages(`${GHE_BASE}/orgs/${org}/teams`, gheHeaders),
