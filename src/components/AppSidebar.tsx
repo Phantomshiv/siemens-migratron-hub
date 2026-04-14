@@ -62,9 +62,9 @@ export function AppSidebar() {
           {!collapsed && (
             <div>
               <h2 className="font-heading text-sm font-bold text-sidebar-accent-foreground">
-                SCM Migration
+                OSES Program
               </h2>
-              <p className="text-xs text-sidebar-foreground">Siemens → GitHub</p>
+              <p className="text-xs text-sidebar-foreground">Platform Engineering</p>
             </div>
           )}
         </div>
