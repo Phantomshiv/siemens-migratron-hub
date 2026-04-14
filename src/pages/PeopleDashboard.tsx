@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { orgData, getOrgStats, type OrgModule } from "@/lib/people-data";
-import { Users, Crown, Building2, UserCheck, ExternalLink, ChevronDown, ChevronRight, Search, Shield, ArrowLeft, ChevronRightIcon } from "lucide-react";
+import { Users, Crown, Building2, UserCheck, ExternalLink, ChevronDown, ChevronRight, Search, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import OrgChartTree from "@/components/people/OrgChartTree";
 
 const stats = getOrgStats();
 
