@@ -1,11 +1,13 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { roadmapData, statusConfig, type RoadmapStatus } from "@/lib/oses-roadmap";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { statusConfig, type RoadmapStatus } from "@/lib/oses-roadmap";
+import { useLiveRoadmap } from "@/hooks/useRoadmapJira";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CheckCircle2, Package, Search, FileEdit, Rocket, Filter } from "lucide-react";
+import { CheckCircle2, Package, Search, FileEdit, Rocket, Filter, Wifi, WifiOff, RefreshCw, ExternalLink } from "lucide-react";
 import { useState } from "react";
+import { formatDistanceToNow } from "date-fns";
 
 const statusIcons: Record<RoadmapStatus, React.ReactNode> = {
   released: <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />,
@@ -16,9 +18,10 @@ const statusIcons: Record<RoadmapStatus, React.ReactNode> = {
 
 export default function RoadmapPage() {
   const [statusFilter, setStatusFilter] = useState<RoadmapStatus | "all">("all");
+  const { data: roadmapQuarters, isLoading, isLive } = useLiveRoadmap();
 
-  const totalItems = roadmapData.reduce((s, q) => s + q.totalItems, 0);
-  const totalReleased = roadmapData.reduce((s, q) => s + q.released, 0);
+  const totalItems = roadmapQuarters.reduce((s, q) => s + q.totalItems, 0);
+  const totalReleased = roadmapQuarters.reduce((s, q) => s + q.released, 0);
 
   return (
     <DashboardLayout>
@@ -26,9 +29,24 @@ export default function RoadmapPage() {
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
             <h1 className="font-heading text-2xl font-bold">OSES Roadmap</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Planned development across {roadmapData.length} quarters — {totalReleased}/{totalItems} items released
-            </p>
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-sm text-muted-foreground">
+                {roadmapQuarters.length} quarters — {totalReleased}/{totalItems} items released
+              </p>
+              {isLoading ? (
+                <Badge variant="outline" className="text-xs gap-1">
+                  <RefreshCw className="h-3 w-3 animate-spin" /> Syncing with Jira…
+                </Badge>
+              ) : isLive ? (
+                <Badge variant="outline" className="text-xs gap-1 border-emerald-500/30 text-emerald-400">
+                  <Wifi className="h-3 w-3" /> Live from Jira
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs gap-1 border-amber-500/30 text-amber-400">
+                  <WifiOff className="h-3 w-3" /> Static data
+                </Badge>
+              )}
+            </div>
           </div>
 
           {/* Status filter */}
@@ -56,7 +74,7 @@ export default function RoadmapPage() {
 
         {/* Quarter progress overview */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          {roadmapData.map((q) => {
+          {roadmapQuarters.map((q) => {
             const pct = q.totalItems > 0 ? Math.round((q.released / q.totalItems) * 100) : 0;
             return (
               <Card key={q.quarter} className="bg-card/50">
@@ -79,8 +97,8 @@ export default function RoadmapPage() {
         </div>
 
         {/* Quarterly details */}
-        <Accordion type="multiple" defaultValue={roadmapData.map((q) => q.quarter)} className="space-y-4">
-          {roadmapData.map((q) => {
+        <Accordion type="multiple" defaultValue={roadmapQuarters.map((q) => q.quarter)} className="space-y-4">
+          {roadmapQuarters.map((q) => {
             const filteredCategories = q.categories
               .map((cat) => ({
                 ...cat,
@@ -104,16 +122,32 @@ export default function RoadmapPage() {
                     <div key={cat.name}>
                       <h3 className="text-sm font-semibold text-muted-foreground mb-2">{cat.name}</h3>
                       <div className="space-y-2">
-                        {cat.items.map((item) => (
+                        {cat.items.map((item: any) => (
                           <Card key={item.id} className="bg-card/50">
                             <CardContent className="p-3 flex items-start gap-3">
-                              <div className="mt-0.5">{statusIcons[item.status]}</div>
+                              <div className="mt-0.5">{statusIcons[item.status as RoadmapStatus]}</div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-xs font-mono text-muted-foreground">{item.id}</span>
-                                  <Badge className={`text-xs ${statusConfig[item.status].bgColor} ${statusConfig[item.status].color}`}>
-                                    {statusConfig[item.status].label}
+                                  <a
+                                    href={`https://fdsone.atlassian.net/browse/${item.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs font-mono text-primary hover:underline flex items-center gap-1"
+                                  >
+                                    {item.id}
+                                    <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                  <Badge className={`text-xs ${statusConfig[item.status as RoadmapStatus].bgColor} ${statusConfig[item.status as RoadmapStatus].color}`}>
+                                    {item.jiraStatus || statusConfig[item.status as RoadmapStatus].label}
                                   </Badge>
+                                  {item.jiraAssignee && (
+                                    <span className="text-xs text-muted-foreground">👤 {item.jiraAssignee}</span>
+                                  )}
+                                  {item.jiraUpdated && (
+                                    <span className="text-xs text-muted-foreground">
+                                      Updated {formatDistanceToNow(new Date(item.jiraUpdated), { addSuffix: true })}
+                                    </span>
+                                  )}
                                 </div>
                                 <p className="text-sm font-medium mt-1">{item.title}</p>
                                 <p className="text-xs text-muted-foreground mt-1">{item.summary}</p>
