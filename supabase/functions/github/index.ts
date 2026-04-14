@@ -5,6 +5,36 @@ const corsHeaders = {
 
 const GHE_BASE = "https://siemens.ghe.com/api/v3";
 
+// Paginate through all pages of a GHE list endpoint
+async function fetchAllPages(url: string, headers: Record<string, string>, maxPages = 50): Promise<unknown[]> {
+  const all: unknown[] = [];
+  let nextUrl: string | null = `${url}${url.includes("?") ? "&" : "?"}per_page=100`;
+  let page = 0;
+
+  while (nextUrl && page < maxPages) {
+    const resp = await fetch(nextUrl, { headers });
+    if (!resp.ok) {
+      console.error(`GHE pagination error [${resp.status}] for ${nextUrl}`);
+      break;
+    }
+    const data = await resp.json();
+    if (!Array.isArray(data) || data.length === 0) break;
+    all.push(...data);
+    page++;
+
+    // Parse Link header for next page
+    const link = resp.headers.get("Link");
+    if (link) {
+      const nextMatch = link.match(/<([^>]+)>;\s*rel="next"/);
+      nextUrl = nextMatch ? nextMatch[1] : null;
+    } else {
+      nextUrl = null;
+    }
+  }
+
+  return all;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
