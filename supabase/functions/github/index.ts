@@ -152,6 +152,18 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Probe: test arbitrary GHE API paths
+    if (action === "probe") {
+      const path = url.searchParams.get("path") || "/";
+      const probeUrl = `${GHE_API_BASE}${path}`;
+      console.log("Probing:", probeUrl);
+      const resp = await fetch(probeUrl, { headers: gheHeaders });
+      const body = await resp.text();
+      return new Response(JSON.stringify({ status: resp.status, url: probeUrl, body: body.slice(0, 2000) }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Summary: fetch org + paginate repos/members/teams + billing + copilot
     if (action === "summary") {
       const errors: string[] = [];
