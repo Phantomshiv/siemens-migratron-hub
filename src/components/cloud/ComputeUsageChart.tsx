@@ -18,7 +18,7 @@ export function ComputeUsageChart() {
   let chartData = mockData;
   if (data && !isError) {
     try {
-      const result = (data as any)?.result;
+      const result = (data as any)?.results;
       if (Array.isArray(result) && result.length > 5) {
         chartData = result.map((row: any) => ({
           date: new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),

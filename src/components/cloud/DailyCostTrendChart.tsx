@@ -23,7 +23,7 @@ export function DailyCostTrendChart() {
   let chartData = mockData;
   if (data && !isError) {
     try {
-      const result = (data as any)?.result;
+      const result = (data as any)?.results;
       if (Array.isArray(result) && result.length > 0) {
         // Group by date, split by vendor
         const byDate: Record<string, { aws: number; azure: number; other: number }> = {};

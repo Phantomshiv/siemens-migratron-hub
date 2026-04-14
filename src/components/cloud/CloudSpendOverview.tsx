@@ -17,7 +17,7 @@ export function CloudSpendOverview() {
   let cash = mockData;
   if (data && !isError) {
     try {
-      const result = (data as any)?.result;
+      const result = (data as any)?.results;
       if (Array.isArray(result) && result.length >= 2) {
         cash = {
           cashLastMonth: parseFloat(result[0]?.unblended_cost || "0"),
