@@ -3,6 +3,7 @@ import { useGitHubSummary } from "@/hooks/useGitHub";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import {
   Users,
   GitFork,
@@ -12,6 +13,12 @@ import {
   UsersRound,
   Archive,
   Code,
+  CreditCard,
+  HardDrive,
+  Cpu,
+  Sparkles,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -29,12 +36,33 @@ const CHART_COLORS = [
   "hsl(30, 80%, 50%)",
 ];
 
+const tooltipStyle = {
+  backgroundColor: "hsl(215, 25%, 13%)",
+  border: "1px solid hsl(215, 18%, 20%)",
+  borderRadius: "8px",
+  color: "hsl(210, 20%, 92%)",
+};
+
 function KPISkeleton() {
   return (
     <Card className="glass-card">
       <CardContent className="pt-6">
         <Skeleton className="h-4 w-24 mb-2" />
         <Skeleton className="h-8 w-16" />
+      </CardContent>
+    </Card>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, sub }: { icon: React.ElementType; label: string; value: string | number; sub?: string }) {
+  return (
+    <Card className="glass-card">
+      <CardContent className="pt-6">
+        <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+          <Icon className="h-3.5 w-3.5" /> {label}
+        </div>
+        <p className="text-2xl font-bold font-heading">{typeof value === "number" ? value.toLocaleString() : value}</p>
+        {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
       </CardContent>
     </Card>
   );
@@ -47,18 +75,24 @@ const GitHubDashboard = () => {
   const totalRepos = data?.org?.public_repos
     ? (data.org.public_repos + (data.org.total_private_repos || 0))
     : data?.repos?.length || 0;
-  const totalMembers = data?.membersTotalPages
-    ? data.membersTotalPages
-    : data?.members?.length || 0;
-  const totalTeams = data?.teamsTotalPages
-    ? data.teamsTotalPages
-    : data?.teams?.length || 0;
-
+  const totalMembers = data?.membersTotalPages ?? data?.members?.length ?? 0;
+  const totalTeams = data?.teamsTotalPages ?? data?.teams?.length ?? 0;
   const activeRepos = data?.repos?.filter((r) => !r.archived).length || 0;
   const archivedRepos = data?.repos?.filter((r) => r.archived).length || 0;
-  const forkedRepos = data?.repos?.filter((r) => r.fork).length || 0;
   const totalStars = data?.repos?.reduce((s, r) => s + r.stargazers_count, 0) || 0;
   const totalOpenIssues = data?.repos?.reduce((s, r) => s + r.open_issues_count, 0) || 0;
+
+  // Seats info
+  const filledSeats = data?.org?.plan?.filled_seats;
+  const totalSeats = data?.org?.plan?.seats;
+
+  // Billing
+  const billing = data?.billingActions;
+  const storage = data?.billingStorage;
+
+  // Copilot
+  const copilot = data?.copilot;
+  const copilotSeats = copilot?.seat_breakdown;
 
   // Language breakdown
   const langMap: Record<string, number> = {};
@@ -89,7 +123,16 @@ const GitHubDashboard = () => {
     repos: count,
   }));
 
-  // Recent repos
+  // Copilot pie chart
+  const copilotPieData = copilotSeats
+    ? [
+        { name: "Active", value: copilotSeats.active_this_cycle },
+        { name: "Inactive", value: copilotSeats.inactive_this_cycle },
+        { name: "Pending", value: copilotSeats.pending_invitation },
+        { name: "Cancelling", value: copilotSeats.pending_cancellation },
+      ].filter((d) => d.value > 0)
+    : [];
+
   const recentRepos = data?.repos?.slice(0, 10) || [];
 
   return (
@@ -117,60 +160,172 @@ const GitHubDashboard = () => {
             Array.from({ length: 6 }).map((_, i) => <KPISkeleton key={i} />)
           ) : (
             <>
-              <Card className="glass-card">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                    <Users className="h-3.5 w-3.5" /> Members
-                  </div>
-                  <p className="text-2xl font-bold font-heading">{totalMembers.toLocaleString()}</p>
-                </CardContent>
-              </Card>
-              <Card className="glass-card">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                    <BookOpen className="h-3.5 w-3.5" /> Repositories
-                  </div>
-                  <p className="text-2xl font-bold font-heading">{totalRepos.toLocaleString()}</p>
-                </CardContent>
-              </Card>
-              <Card className="glass-card">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                    <UsersRound className="h-3.5 w-3.5" /> Teams
-                  </div>
-                  <p className="text-2xl font-bold font-heading">{totalTeams.toLocaleString()}</p>
-                </CardContent>
-              </Card>
-              <Card className="glass-card">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                    <Star className="h-3.5 w-3.5" /> Stars
-                  </div>
-                  <p className="text-2xl font-bold font-heading">{totalStars.toLocaleString()}</p>
-                </CardContent>
-              </Card>
-              <Card className="glass-card">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                    <Archive className="h-3.5 w-3.5" /> Archived
-                  </div>
-                  <p className="text-2xl font-bold font-heading">{archivedRepos}</p>
-                </CardContent>
-              </Card>
-              <Card className="glass-card">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                    <AlertCircle className="h-3.5 w-3.5" /> Open Issues
-                  </div>
-                  <p className="text-2xl font-bold font-heading">{totalOpenIssues.toLocaleString()}</p>
-                </CardContent>
-              </Card>
+              <StatCard icon={Users} label="Members" value={totalMembers}
+                sub={filledSeats != null && totalSeats != null ? `${filledSeats}/${totalSeats} seats` : undefined} />
+              <StatCard icon={BookOpen} label="Repositories" value={totalRepos}
+                sub={`${activeRepos} active · ${archivedRepos} archived`} />
+              <StatCard icon={UsersRound} label="Teams" value={totalTeams} />
+              <StatCard icon={Star} label="Stars" value={totalStars} />
+              <StatCard icon={Archive} label="Archived" value={archivedRepos} />
+              <StatCard icon={AlertCircle} label="Open Issues" value={totalOpenIssues} />
             </>
           )}
         </div>
 
+        {/* Billing & Copilot Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* GitHub Actions Billing */}
+          <Card className="glass-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-heading flex items-center gap-2">
+                <Cpu className="h-4 w-4 text-primary" /> Actions Usage
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-20 w-full" />
+              ) : billing ? (
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-muted-foreground">Minutes used</span>
+                      <span>{billing.total_minutes_used.toLocaleString()} / {billing.included_minutes.toLocaleString()}</span>
+                    </div>
+                    <Progress value={billing.included_minutes > 0 ? (billing.total_minutes_used / billing.included_minutes) * 100 : 0} className="h-2" />
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Paid minutes</span>
+                    <span className="font-medium">{billing.total_paid_minutes_used.toLocaleString()}</span>
+                  </div>
+                  {billing.minutes_used_breakdown && Object.keys(billing.minutes_used_breakdown).length > 0 && (
+                    <div className="pt-2 border-t border-border/50 space-y-1">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">By runner</p>
+                      {Object.entries(billing.minutes_used_breakdown).map(([runner, mins]) => (
+                        <div key={runner} className="flex justify-between text-xs">
+                          <span className="text-muted-foreground capitalize">{runner.replace(/_/g, " ")}</span>
+                          <span>{(mins as number).toLocaleString()} min</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Not available</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Storage Billing */}
+          <Card className="glass-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-heading flex items-center gap-2">
+                <HardDrive className="h-4 w-4 text-primary" /> Storage & Billing
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-20 w-full" />
+              ) : storage ? (
+                <div className="space-y-3">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Est. storage this month</span>
+                    <span className="font-medium">{storage.estimated_storage_for_month.toLocaleString()} GB</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Est. paid storage</span>
+                    <span className="font-medium">{storage.estimated_paid_storage_for_month.toLocaleString()} GB</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Days left in cycle</span>
+                    <span className="font-medium">{storage.days_left_in_billing_cycle}</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Not available</p>
+              )}
+
+              {/* Seats info from org plan */}
+              {data?.org?.plan && (
+                <div className="mt-4 pt-3 border-t border-border/50 space-y-2">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <CreditCard className="h-3 w-3" /> Plan: {data.org.plan.name}
+                  </p>
+                  {filledSeats != null && totalSeats != null && (
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">Seats</span>
+                        <span>{filledSeats.toLocaleString()} / {totalSeats.toLocaleString()}</span>
+                      </div>
+                      <Progress value={totalSeats > 0 ? (filledSeats / totalSeats) * 100 : 0} className="h-2" />
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Copilot */}
+          <Card className="glass-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-heading flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" /> Copilot
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-20 w-full" />
+              ) : copilotSeats ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <UserCheck className="h-3 w-3 text-green-400" />
+                      <span className="text-muted-foreground">Active</span>
+                      <span className="font-medium ml-auto">{copilotSeats.active_this_cycle}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <UserX className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground">Inactive</span>
+                      <span className="font-medium ml-auto">{copilotSeats.inactive_this_cycle}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <Users className="h-3 w-3 text-blue-400" />
+                      <span className="text-muted-foreground">Total</span>
+                      <span className="font-medium ml-auto">{copilotSeats.total}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <Users className="h-3 w-3 text-yellow-400" />
+                      <span className="text-muted-foreground">Pending</span>
+                      <span className="font-medium ml-auto">{copilotSeats.pending_invitation}</span>
+                    </div>
+                  </div>
+                  {copilotSeats.total > 0 && (
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">Adoption rate</span>
+                        <span className="font-medium">
+                          {Math.round((copilotSeats.active_this_cycle / copilotSeats.total) * 100)}%
+                        </span>
+                      </div>
+                      <Progress value={(copilotSeats.active_this_cycle / copilotSeats.total) * 100} className="h-2" />
+                    </div>
+                  )}
+                  {copilot?.seat_management_setting && (
+                    <div className="flex justify-between text-xs pt-1">
+                      <span className="text-muted-foreground">Management</span>
+                      <Badge variant="outline" className="text-[10px]">{copilot.seat_management_setting}</Badge>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Not available or not enabled</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Language Breakdown or Copilot Pie */}
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="text-sm font-heading">Language Breakdown</CardTitle>
@@ -198,14 +353,7 @@ const GitHubDashboard = () => {
                         <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(215, 25%, 13%)",
-                        border: "1px solid hsl(215, 18%, 20%)",
-                        borderRadius: "8px",
-                        color: "hsl(210, 20%, 92%)",
-                      }}
-                    />
+                    <Tooltip contentStyle={tooltipStyle} />
                   </PieChart>
                 </ResponsiveContainer>
               )}
@@ -222,20 +370,9 @@ const GitHubDashboard = () => {
               ) : (
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={repoGrowthData}>
-                    <XAxis
-                      dataKey="month"
-                      stroke="hsl(215, 15%, 55%)"
-                      fontSize={11}
-                    />
+                    <XAxis dataKey="month" stroke="hsl(215, 15%, 55%)" fontSize={11} />
                     <YAxis stroke="hsl(215, 15%, 55%)" fontSize={11} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(215, 25%, 13%)",
-                        border: "1px solid hsl(215, 18%, 20%)",
-                        borderRadius: "8px",
-                        color: "hsl(210, 20%, 92%)",
-                      }}
-                    />
+                    <Tooltip contentStyle={tooltipStyle} />
                     <Bar dataKey="repos" fill="hsl(174, 100%, 40%)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -243,6 +380,37 @@ const GitHubDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Copilot Seats Chart */}
+        {copilotPieData.length > 0 && (
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-sm font-heading">Copilot Seat Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={copilotPieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={3}
+                    label={({ name, value }) => `${name}: ${value}`}
+                  >
+                    {copilotPieData.map((_, idx) => (
+                      <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={tooltipStyle} />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recent Repos Table */}
         <Card className="glass-card">
@@ -287,9 +455,7 @@ const GitHubDashboard = () => {
                         <td className="py-2 px-3 text-right">{repo.forks_count}</td>
                         <td className="py-2 px-3 text-right">{repo.open_issues_count}</td>
                         <td className="py-2 px-3 text-muted-foreground">
-                          {repo.pushed_at
-                            ? new Date(repo.pushed_at).toLocaleDateString()
-                            : "—"}
+                          {repo.pushed_at ? new Date(repo.pushed_at).toLocaleDateString() : "—"}
                         </td>
                       </tr>
                     ))}

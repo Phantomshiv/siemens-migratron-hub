@@ -1,5 +1,32 @@
 import { useQuery } from "@tanstack/react-query";
 
+export interface GHEBillingActions {
+  total_minutes_used: number;
+  total_paid_minutes_used: number;
+  included_minutes: number;
+  minutes_used_breakdown: Record<string, number>;
+}
+
+export interface GHEBillingStorage {
+  days_left_in_billing_cycle: number;
+  estimated_paid_storage_for_month: number;
+  estimated_storage_for_month: number;
+}
+
+export interface GHECopilot {
+  seat_breakdown: {
+    total: number;
+    added_this_cycle: number;
+    pending_cancellation: number;
+    pending_invitation: number;
+    active_this_cycle: number;
+    inactive_this_cycle: number;
+  };
+  seat_management_setting: string;
+  public_code_suggestions: string;
+  [key: string]: unknown;
+}
+
 export interface GHESummary {
   org: {
     login: string;
@@ -13,6 +40,13 @@ export interface GHESummary {
     created_at: string;
     updated_at: string;
     avatar_url: string;
+    plan?: {
+      name: string;
+      space: number;
+      private_repos: number;
+      filled_seats?: number;
+      seats?: number;
+    };
     [key: string]: unknown;
   } | null;
   repos: Array<{
@@ -49,6 +83,9 @@ export interface GHESummary {
     repos_count?: number;
   }>;
   teamsTotalPages: number | null;
+  billingActions: GHEBillingActions | null;
+  billingStorage: GHEBillingStorage | null;
+  copilot: GHECopilot | null;
   errors?: string[];
 }
 
