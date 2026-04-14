@@ -1,5 +1,5 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { useGitHubSummary } from "@/hooks/useGitHub";
+import { useGitHubSummary, useGitHubActivity } from "@/hooks/useGitHub";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,10 +19,13 @@ import {
   Sparkles,
   UserCheck,
   UserX,
+  GitPullRequest,
+  GitCommit,
+  TrendingUp,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
+  PieChart, Pie, Cell, AreaChart, Area, Legend, LineChart, Line,
 } from "recharts";
 
 const CHART_COLORS = [
