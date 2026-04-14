@@ -83,28 +83,44 @@ function ModuleCard({ module }: { module: typeof orgData.modules[0] }) {
 
       {expanded && (
         <div className="border-t border-border px-4 pb-4">
-          {/* Lead(s) */}
-          <div className="py-3 border-b border-border/50">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Leadership</p>
-            <div className="flex flex-wrap gap-3">
-              <div className="flex items-center gap-2">
-                <Avatar name={module.lead} />
-                <div>
-                  <p className="text-xs font-medium">{module.lead}</p>
-                  <Badge variant="secondary" className="text-[9px] bg-primary/20 text-primary">Lead</Badge>
-                </div>
-              </div>
-              {module.coLead && (
+          {module.lead && (
+            <div className="py-3 border-b border-border/50">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Leadership</p>
+              <div className="flex flex-wrap gap-3">
                 <div className="flex items-center gap-2">
-                  <Avatar name={module.coLead} />
+                  <Avatar name={module.lead} />
                   <div>
-                    <p className="text-xs font-medium">{module.coLead}</p>
-                    <Badge variant="secondary" className="text-[9px] bg-chart-2/20 text-chart-2">Co-Lead</Badge>
+                    <p className="text-xs font-medium">{module.lead}</p>
+                    <Badge variant="secondary" className="text-[9px] bg-primary/20 text-primary">Lead</Badge>
                   </div>
                 </div>
-              )}
+                {module.coLead && (
+                  <div className="flex items-center gap-2">
+                    <Avatar name={module.coLead} />
+                    <div>
+                      <p className="text-xs font-medium">{module.coLead}</p>
+                      <Badge variant="secondary" className="text-[9px] bg-chart-2/20 text-chart-2">Co-Lead</Badge>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* PMO */}
+          {module.pmo && module.pmo.length > 0 && (
+            <div className="py-3 border-b border-border/50">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">PMO</p>
+              <div className="flex flex-wrap gap-2">
+                {module.pmo.map((p) => (
+                  <div key={p.name} className="flex items-center gap-2 py-1 px-2 rounded-md bg-secondary/50">
+                    <Avatar name={p.name} />
+                    <p className="text-xs">{p.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Members */}
           {module.members.length > 0 && (
