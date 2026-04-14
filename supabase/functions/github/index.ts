@@ -120,6 +120,21 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
     const org = url.searchParams.get("org") || "open";
+    const noCache = url.searchParams.get("nocache") === "1";
+
+    // For cacheable actions, check cache first
+    const cacheableActions = ["summary", "activity", "members-detail"];
+    if (action && cacheableActions.includes(action) && !noCache) {
+      const cacheKey = `github:${action}:${org}`;
+      const cached = await getCache(cacheKey);
+      if (cached) {
+        console.log(`Cache HIT for ${cacheKey}`);
+        return new Response(JSON.stringify(cached), {
+          headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "HIT" },
+        });
+      }
+      console.log(`Cache MISS for ${cacheKey}`);
+    }
 
     if (action === "org") {
       const resp = await fetch(`${GHE_BASE}/orgs/${org}`, { headers: gheHeaders });
