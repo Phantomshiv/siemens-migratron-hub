@@ -39,18 +39,10 @@ serve(async (req) => {
       }
     }
 
-    // Support both Cloudability API key (Basic Auth) and Apptio OpenToken
     const headers: Record<string, string> = {
       Accept: "application/json",
+      Authorization: `Basic ${btoa(CLOUDABILITY_API_KEY + ":")}`,
     };
-
-    // Try Apptio OpenToken first (works with Frontdoor keys), fallback to Basic Auth
-    if (CLOUDABILITY_ENV_ID) {
-      headers["Apptio-Opentoken"] = CLOUDABILITY_API_KEY;
-      headers["Apptio-Current-Environment"] = CLOUDABILITY_ENV_ID;
-    } else {
-      headers["Authorization"] = `Basic ${btoa(CLOUDABILITY_API_KEY + ":")}`;
-    }
 
     const fetchOptions: RequestInit = {
       method,
