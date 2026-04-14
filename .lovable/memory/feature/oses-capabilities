@@ -1,0 +1,22 @@
+---
+name: OSES Capabilities & Releases
+description: OSES platform structure - 5 domains, 15+ subdomains, 30+ capabilities, 3 quarterly releases
+type: feature
+---
+OSES = ONE Software Engineering System, Siemens internal developer platform.
+
+## Domains
+1. Cloud Operations — Archival, Cloud Security, Incident Response, Observability
+2. Delivery & Hosting — Cloud Modeling/Runtime/Compute/Delivery, Desktop/Edge delivery, AI Development
+3. Development & CI — Artifacts mgmt, Development Plane, Static Validation
+4. Plan & Design — ALM (Architecture, UX Design), Catalog (Asset Management)
+5. Platform Services — Control Plane (GitOps), External/Internal Developer Portal
+
+## Releases (quarterly)
+- OSES.1 (Q3 2025) — Initial release. 7 use cases: app registration, software catalog, Python paved path, UCP, shared compute onboarding, cloud account ordering, Faros AI productivity.
+- OSES.2 (Q4 2025) — 5 use cases: brownfield visibility, GPU on-demand, K8s self-service, package security blocking, image signing enforcement. Plus UCP enhancements, Backstage UX, AWS Bedrock.
+- OSES.3 (Q1 2026) — 5 use cases: dual APM monitoring, ingress migration (NGINX→successor), EFS shared storage, IRSA cert-manager, Policy-as-Code (OPA/Kyverno).
+
+## Data location
+- Structured data: src/lib/oses-data.ts (domains[], releases[] with full use case details)
+- Pages: src/pages/Capabilities.tsx, src/pages/Releases.tsx
