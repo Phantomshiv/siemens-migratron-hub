@@ -1,0 +1,13 @@
+---
+name: Backstage OSES Portal API
+description: Backstage catalog API at portal.oses.siemens.io, Azure AD OAuth client_credentials flow
+type: reference
+---
+- Base URL: https://portal.oses.siemens.io/api
+- Auth: Azure AD OAuth2 client_credentials via tenant 38ae3bcd-9579-4fd4-adda-b42e1495d55a
+- Secrets: BACKSTAGE_CLIENT_ID, BACKSTAGE_CLIENT_SECRET
+- Key endpoints: /catalog/entities, /catalog/entity-facets
+- Entity kinds: Component (502), System (314), Domain (200), Group (290), API (51), Resource (1564), Template (25)
+- Rich annotations: oses.siemens.com/business-unit, /tech-lead, /product-lead, /hosting-environment, /technology-stack, /context-id
+- Component types: service, website, backend-service, application, library, etc.
+- Component lifecycles: production (364), experimental (135)
