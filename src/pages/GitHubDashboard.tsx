@@ -1,5 +1,5 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { useGitHubSummary, useGitHubActivity } from "@/hooks/useGitHub";
+import { useGitHubSummary, useGitHubActivity, useGitHubMembersDetail } from "@/hooks/useGitHub";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +22,7 @@ import {
   GitPullRequest,
   GitCommit,
   TrendingUp,
+  Building2,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -74,6 +75,7 @@ function StatCard({ icon: Icon, label, value, sub }: { icon: React.ElementType; 
 const GitHubDashboard = () => {
   const { data, isLoading, error } = useGitHubSummary("open");
   const { data: activity, isLoading: activityLoading } = useGitHubActivity("open");
+  const { data: membersDetail, isLoading: membersLoading } = useGitHubMembersDetail("open");
 
   // Derive stats
   const totalRepos = data?.reposTotalCount ?? data?.repos?.length ?? 0;
