@@ -11,6 +11,7 @@ import {
   Layers,
   Rocket,
   Github,
+  BookOpen,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -37,6 +38,7 @@ const mainItems = [
   { title: "Roadmap", url: "/roadmap", icon: Map },
   { title: "Risks & Decisions", url: "/risks", icon: AlertTriangle },
   { title: "GitHub", url: "/github", icon: Github },
+  { title: "Backstage", url: "/backstage", icon: BookOpen },
 ];
 
 const secondaryItems = [
