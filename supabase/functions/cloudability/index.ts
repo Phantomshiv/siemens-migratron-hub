@@ -21,7 +21,6 @@ serve(async (req) => {
       });
     }
 
-    const CLOUDABILITY_ENV_ID = Deno.env.get("CLOUDABILITY_ENV_ID") || "f2ee502f-2f35-45c1-8bc5-7d4748f637b6";
     const { endpoint, method = "GET", params = {}, body: reqBody } = await req.json();
 
     if (!endpoint || typeof endpoint !== "string") {
