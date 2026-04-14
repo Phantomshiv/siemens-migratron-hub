@@ -73,15 +73,30 @@ export async function getBlockers(projectKey: string) {
   );
 }
 
-// --- Status distribution (count only, uses v2 which returns total) ---
+// --- Count issues by paginating (v3 search/jql doesn't return total) ---
 export async function countIssues(jql: string): Promise<number> {
-  const res: any = await callJira({
-    endpoint: "/rest/api/2/search",
-    params: {
+  let count = 0;
+  let nextPageToken: string | undefined;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const params: Record<string, string> = {
       jql,
-      maxResults: "0" as any,
-      fields: "" as any,
-    },
-  });
-  return res?.total ?? 0;
+      maxResults: "5000" as any,
+      fields: "status" as any,
+    };
+    if (nextPageToken) params.nextPageToken = nextPageToken;
+
+    const res: any = await callJira({
+      endpoint: "/rest/api/3/search/jql",
+      params,
+    });
+
+    count += (res?.issues?.length ?? 0);
+
+    if (res?.isLast !== false || !res?.nextPageToken) break;
+    nextPageToken = res.nextPageToken;
+  }
+
+  return count;
 }
