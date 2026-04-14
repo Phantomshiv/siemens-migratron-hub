@@ -73,6 +73,7 @@ function StatCard({ icon: Icon, label, value, sub }: { icon: React.ElementType; 
 
 const GitHubDashboard = () => {
   const { data, isLoading, error } = useGitHubSummary("open");
+  const { data: activity, isLoading: activityLoading } = useGitHubActivity("open");
 
   // Derive stats
   const totalRepos = data?.reposTotalCount ?? data?.repos?.length ?? 0;
