@@ -41,18 +41,17 @@ export async function getSprintIssues(sprintId: number) {
 
 // --- Search (JQL) ---
 export async function searchIssues(jql: string, maxResults = 100, fields?: string[]) {
+  const fieldList = fields || [
+    "summary", "status", "priority", "assignee", "issuetype",
+    "created", "updated", "duedate", "labels", "fixVersions",
+    "customfield_10016", "parent",
+  ];
   return callJira({
-    endpoint: "/rest/api/3/search",
-    method: "POST",
-    body: {
+    endpoint: "/rest/api/3/search/jql",
+    params: {
       jql,
-      maxResults,
-      fields: fields || [
-        "summary", "status", "priority", "assignee", "issuetype",
-        "created", "updated", "duedate", "labels", "fixVersions",
-        "customfield_10016", // story points
-        "parent",
-      ],
+      maxResults: maxResults as any,
+      fields: fieldList.join(",") as any,
     },
   });
 }
