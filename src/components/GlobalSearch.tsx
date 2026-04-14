@@ -112,11 +112,10 @@ export function GlobalSearch() {
     []
   );
 
-  // Register shortcut
-  useState(() => {
+  useEffect(() => {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  });
+  }, [handleKeyDown]);
 
   return (
     <>
