@@ -180,6 +180,80 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Members detail: fetch all members with name/email via GraphQL, parse departments
+    if (action === "members-detail") {
+      const members: { login: string; name: string; email: string; department: string }[] = [];
+      let hasNext = true;
+      let cursor: string | null = null;
+
+      const graphqlHeaders = { ...gheHeaders, "Content-Type": "application/json" };
+
+      while (hasNext) {
+        const afterClause = cursor ? `, after: "${cursor}"` : "";
+        const query = `{
+          organization(login: "${org}") {
+            membersWithRole(first: 100${afterClause}) {
+              pageInfo { hasNextPage endCursor }
+              nodes { login name email }
+            }
+          }
+        }`;
+
+        const resp = await fetch(`${GHE_API_BASE}/api/graphql`, {
+          method: "POST",
+          headers: graphqlHeaders,
+          body: JSON.stringify({ query }),
+        });
+
+        if (!resp.ok) {
+          const body = await resp.text();
+          console.error("GraphQL members error:", resp.status, body);
+          break;
+        }
+
+        const result = await resp.json();
+        const connection = result?.data?.organization?.membersWithRole;
+        if (!connection) break;
+
+        for (const node of connection.nodes || []) {
+          // Parse department from name like "Lastname, Firstname (DI IT PLM SW 2)"
+          let department = "Unknown";
+          const match = node.name?.match(/\(([^)]+)\)/);
+          if (match) {
+            const parts = match[1].trim().split(/\s+/);
+            department = parts.slice(0, 2).join(" ");
+          }
+          members.push({
+            login: node.login,
+            name: node.name || node.login,
+            email: node.email || "",
+            department,
+          });
+        }
+
+        hasNext = connection.pageInfo?.hasNextPage ?? false;
+        cursor = connection.pageInfo?.endCursor ?? null;
+      }
+
+      // Build department stats
+      const deptCounts: Record<string, number> = {};
+      for (const m of members) {
+        deptCounts[m.department] = (deptCounts[m.department] || 0) + 1;
+      }
+
+      const departments = Object.entries(deptCounts)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+
+      return new Response(JSON.stringify({
+        totalMembers: members.length,
+        departments,
+        members,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Summary: fetch org + paginate repos/members/teams + billing + copilot
     if (action === "summary") {
       const errors: string[] = [];
