@@ -241,7 +241,7 @@ const PeopleDashboard = () => {
             <TabsTrigger value="list" className="text-xs">Detail View</TabsTrigger>
           </TabsList>
           <TabsContent value="chart" className="mt-4">
-            <OrgChartView />
+            <OrgChartTree />
           </TabsContent>
           <TabsContent value="list" className="mt-4">
             <ListView search={search} />
