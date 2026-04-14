@@ -83,15 +83,6 @@ export interface GHESummary {
     repos_count?: number;
   }>;
   teamsTotalCount: number;
-  teams: Array<{
-    id: number;
-    name: string;
-    slug: string;
-    description: string | null;
-    privacy: string;
-    members_count?: number;
-    repos_count?: number;
-  }>;
   billingActions: GHEBillingActions | null;
   billingStorage: GHEBillingStorage | null;
   copilot: GHECopilot | null;
