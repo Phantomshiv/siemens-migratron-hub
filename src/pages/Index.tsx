@@ -300,6 +300,7 @@ const Index = () => {
               { label: "Developers", value: clientDevs.toLocaleString(), changeType: "neutral" },
             ]}
             detailTitle="GHE Migration Clients"
+          />
           <KPICard
             title="Blockers"
             value={blockerCount}
