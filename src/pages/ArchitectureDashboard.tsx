@@ -129,6 +129,23 @@ function ItemCard({ item, expanded, onToggle, repoFiles = [] }: { item: ProjectI
             {item.targetDate && (
               <p className="text-[9px] text-muted-foreground">Target: {new Date(item.targetDate).toLocaleDateString("en-GB")}</p>
             )}
+            {repoFiles.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-[9px] text-muted-foreground font-medium">📄 Related Documents:</span>
+                {repoFiles.map((f) => (
+                  <a
+                    key={f.path}
+                    href={f.html_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <FileText className="h-3 w-3" /> {f.path}
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </CardContent>
