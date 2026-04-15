@@ -353,6 +353,14 @@ const Index = () => {
             change={prOpen > 50 ? "High queue" : undefined}
             subtitle="current"
             href="/github"
+            details={[
+              { label: "Open PRs", value: prOpen, changeType: prOpen > 50 ? "negative" as const : "neutral" as const },
+              { label: "Merged (90d)", value: prMerged, changeType: "positive" as const },
+              { label: "Closed (90d)", value: prClosed, changeType: "neutral" as const },
+              { label: "Total Activity", value: prOpen + prMerged + prClosed, changeType: "neutral" as const },
+              { label: "Merge Rate", value: `${prMerged + prClosed > 0 ? Math.round((prMerged / (prMerged + prClosed)) * 100) : 0}%`, changeType: "positive" as const },
+            ]}
+            detailTitle="Pull Request Activity"
           />
           <KPICard
             title="PRs Merged"
@@ -361,6 +369,13 @@ const Index = () => {
             changeType="positive"
             subtitle="last 90 days"
             href="/github"
+            details={[
+              { label: "Merged", value: prMerged, changeType: "positive" as const },
+              { label: "Closed (no merge)", value: prClosed, changeType: "neutral" as const },
+              { label: "Still Open", value: prOpen, changeType: prOpen > 50 ? "negative" as const : "neutral" as const },
+              { label: "Merge Rate", value: `${prMerged + prClosed > 0 ? Math.round((prMerged / (prMerged + prClosed)) * 100) : 0}%`, changeType: "positive" as const },
+            ]}
+            detailTitle="Merge Statistics"
           />
           <KPICard
             title="Own FTEs"
@@ -384,6 +399,19 @@ const Index = () => {
             changeType={forecastPct <= 100 ? "positive" : "negative"}
             subtitle="budget vs forecast"
             href="/budget"
+            details={[
+              { label: "Total Budget", value: formatCost(budgetSummary.totalBudget), changeType: "neutral" as const },
+              { label: "Forecast FY26", value: formatCost(budgetSummary.forecastFY26), changeType: forecastPct > 100 ? "negative" as const : "positive" as const },
+              { label: "Gap", value: formatCost(budgetSummary.totalBudget - budgetSummary.forecastFY26), changeType: forecastPct <= 100 ? "positive" as const : "negative" as const },
+              { label: "Actuals YTD", value: formatCost(budgetSummary.actualSpend), changeType: "neutral" as const },
+              { label: "Remaining to Spend", value: formatCost(budgetSummary.forecastFY26 - budgetSummary.actualSpend), changeType: "neutral" as const },
+              ...byModule.map(m => ({
+                label: m.module,
+                value: formatCost(m.forecast - m.actual),
+                changeType: "neutral" as const,
+              })),
+            ]}
+            detailTitle="Forecast Gap Breakdown"
           />
         </div>
 
