@@ -41,6 +41,7 @@ const Index = () => {
   const { data: monthlyData } = useMonthlySpend();
   const { data: secData } = useGitHubSecurity("open");
   const { data: bsSummary } = useBackstageSummary();
+  const { data: roadmapQuarters } = useLiveRoadmap();
 
   const { data: projectsData } = useGitHubProjects();
 
