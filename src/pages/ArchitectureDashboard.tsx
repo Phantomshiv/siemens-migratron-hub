@@ -18,6 +18,7 @@ import {
   detectType,
   extractCapabilities,
   type ProjectItem,
+  type RepoFile,
 } from "@/hooks/useArchitectureData";
 import {
   FileText,
