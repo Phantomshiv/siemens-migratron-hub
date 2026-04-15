@@ -34,6 +34,24 @@ export interface RepoRiskScore {
   total: number;
 }
 
+export interface PostureScore {
+  repo: string;
+  level: number;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  secrets: number;
+  total: number;
+}
+
+export interface SecurityConfigs {
+  totalRepos: number;
+  codeScanning: { enabled: number; optOut: number };
+  dependabot: { enabled: number; optOut: number };
+  secretScanning: { enabled: number; optOut: number };
+}
+
 export interface SecurityData {
   counts: SecurityCounts;
   codeSeverity: Record<string, number>;
@@ -48,6 +66,9 @@ export interface SecurityData {
   pushProtection: { bypassed: number; totalSecrets: number };
   alertDetails: AlertDetail[];
   riskScores: RepoRiskScore[];
+  postureScores?: PostureScore[];
+  securityConfigs?: SecurityConfigs;
+  blockedByPushProtection?: Record<string, number>;
   errors?: string[];
 }
 

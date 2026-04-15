@@ -15,6 +15,8 @@ import { EcosystemPanel } from "@/components/cybersecurity/EcosystemPanel";
 import { PushProtectionPanel } from "@/components/cybersecurity/PushProtectionPanel";
 import { AlertDetailsTable } from "@/components/cybersecurity/AlertDetailsTable";
 import { RiskScorePanel } from "@/components/cybersecurity/RiskScorePanel";
+import { SecurityPosturePanel } from "@/components/cybersecurity/SecurityPosturePanel";
+import { SecurityOptOutPanel } from "@/components/cybersecurity/SecurityOptOutPanel";
 
 const tooltipStyle = {
   backgroundColor: "hsl(215, 25%, 13%)",
@@ -250,6 +252,19 @@ const CybersecurityDashboard = () => {
             </Card>
           )}
         </div>
+
+        {/* Security Posture Levels */}
+        {!securityLoading && security?.postureScores && security.postureScores.length > 0 && (
+          <SecurityPosturePanel postureScores={security.postureScores} />
+        )}
+
+        {/* Security Config Opt-Out & Blocked Repos */}
+        {!securityLoading && security?.securityConfigs && (
+          <SecurityOptOutPanel
+            securityConfigs={security.securityConfigs}
+            blockedByPushProtection={security.blockedByPushProtection}
+          />
+        )}
 
         {/* Risk Scores */}
         {!securityLoading && security?.riskScores && security.riskScores.length > 0 && (
