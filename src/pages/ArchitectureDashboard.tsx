@@ -18,6 +18,7 @@ import {
   detectType,
   extractCapabilities,
   type ProjectItem,
+  type RepoFile,
 } from "@/hooks/useArchitectureData";
 import {
   FileText,
@@ -49,7 +50,7 @@ const GHE_STATUS_TO_KEY: Record<string, RfcStatus> = {
   "Publish / Closeout": "published",
 };
 
-function ItemCard({ item, expanded, onToggle }: { item: ProjectItem; expanded: boolean; onToggle: () => void }) {
+function ItemCard({ item, expanded, onToggle, repoFiles = [] }: { item: ProjectItem; expanded: boolean; onToggle: () => void; repoFiles?: RepoFile[] }) {
   const statusKey = GHE_STATUS_TO_KEY[item.status || ""] || "backlog";
   const sc = rfcStatusConfig[statusKey];
   const type = detectType(item.labels);
@@ -128,6 +129,23 @@ function ItemCard({ item, expanded, onToggle }: { item: ProjectItem; expanded: b
             {item.targetDate && (
               <p className="text-[9px] text-muted-foreground">Target: {new Date(item.targetDate).toLocaleDateString("en-GB")}</p>
             )}
+            {repoFiles.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-[9px] text-muted-foreground font-medium">📄 Related Documents:</span>
+                {repoFiles.map((f) => (
+                  <a
+                    key={f.path}
+                    href={f.html_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <FileText className="h-3 w-3" /> {f.path}
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </CardContent>
@@ -141,6 +159,7 @@ const ArchitectureDashboard = () => {
 
   const items = data?.items || [];
   const columns = data?.columns || [];
+  const repoFiles = data?.repoFiles || [];
 
   // Map columns to our kanban config
   const kanbanCols = columns.length > 0
@@ -296,6 +315,7 @@ const ArchitectureDashboard = () => {
                             item={item}
                             expanded={expandedCard === item.id}
                             onToggle={() => setExpandedCard(expandedCard === item.id ? null : item.id)}
+                            repoFiles={repoFiles}
                           />
                         ))}
                         {colItems.length === 0 && (
@@ -423,6 +443,7 @@ const ArchitectureDashboard = () => {
                       item={item}
                       expanded={expandedCard === item.id}
                       onToggle={() => setExpandedCard(expandedCard === item.id ? null : item.id)}
+                      repoFiles={repoFiles}
                     />
                   ))}
                 {items.filter((i) => i.status === "Publish / Closeout").length === 0 && (

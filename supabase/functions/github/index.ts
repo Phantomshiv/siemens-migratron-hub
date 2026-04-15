@@ -1332,11 +1332,35 @@ Deno.serve(async (req) => {
       const statusField = project.fields.nodes.find((f: any) => f.name === "Status");
       const columns = statusField?.options?.map((o: any) => o.name) || [];
 
+      // Fetch repo file tree to link items to their RFC/ADR documents
+      const repoFiles: Array<{ name: string; path: string; html_url: string }> = [];
+      try {
+        const repo = url.searchParams.get("repo") || "foundation/oses-standards";
+        // Use git trees API for recursive listing (faster than contents API)
+        const treeResp = await fetch(`${GHE_BASE}/repos/${repo}/git/trees/main?recursive=1`, { headers: gheHeaders });
+        if (treeResp.ok) {
+          const treeData = await treeResp.json();
+          for (const entry of treeData.tree || []) {
+            if (entry.type === "blob" && entry.path.endsWith(".md") && (entry.path.startsWith("ADR/") || entry.path.startsWith("RFC/"))) {
+              repoFiles.push({
+                name: entry.path.split("/").pop() || entry.path,
+                path: entry.path,
+                html_url: `https://siemens.ghe.com/${repo}/blob/main/${entry.path}`,
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to fetch repo file tree:", e);
+      }
+
       const result = {
         project: { id: project.id, title: project.title, description: project.shortDescription },
         columns,
         items: parsedItems,
         totalCount: parsedItems.length,
+        repoFiles,
+        repoUrl: `https://siemens.ghe.com/${url.searchParams.get("repo") || "foundation/oses-standards"}`,
       };
 
       await setCache(cacheKey, result, 10);
