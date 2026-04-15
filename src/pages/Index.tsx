@@ -10,6 +10,7 @@ import { useBackstageSummary } from "@/hooks/useBackstage";
 import { getOrgStats } from "@/lib/people-data";
 import { budgetSummary, fteTotals } from "@/lib/budget-data";
 import { releases, domains } from "@/lib/oses-data";
+import { useGitHubProjects } from "@/hooks/useGitHubProjects";
 import {
   GitBranch,
   Users,
@@ -23,6 +24,7 @@ import {
   Wallet,
   Layers,
   CloudCog,
+  Building2,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -36,8 +38,22 @@ const Index = () => {
   const { data: secData } = useGitHubSecurity("open");
   const { data: bsSummary } = useBackstageSummary();
 
+  const { data: projectsData } = useGitHubProjects();
+
   // People
   const orgStats = getOrgStats();
+
+  // Client Management
+  const clientItems = (projectsData?.items ?? []).filter(
+    (item) => item.organization && item.title && !item.title.startsWith("Pre-Migration:") && !item.title.startsWith("Post-Migration:")
+  );
+  const clientTotal = clientItems.length;
+  const clientInProgress = clientItems.filter((c) => c.status === "In Progress").length;
+  const clientDone = clientItems.filter((c) => c.status === "Done").length;
+  const clientBacklog = clientItems.filter((c) => c.status === "Backlog").length;
+  const clientBUs = new Set(clientItems.map((c) => c.organization).filter(Boolean)).size;
+  const clientRepos = clientItems.reduce((s, c) => s + (parseInt(c.noOfRepos || "0") || 0), 0);
+  const clientDevs = clientItems.reduce((s, c) => s + (parseInt(c.noOfDevelopers || "0") || 0), 0);
 
   // GitHub metrics
   const totalRepos = ghData?.reposTotalCount ?? ghData?.repos?.length ?? 0;
@@ -205,8 +221,8 @@ const Index = () => {
           </div>
         )}
 
-        {/* Row 2: Secondary KPIs — GitHub, Security, Backstage, Copilot */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        {/* Row 2: Secondary KPIs — GitHub, Security, Backstage, Clients, Copilot */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           <KPICard
             title="GitHub Enterprise"
             value={`${totalMembers}`}
@@ -266,6 +282,24 @@ const Index = () => {
               { label: "Total Entities", value: totalEntities, changeType: "neutral" },
             ]}
             detailTitle="Backstage Catalog"
+          />
+          <KPICard
+            title="Clients"
+            value={clientTotal}
+            change={`${clientDone} migrated`}
+            changeType={clientDone > 0 ? "positive" : "neutral"}
+            icon={Building2}
+            subtitle={`${clientBUs} BUs · ${clientInProgress} active`}
+            href="/clients"
+            details={[
+              { label: "Total Clients", value: clientTotal, changeType: "neutral" },
+              { label: "In Progress", value: clientInProgress, changeType: "neutral" },
+              { label: "Backlog", value: clientBacklog, changeType: clientBacklog > 10 ? "negative" : "neutral" },
+              { label: "Done", value: clientDone, changeType: "positive" },
+              { label: "Total Repos", value: clientRepos.toLocaleString(), changeType: "neutral" },
+              { label: "Developers", value: clientDevs.toLocaleString(), changeType: "neutral" },
+            ]}
+            detailTitle="GHE Migration Clients"
           />
           <KPICard
             title="Blockers"
