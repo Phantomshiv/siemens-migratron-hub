@@ -159,6 +159,7 @@ const ArchitectureDashboard = () => {
 
   const items = data?.items || [];
   const columns = data?.columns || [];
+  const repoFiles = data?.repoFiles || [];
 
   // Map columns to our kanban config
   const kanbanCols = columns.length > 0
