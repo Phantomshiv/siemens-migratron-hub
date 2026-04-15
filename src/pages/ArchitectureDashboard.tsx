@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
-const GHE_REPO_BASE = "https://siemens.ghe.com/foundation/oses-standards/blob/main";
+
 
 function RfcCard({ item, expanded, onToggle }: { item: RfcAdr; expanded: boolean; onToggle: () => void }) {
   const sc = rfcStatusConfig[item.status];
