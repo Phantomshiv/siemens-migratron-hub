@@ -427,12 +427,19 @@ const Index = () => {
               <a href="/roadmap" className="text-[10px] text-primary hover:underline">View full roadmap →</a>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {roadmapQuarters.map((q) => {
                 const pct = q.totalItems > 0 ? Math.round((q.released / q.totalItems) * 100) : 0;
+                const isExpanded = expandedQuarter === q.quarter;
                 return (
-                  <div key={q.quarter} className="space-y-2 p-3 rounded-lg bg-muted/30">
+                  <div
+                    key={q.quarter}
+                    className={`space-y-2 p-3 rounded-lg cursor-pointer transition-all ${
+                      isExpanded ? "bg-primary/10 ring-1 ring-primary/30" : "bg-muted/30 hover:bg-muted/50"
+                    }`}
+                    onClick={() => setExpandedQuarter(isExpanded ? null : q.quarter)}
+                  >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold">{q.quarter}</span>
                       <span className="text-[10px] text-muted-foreground">{pct}%</span>
@@ -448,6 +455,49 @@ const Index = () => {
                 );
               })}
             </div>
+
+            {/* Expanded quarter detail */}
+            {expandedQuarter && (() => {
+              const q = roadmapQuarters.find((q) => q.quarter === expandedQuarter);
+              if (!q) return null;
+              const allItems = q.categories.flatMap((c: any) =>
+                c.items.map((item: any) => ({ ...item, category: c.name }))
+              );
+              return (
+                <div className="border-t border-border pt-3 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-heading font-semibold">{q.quarter} — {allItems.length} items</span>
+                    <button onClick={() => setExpandedQuarter(null)} className="text-[10px] text-muted-foreground hover:text-foreground">Close ✕</button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 max-h-[200px] overflow-y-auto">
+                    {allItems.map((item: any) => {
+                      const statusColor = item.status === "released"
+                        ? "text-emerald-400"
+                        : item.status === "committed"
+                        ? "text-blue-400"
+                        : item.status === "exploring"
+                        ? "text-amber-400"
+                        : "text-slate-400";
+                      return (
+                        <a
+                          key={item.id}
+                          href={`https://fdsone.atlassian.net/browse/${item.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-start gap-2 p-2 rounded-md bg-background/50 hover:bg-muted/50 transition-colors group"
+                        >
+                          <span className={`text-[10px] font-mono ${statusColor} flex-shrink-0 mt-0.5`}>{item.id}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-medium truncate group-hover:text-primary transition-colors">{item.title}</p>
+                            <p className="text-[9px] text-muted-foreground truncate">{item.category} · {item.jiraStatus || statusConfig[item.status as RoadmapStatus]?.label || item.status}</p>
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
 
