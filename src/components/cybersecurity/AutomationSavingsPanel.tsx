@@ -11,6 +11,10 @@ interface Props {
 }
 
 export function AutomationSavingsPanel({ totalVulnsFound, totalFixed, mttr }: Props) {
+  const { settings } = useCyberSettings();
+  const T1_HOURS = settings.t1Hours;
+  const T2_HOURS = settings.t2Hours;
+  const HOURLY_RATE_EUR = settings.hourlyRateEur;
   const [animatedHours, setAnimatedHours] = useState(0);
 
   const timeDelta = T1_HOURS - T2_HOURS; // Hours saved per vuln
