@@ -24,6 +24,8 @@ import {
   GitCommit,
   TrendingUp,
   Building2,
+  DollarSign,
+  Receipt,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
