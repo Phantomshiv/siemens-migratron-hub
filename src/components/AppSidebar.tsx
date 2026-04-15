@@ -17,6 +17,7 @@ import {
   Wallet,
   Users,
   ShieldAlert,
+  Sparkles,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -50,6 +51,7 @@ const mainItems = [
   { title: "Cybersecurity", url: "/cybersecurity", icon: ShieldAlert },
   { title: "Architecture", url: "/architecture", icon: FileText },
   { title: "People", url: "/people", icon: Users },
+  { title: "Snapshot AI", url: "/snapshots", icon: Sparkles },
 ];
 
 const secondaryItems = [
