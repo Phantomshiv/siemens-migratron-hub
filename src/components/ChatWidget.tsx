@@ -14,6 +14,18 @@ import { useLiveRoadmap } from "@/hooks/useRoadmapJira";
 type Msg = { role: "user" | "assistant"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+const STORAGE_KEY = "oses-chat-history";
+
+function loadMessages(): Msg[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch { return []; }
+}
+
+function saveMessages(msgs: Msg[]) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs)); } catch {}
+}
 
 const SUGGESTIONS = [
   "What's the current budget status?",
