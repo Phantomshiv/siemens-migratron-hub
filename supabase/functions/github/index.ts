@@ -621,6 +621,46 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Billing Usage (new v3 API)
+    if (action === "billing-usage") {
+      const cacheKey = `github:billing-usage:${org}`;
+      if (!noCache) {
+        const cached = await getCache(cacheKey);
+        if (cached) {
+          return new Response(JSON.stringify(cached), {
+            headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "HIT" },
+          });
+        }
+      }
+
+      // Fetch all pages of billing usage
+      const allItems: unknown[] = [];
+      let page = 1;
+      let hasMore = true;
+      while (hasMore && page <= 20) {
+        const resp = await fetch(
+          `${GHE_API_BASE}/api/v3/orgs/${org}/settings/billing/usage?per_page=100&page=${page}`,
+          { headers: gheHeaders }
+        );
+        if (!resp.ok) {
+          const body = await resp.text();
+          console.error(`Billing usage error [${resp.status}]:`, body);
+          break;
+        }
+        const data = await resp.json();
+        const items = data.usageItems || [];
+        allItems.push(...items);
+        if (items.length < 100) hasMore = false;
+        page++;
+      }
+
+      const result = { usageItems: allItems, totalCount: allItems.length };
+      await setCache(cacheKey, result, 30);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
