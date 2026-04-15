@@ -387,7 +387,39 @@ const Index = () => {
           />
         </div>
 
-        {/* Bottom Grid: Roadmap + Risks */}
+        {/* Roadmap Quarter Progress Strip */}
+        <Card className="glass-card">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-heading">OSES Roadmap Progress</CardTitle>
+              <a href="/roadmap" className="text-[10px] text-primary hover:underline">View full roadmap →</a>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {roadmapQuarters.map((q) => {
+                const pct = q.totalItems > 0 ? Math.round((q.released / q.totalItems) * 100) : 0;
+                return (
+                  <div key={q.quarter} className="space-y-2 p-3 rounded-lg bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold">{q.quarter}</span>
+                      <span className="text-[10px] text-muted-foreground">{pct}%</span>
+                    </div>
+                    <Progress value={pct} className="h-1.5" />
+                    <div className="flex gap-1.5 flex-wrap">
+                      {q.released > 0 && <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[9px] h-4 px-1.5">🚀 {q.released}</Badge>}
+                      {q.committed > 0 && <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[9px] h-4 px-1.5">📦 {q.committed}</Badge>}
+                      {q.exploring > 0 && <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[9px] h-4 px-1.5">🔍 {q.exploring}</Badge>}
+                      {q.backlog > 0 && <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30 text-[9px] h-4 px-1.5">📝 {q.backlog}</Badge>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
             <RoadmapTimeline />
