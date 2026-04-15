@@ -18,7 +18,7 @@ import { getOrgStats } from "@/lib/people-data";
 import { budgetSummary, fteTotals, byModule } from "@/lib/budget-data";
 import { releases, domains } from "@/lib/oses-data";
 import { useGitHubProjects } from "@/hooks/useGitHubProjects";
-import { getRfcStats, getActiveRfcs, rfcStatusConfig } from "@/lib/architecture-data";
+import { getRfcStats, getActiveRfcs, rfcStatusConfig, rfcAdrItems, capabilityMapping } from "@/lib/architecture-data";
 import {
   GitBranch,
   Users,
@@ -38,6 +38,7 @@ import {
   Newspaper,
   GraduationCap,
   FileText,
+  CheckCircle2,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -467,6 +468,42 @@ const Index = () => {
                     subtitle="pending"
                     href="/architecture"
                   />
+                  {(() => {
+                    // Compute coverage
+                    const allCaps: { status: string }[] = [];
+                    domains.forEach((d) => d.subdomains.forEach((sd) => sd.capabilities.forEach((cap) => {
+                      const linkedIds = capabilityMapping[cap.name] || [];
+                      const linked = linkedIds.map((id) => rfcAdrItems.find((r) => r.id === id)).filter(Boolean);
+                      let status = "pending";
+                      if (linked.some((r: any) => r.status === "published")) status = "covered";
+                      else if (linked.length > 0) status = "in_progress";
+                      allCaps.push({ status });
+                    })));
+                    const covered = allCaps.filter((c) => c.status === "covered").length;
+                    const inProg = allCaps.filter((c) => c.status === "in_progress").length;
+                    const pending = allCaps.filter((c) => c.status === "pending").length;
+                    const total = allCaps.length;
+                    const pct = Math.round((covered / total) * 100);
+
+                    return (
+                      <KPICard
+                        title="Capability Coverage"
+                        value={`${pct}%`}
+                        icon={CheckCircle2}
+                        changeType={pct > 30 ? "positive" : "neutral"}
+                        change={`${covered}/${total} standardized`}
+                        subtitle="OSES capabilities"
+                        href="/architecture"
+                        details={[
+                          { label: "Standardized", value: `${covered} capabilities`, changeType: "positive" as const },
+                          { label: "In Progress", value: `${inProg} with active RFCs`, changeType: "neutral" as const },
+                          { label: "Pending", value: `${pending} no standard yet`, changeType: "negative" as const },
+                          { label: "Total Capabilities", value: `${total} across ${domains.length} domains` },
+                          { label: "Target", value: "100% by end FY27", changeType: "positive" as const },
+                        ]}
+                      />
+                    );
+                  })()}
                   <KPICard
                     title="Total Standards"
                     value={rfcStats.total}
