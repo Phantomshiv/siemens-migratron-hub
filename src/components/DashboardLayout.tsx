@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ChatWidget } from "@/components/ChatWidget";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
