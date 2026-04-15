@@ -14,6 +14,7 @@ import {
   type RfcAdr,
   type RfcStatus,
 } from "@/lib/architecture-data";
+import { domains } from "@/lib/oses-data";
 import {
   FileText,
   BookOpen,
@@ -25,7 +26,12 @@ import {
   Filter,
   LayoutGrid,
   List,
+  Map,
+  CheckCircle2,
+  Loader2,
+  Circle,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 const GHE_REPO_BASE = "https://siemens.ghe.com/foundation/oses-standards/blob/main";
 
