@@ -32,6 +32,10 @@ import {
   Layers,
   CloudCog,
   Building2,
+  Megaphone,
+  MessageSquare,
+  Newspaper,
+  GraduationCap,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
