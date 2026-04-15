@@ -229,6 +229,16 @@ const Index = () => {
     onToggleCollapse: () => toggleCollapse(id),
   });
 
+  // Helper: wraps section content with collapse
+  const S = (id: string, icon: React.ElementType, title: string, subtitle: string, href: string, children: ReactNode) => (
+    <div className="space-y-3" key={id}>
+      <SectionHeader icon={icon} title={title} subtitle={subtitle} href={href} {...sectionProps(id)} />
+      {!collapsedSections.has(id) && (
+        <div className="animate-in fade-in slide-in-from-top-1 duration-200">{children}</div>
+      )}
+    </div>
+  );
+
   const sections: Record<string, ReactNode> = {
     /* ── Budget & Costs ── */
     budget: (
