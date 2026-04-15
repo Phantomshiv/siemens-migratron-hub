@@ -9,6 +9,10 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
+import { MTTRPanel } from "@/components/cybersecurity/MTTRPanel";
+import { SLAPanel } from "@/components/cybersecurity/SLAPanel";
+import { EcosystemPanel } from "@/components/cybersecurity/EcosystemPanel";
+import { PushProtectionPanel } from "@/components/cybersecurity/PushProtectionPanel";
 
 const tooltipStyle = {
   backgroundColor: "hsl(215, 25%, 13%)",
@@ -30,8 +34,8 @@ const CybersecurityDashboard = () => {
           </p>
         </div>
 
-        {/* Security KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* KPI Cards Row */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="glass-card">
             <CardContent className="pt-6">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
@@ -77,9 +81,22 @@ const CybersecurityDashboard = () => {
               )}
             </CardContent>
           </Card>
+          {securityLoading ? (
+            <Card className="glass-card"><CardContent className="pt-6"><Skeleton className="h-20 w-full" /></CardContent></Card>
+          ) : security?.pushProtection ? (
+            <PushProtectionPanel pushProtection={security.pushProtection} />
+          ) : null}
         </div>
 
-        {/* Charts */}
+        {/* MTTR + SLA Row */}
+        {!securityLoading && security && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <MTTRPanel mttr={security.mttr || {}} />
+            <SLAPanel ageBuckets={security.ageBuckets || {}} slaBreaches={security.slaBreaches || {}} />
+          </div>
+        )}
+
+        {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Weekly Trend */}
           <Card className="glass-card">
@@ -104,8 +121,8 @@ const CybersecurityDashboard = () => {
                     <YAxis stroke="hsl(215, 15%, 55%)" fontSize={11} />
                     <Tooltip contentStyle={tooltipStyle} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="Code Scanning" stackId="a" fill="hsl(0, 72%, 55%)" radius={[0, 0, 0, 0]} />
-                    <Bar dataKey="Secrets" stackId="a" fill="hsl(45, 90%, 55%)" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="Code Scanning" stackId="a" fill="hsl(0, 72%, 55%)" />
+                    <Bar dataKey="Secrets" stackId="a" fill="hsl(45, 90%, 55%)" />
                     <Bar dataKey="Dependabot" stackId="a" fill="hsl(174, 100%, 40%)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -115,7 +132,28 @@ const CybersecurityDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Severity Breakdown */}
+          {/* Ecosystem Breakdown */}
+          {!securityLoading && security?.ecosystems && Object.keys(security.ecosystems).length > 0 ? (
+            <EcosystemPanel ecosystems={security.ecosystems} />
+          ) : (
+            /* Severity Breakdown fallback */
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="text-sm font-heading flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" /> Severity Breakdown
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {securityLoading ? <Skeleton className="h-[250px] w-full" /> : (
+                  <p className="text-xs text-muted-foreground">No data available</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Severity + Secret Types */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="text-sm font-heading flex items-center gap-2">
@@ -125,7 +163,7 @@ const CybersecurityDashboard = () => {
             </CardHeader>
             <CardContent>
               {securityLoading ? (
-                <Skeleton className="h-[250px] w-full" />
+                <Skeleton className="h-[200px] w-full" />
               ) : (
                 <div className="space-y-6">
                   {security?.codeSeverity && Object.keys(security.codeSeverity).length > 0 && (
@@ -155,7 +193,6 @@ const CybersecurityDashboard = () => {
                       </div>
                     </div>
                   )}
-
                   {security?.depSeverity && Object.keys(security.depSeverity).length > 0 && (
                     <div>
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Dependabot</p>
@@ -183,26 +220,33 @@ const CybersecurityDashboard = () => {
                       </div>
                     </div>
                   )}
-
-                  {security?.secretTypes && Object.keys(security.secretTypes).length > 0 && (
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Exposed Secret Types</p>
-                      <div className="flex flex-wrap gap-2">
-                        {Object.entries(security.secretTypes)
-                          .sort(([, a], [, b]) => b - a)
-                          .slice(0, 8)
-                          .map(([type, count]) => (
-                            <Badge key={type} variant="outline" className="text-[10px]">
-                              {type}: {count}
-                            </Badge>
-                          ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </CardContent>
           </Card>
+
+          {/* Secret types */}
+          {security?.secretTypes && Object.keys(security.secretTypes).length > 0 && (
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="text-sm font-heading flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-chart-3" /> Exposed Secret Types
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(security.secretTypes)
+                    .sort(([, a], [, b]) => b - a)
+                    .slice(0, 12)
+                    .map(([type, count]) => (
+                      <Badge key={type} variant="outline" className="text-[10px]">
+                        {type}: {count}
+                      </Badge>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Top Affected Repos */}

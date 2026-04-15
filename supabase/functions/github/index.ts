@@ -750,6 +750,73 @@ Deno.serve(async (req) => {
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
 
+      // ── MTTR (Mean Time to Remediate) ──
+      const now = Date.now();
+      type FixedAlert = { created_at: string; fixed_at?: string; dismissed_at?: string; resolved_at?: string; rule?: { security_severity_level?: string; severity?: string }; security_advisory?: { severity?: string } };
+      const mttrBySeverity: Record<string, { totalDays: number; count: number }> = {};
+      const allFixed = [
+        ...(codeFixed as FixedAlert[]).map(a => ({ created: a.created_at, resolved: a.fixed_at || a.dismissed_at, sev: a.rule?.security_severity_level || a.rule?.severity || "unknown" })),
+        ...(depFixed as FixedAlert[]).map(a => ({ created: a.created_at, resolved: a.fixed_at || a.dismissed_at, sev: a.security_advisory?.severity || "unknown" })),
+        ...(secretFixed as FixedAlert[]).map(a => ({ created: a.created_at, resolved: a.resolved_at || a.dismissed_at, sev: "secret" })),
+      ];
+      for (const f of allFixed) {
+        if (!f.created || !f.resolved) continue;
+        const days = (new Date(f.resolved).getTime() - new Date(f.created).getTime()) / (1000 * 60 * 60 * 24);
+        if (days < 0 || days > 365) continue;
+        if (!mttrBySeverity[f.sev]) mttrBySeverity[f.sev] = { totalDays: 0, count: 0 };
+        mttrBySeverity[f.sev].totalDays += days;
+        mttrBySeverity[f.sev].count++;
+      }
+      const mttr: Record<string, number> = {};
+      for (const [sev, v] of Object.entries(mttrBySeverity)) {
+        mttr[sev] = Math.round((v.totalDays / v.count) * 10) / 10;
+      }
+
+      // ── Alert Age & SLA Tracking ──
+      const slaThresholds: Record<string, number> = { critical: 7, high: 14, medium: 30, low: 90 };
+      type OpenAlert = { created_at: string; rule?: { security_severity_level?: string; severity?: string }; security_advisory?: { severity?: string } };
+      const slaBreaches: Record<string, { total: number; breached: number }> = {};
+      const ageBuckets = { "0-7d": 0, "7-30d": 0, "30-90d": 0, "90d+": 0 };
+      const allOpen = [
+        ...(codeAlerts as OpenAlert[]).map(a => ({ created: a.created_at, sev: a.rule?.security_severity_level || a.rule?.severity || "unknown" })),
+        ...(depAlerts as OpenAlert[]).map(a => ({ created: a.created_at, sev: a.security_advisory?.severity || "unknown" })),
+        ...(secretAlerts as Array<{ created_at: string }>).map(a => ({ created: a.created_at, sev: "secret" })),
+      ];
+      for (const a of allOpen) {
+        const ageDays = (now - new Date(a.created).getTime()) / (1000 * 60 * 60 * 24);
+        if (ageDays <= 7) ageBuckets["0-7d"]++;
+        else if (ageDays <= 30) ageBuckets["7-30d"]++;
+        else if (ageDays <= 90) ageBuckets["30-90d"]++;
+        else ageBuckets["90d+"]++;
+
+        const threshold = slaThresholds[a.sev];
+        if (threshold) {
+          if (!slaBreaches[a.sev]) slaBreaches[a.sev] = { total: 0, breached: 0 };
+          slaBreaches[a.sev].total++;
+          if (ageDays > threshold) slaBreaches[a.sev].breached++;
+        }
+      }
+
+      // ── Ecosystem Breakdown (Dependabot) ──
+      const ecosystems: Record<string, number> = {};
+      for (const a of depAlerts as Array<{ dependency?: { package?: { ecosystem?: string } } }>) {
+        const eco = a.dependency?.package?.ecosystem || "unknown";
+        ecosystems[eco] = (ecosystems[eco] || 0) + 1;
+      }
+
+      // ── Push Protection Bypass (Secret Scanning) ──
+      let pushProtectionBypassed = 0;
+      let pushProtectionTotal = 0;
+      for (const a of secretAlerts as Array<{ push_protection_bypassed?: boolean }>) {
+        pushProtectionTotal++;
+        if (a.push_protection_bypassed) pushProtectionBypassed++;
+      }
+      // Also check resolved secrets
+      for (const a of secretFixed as Array<{ push_protection_bypassed?: boolean }>) {
+        pushProtectionTotal++;
+        if (a.push_protection_bypassed) pushProtectionBypassed++;
+      }
+
       const result = {
         counts: {
           codeScanning: { open: codeAlerts.length, fixed: codeFixed.length },
@@ -761,6 +828,14 @@ Deno.serve(async (req) => {
         secretTypes,
         weeklyTrend,
         topRepos,
+        mttr,
+        ageBuckets,
+        slaBreaches,
+        ecosystems,
+        pushProtection: {
+          bypassed: pushProtectionBypassed,
+          totalSecrets: pushProtectionTotal,
+        },
         errors: errors.length > 0 ? errors : undefined,
       };
 
