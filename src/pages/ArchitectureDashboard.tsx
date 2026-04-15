@@ -11,9 +11,11 @@ import {
   getRfcStats,
   getPublishedAdrs,
   getActiveRfcs,
+  capabilityMapping,
   type RfcAdr,
   type RfcStatus,
 } from "@/lib/architecture-data";
+import { domains } from "@/lib/oses-data";
 import {
   FileText,
   BookOpen,
@@ -25,7 +27,12 @@ import {
   Filter,
   LayoutGrid,
   List,
+  Map,
+  CheckCircle2,
+  Loader2,
+  Circle,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 const GHE_REPO_BASE = "https://siemens.ghe.com/foundation/oses-standards/blob/main";
 
@@ -193,6 +200,7 @@ const ArchitectureDashboard = () => {
             <TabsTrigger value="kanban" className="text-xs"><LayoutGrid className="h-3 w-3 mr-1" /> Kanban</TabsTrigger>
             <TabsTrigger value="list" className="text-xs"><List className="h-3 w-3 mr-1" /> List</TabsTrigger>
             <TabsTrigger value="published" className="text-xs"><BookOpen className="h-3 w-3 mr-1" /> Published ADRs</TabsTrigger>
+            <TabsTrigger value="coverage" className="text-xs"><Map className="h-3 w-3 mr-1" /> Capability Coverage</TabsTrigger>
           </TabsList>
 
           {/* Kanban View */}
@@ -323,6 +331,146 @@ const ArchitectureDashboard = () => {
                 />
               ))}
             </div>
+          </TabsContent>
+
+          {/* Capability Coverage */}
+          <TabsContent value="coverage">
+            {(() => {
+              // Build coverage data from domains + mapping
+              const allCaps: { domain: string; subdomain: string; capability: string; status: "covered" | "in_progress" | "pending"; linkedItems: RfcAdr[] }[] = [];
+              domains.forEach((d) => {
+                d.subdomains.forEach((sd) => {
+                  sd.capabilities.forEach((cap) => {
+                    const linkedIds = capabilityMapping[cap.name] || [];
+                    const linkedItems = linkedIds.map((id) => rfcAdrItems.find((r) => r.id === id)).filter(Boolean) as RfcAdr[];
+                    let status: "covered" | "in_progress" | "pending" = "pending";
+                    if (linkedItems.some((r) => r.status === "published")) status = "covered";
+                    else if (linkedItems.length > 0) status = "in_progress";
+                    allCaps.push({ domain: d.name, subdomain: sd.name, capability: cap.name, status, linkedItems });
+                  });
+                });
+              });
+
+              const covered = allCaps.filter((c) => c.status === "covered").length;
+              const inProgress = allCaps.filter((c) => c.status === "in_progress").length;
+              const pending = allCaps.filter((c) => c.status === "pending").length;
+              const total = allCaps.length;
+              const coveragePct = Math.round((covered / total) * 100);
+
+              return (
+                <div className="space-y-4">
+                  {/* Coverage summary */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <Card className="glass-card">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-muted-foreground">Overall Coverage</span>
+                          <span className="text-lg font-bold text-primary">{coveragePct}%</span>
+                        </div>
+                        <Progress value={coveragePct} className="h-2" />
+                      </CardContent>
+                    </Card>
+                    {[
+                      { label: "Standardized", count: covered, icon: CheckCircle2, cls: "text-emerald-400" },
+                      { label: "In Progress", count: inProgress, icon: Loader2, cls: "text-amber-400" },
+                      { label: "Pending", count: pending, icon: Circle, cls: "text-muted-foreground" },
+                    ].map((s) => (
+                      <Card key={s.label} className="glass-card">
+                        <CardContent className="p-4 flex items-center gap-3">
+                          <s.icon className={`h-5 w-5 ${s.cls}`} />
+                          <div>
+                            <p className="text-lg font-bold">{s.count}</p>
+                            <p className="text-[10px] text-muted-foreground">{s.label} ({Math.round((s.count / total) * 100)}%)</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Domain breakdown */}
+                  {domains.map((domain) => {
+                    const domainCaps = allCaps.filter((c) => c.domain === domain.name);
+                    const domainCovered = domainCaps.filter((c) => c.status === "covered").length;
+                    const domainPct = domainCaps.length > 0 ? Math.round((domainCovered / domainCaps.length) * 100) : 0;
+
+                    return (
+                      <Card key={domain.name} className="glass-card">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm font-heading">{domain.name}</CardTitle>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-muted-foreground">{domainCovered}/{domainCaps.length} standardized</span>
+                              <Progress value={domainPct} className="h-1.5 w-20" />
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="space-y-1">
+                            {domainCaps.map((cap) => (
+                              <div
+                                key={`${cap.subdomain}-${cap.capability}`}
+                                className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/30 transition-colors group"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {cap.status === "covered" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />}
+                                  {cap.status === "in_progress" && <Loader2 className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />}
+                                  {cap.status === "pending" && <Circle className="h-3.5 w-3.5 text-muted-foreground/50 flex-shrink-0" />}
+                                  <span className="text-xs truncate">{cap.capability}</span>
+                                  <span className="text-[9px] text-muted-foreground hidden group-hover:inline">({cap.subdomain})</span>
+                                </div>
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  {cap.linkedItems.map((item) => {
+                                    const sc = rfcStatusConfig[item.status];
+                                    return (
+                                      <Badge key={item.id} className={`${sc.color} text-[8px] h-4 px-1.5 cursor-pointer`} title={`${item.id}: ${item.title}`}
+                                        onClick={() => setExpandedCard(expandedCard === item.id ? null : item.id)}
+                                      >
+                                        {item.id}
+                                      </Badge>
+                                    );
+                                  })}
+                                  {cap.status === "pending" && (
+                                    <span className="text-[9px] text-muted-foreground/50">No standard</span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+
+                  {/* Expanded detail for clicked RFC/ADR */}
+                  {expandedCard && (() => {
+                    const item = rfcAdrItems.find((i) => i.id === expandedCard);
+                    if (!item) return null;
+                    const sc = rfcStatusConfig[item.status];
+                    return (
+                      <Card className="glass-card animate-in fade-in slide-in-from-top-2 duration-200">
+                        <CardContent className="p-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-mono text-primary">{item.id}</span>
+                              <Badge className={`${sc.color} text-[9px] h-4 px-1.5`}>{sc.emoji} {sc.label}</Badge>
+                              <span className="text-sm font-semibold">{item.title}</span>
+                            </div>
+                            <button onClick={() => setExpandedCard(null)} className="text-xs text-muted-foreground hover:text-foreground">Close ✕</button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{item.summary}</p>
+                          {item.decision && (
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-md p-2">
+                              <p className="text-[10px] font-semibold text-emerald-400 mb-1">Decision</p>
+                              <p className="text-xs text-emerald-300/80">{item.decision}</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })()}
+                </div>
+              );
+            })()}
           </TabsContent>
         </Tabs>
 

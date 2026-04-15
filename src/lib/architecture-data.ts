@@ -228,6 +228,45 @@ export const rfcAdrItems: RfcAdr[] = [
   },
 ];
 
+// Capability-to-RFC/ADR mapping
+// Maps OSES capability names to the RFC/ADR IDs that cover them
+export const capabilityMapping: Record<string, string[]> = {
+  // Published ADR coverage
+  "Security findings management": ["ADR-001", "ADR-005"],
+  "Provide software templates": ["ADR-002"],
+  "Asset Management": ["ADR-002"],
+  "Low/No code environment": ["ADR-003"],
+  "Code quality analysis": ["ADR-005"],
+  "Validation routine triggering": ["ADR-005"],
+  "Pre-built OS and container images": ["ADR-004"],
+  "Container image building": ["ADR-004"],
+  // Active RFC coverage
+  "Container runtime": ["RFC-006"],
+  "Application networking": ["RFC-006"],
+  "Lambda runtime": ["RFC-006"],
+  "Observability dashboarding and aggregator": ["RFC-007"],
+  "Log and event management": ["RFC-007"],
+  "Cloud secrets storage": ["RFC-008"],
+  "Dynamic application configuration": ["RFC-009"],
+  // Scrum team / backlog
+  "Customer and partner documentation": ["RFC-010"],
+  "Cloud deployment orchestration": ["RFC-013"],
+  "Vulnerability monitoring": ["ADR-005", "RFC-007"],
+};
+
+export interface CapabilityCoverage {
+  domain: string;
+  subdomain: string;
+  capability: string;
+  status: "covered" | "in_progress" | "pending";
+  rfcAdrs: RfcAdr[];
+}
+
+export function getCapabilityCoverage(): CapabilityCoverage[] {
+  // import domains dynamically would create circular dep, so we accept it as param
+  return []; // populated by the component using domains + this mapping
+}
+
 // Helper functions
 export function getRfcsByStatus(status: RfcStatus): RfcAdr[] {
   return rfcAdrItems.filter((item) => item.status === status);
