@@ -865,6 +865,85 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Audit Log
+    if (action === "audit-log") {
+      const cacheKey = `github:audit-log:${org}`;
+      if (!noCache) {
+        const cached = await getCache(cacheKey);
+        if (cached) {
+          return new Response(JSON.stringify(cached), {
+            headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "HIT" },
+          });
+        }
+      }
+
+      // Fetch recent audit log entries (last 200)
+      const allEntries: unknown[] = [];
+      let page = 1;
+      let hasMore = true;
+      while (hasMore && page <= 3) {
+        const resp = await fetch(
+          `${GHE_API_BASE}/api/v3/orgs/${org}/audit-log?per_page=100&page=${page}&include=all`,
+          { headers: gheHeaders }
+        );
+        if (!resp.ok) {
+          const body = await resp.text();
+          console.error(`Audit log error [${resp.status}]:`, body);
+          break;
+        }
+        const data = await resp.json();
+        if (!Array.isArray(data) || data.length === 0) { hasMore = false; break; }
+        allEntries.push(...data);
+        if (data.length < 100) hasMore = false;
+        page++;
+      }
+
+      // Summarize by action category
+      const actionCounts: Record<string, number> = {};
+      const actorCounts: Record<string, number> = {};
+      for (const e of allEntries as Array<{ action: string; actor: string; actor_is_bot?: boolean }>) {
+        const category = e.action?.split(".")[0] || "unknown";
+        actionCounts[category] = (actionCounts[category] || 0) + 1;
+        if (e.actor && !e.actor_is_bot) {
+          actorCounts[e.actor] = (actorCounts[e.actor] || 0) + 1;
+        }
+      }
+
+      const result = {
+        totalEntries: allEntries.length,
+        actionCategories: Object.entries(actionCounts)
+          .map(([category, count]) => ({ category, count }))
+          .sort((a, b) => b.count - a.count),
+        topActors: Object.entries(actorCounts)
+          .map(([actor, count]) => ({ actor, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 15),
+        entries: (allEntries as Array<{
+          action: string;
+          actor: string;
+          actor_is_bot?: boolean;
+          created_at: number;
+          org?: string;
+          repo?: string;
+          operation_type?: string;
+          actor_location?: { country_code?: string };
+        }>).slice(0, 100).map(e => ({
+          action: e.action,
+          actor: e.actor,
+          isBot: e.actor_is_bot ?? false,
+          timestamp: e.created_at,
+          repo: e.repo || null,
+          operationType: e.operation_type || null,
+          country: e.actor_location?.country_code || null,
+        })),
+      };
+
+      await setCache(cacheKey, result, 10);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

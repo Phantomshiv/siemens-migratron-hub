@@ -4,6 +4,7 @@ import { useGitHubSummary, useGitHubActivity, useGitHubMembersDetail } from "@/h
 import { useGitHubBilling, aggregateByProduct, aggregateBySku, aggregateByMonth } from "@/hooks/useGitHubBilling";
 import { useGitHubSecurity } from "@/hooks/useGitHubSecurity";
 import { useGitHubCopilotSeats } from "@/hooks/useGitHubCopilotSeats";
+import { useGitHubAuditLog } from "@/hooks/useGitHubAuditLog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,6 +38,9 @@ import {
   Search,
   Clock,
   Activity,
+  ScrollText,
+  MapPin,
+  Bot,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -95,6 +99,8 @@ const GitHubDashboard = () => {
   const { data: copilotSeatsDetail, isLoading: copilotSeatsLoading } = useGitHubCopilotSeats("open");
   const [copilotSearch, setCopilotSearch] = useState("");
   const [copilotFilter, setCopilotFilter] = useState<"all" | "active" | "inactive" | "never">("all");
+  const { data: auditLog, isLoading: auditLoading } = useGitHubAuditLog("open");
+  const [auditSearch, setAuditSearch] = useState("");
 
   // Derive stats
   const totalRepos = data?.reposTotalCount ?? data?.repos?.length ?? 0;
@@ -865,8 +871,158 @@ const GitHubDashboard = () => {
           )}
         </div>
 
+        {/* Audit Log */}
+        <div>
+          <h2 className="text-lg font-heading font-bold mb-4 flex items-center gap-2">
+            <ScrollText className="h-5 w-5 text-primary" /> Audit Log
+          </h2>
 
-        {/* Department Breakdown */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+            {/* Action Categories */}
+            <Card className="glass-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-heading">Activity Categories</CardTitle>
+                <p className="text-[10px] text-muted-foreground">
+                  {auditLog?.totalEntries ?? 0} recent events
+                </p>
+              </CardHeader>
+              <CardContent>
+                {auditLoading ? (
+                  <Skeleton className="h-[200px] w-full" />
+                ) : auditLog?.actionCategories ? (
+                  <div className="space-y-2">
+                    {auditLog.actionCategories.slice(0, 10).map(({ category, count }) => {
+                      const total = auditLog.totalEntries || 1;
+                      const pct = (count / total) * 100;
+                      return (
+                        <div key={category}>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="truncate">{category.replace(/_/g, " ")}</span>
+                            <span className="font-mono font-medium shrink-0 ml-2">{count}</span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+                            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No data</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Top Actors */}
+            <Card className="glass-card lg:col-span-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-heading">Most Active Users</CardTitle>
+                <p className="text-[10px] text-muted-foreground">By audit log entries (excluding bots)</p>
+              </CardHeader>
+              <CardContent>
+                {auditLoading ? (
+                  <Skeleton className="h-[200px] w-full" />
+                ) : auditLog?.topActors && auditLog.topActors.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={Math.max(200, auditLog.topActors.length * 25)}>
+                    <BarChart data={auditLog.topActors} layout="vertical" margin={{ left: 100 }}>
+                      <XAxis type="number" stroke="hsl(215, 15%, 55%)" fontSize={11} />
+                      <YAxis type="category" dataKey="actor" stroke="hsl(215, 15%, 55%)" fontSize={10} width={95} />
+                      <Tooltip contentStyle={tooltipStyle} />
+                      <Bar dataKey="count" fill="hsl(174, 100%, 40%)" radius={[0, 4, 4, 0]} name="Events" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No data</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Audit Log Table */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-sm font-heading">Recent Events</CardTitle>
+              <div className="relative max-w-xs mt-2">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <input
+                  className="w-full h-8 pl-8 pr-3 rounded-md border border-border bg-secondary/50 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="Search by action, user, or repo..."
+                  value={auditSearch}
+                  onChange={(e) => setAuditSearch(e.target.value)}
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {auditLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+                </div>
+              ) : auditLog?.entries ? (() => {
+                const filtered = auditLog.entries.filter(e => {
+                  if (!auditSearch) return true;
+                  const q = auditSearch.toLowerCase();
+                  return e.action.toLowerCase().includes(q) ||
+                    e.actor.toLowerCase().includes(q) ||
+                    (e.repo?.toLowerCase().includes(q) ?? false);
+                });
+                return (
+                  <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0 bg-card z-10">
+                        <tr className="border-b border-border text-muted-foreground">
+                          <th className="text-left py-2 px-3 font-medium">Time</th>
+                          <th className="text-left py-2 px-3 font-medium">Actor</th>
+                          <th className="text-left py-2 px-3 font-medium">Action</th>
+                          <th className="text-left py-2 px-3 font-medium">Repository</th>
+                          <th className="text-left py-2 px-3 font-medium">Type</th>
+                          <th className="text-left py-2 px-3 font-medium">Location</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.slice(0, 50).map((e, i) => (
+                          <tr key={i} className="border-b border-border/50 hover:bg-muted/30">
+                            <td className="py-2 px-3 text-xs text-muted-foreground whitespace-nowrap">
+                              {new Date(e.timestamp).toLocaleString("en", {
+                                month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                              })}
+                            </td>
+                            <td className="py-2 px-3 text-xs font-medium flex items-center gap-1">
+                              {e.isBot && <Bot className="h-3 w-3 text-muted-foreground shrink-0" />}
+                              {e.actor}
+                            </td>
+                            <td className="py-2 px-3 text-xs">
+                              <Badge variant="outline" className="text-[10px] font-mono">{e.action}</Badge>
+                            </td>
+                            <td className="py-2 px-3 text-xs text-muted-foreground truncate max-w-[180px]">
+                              {e.repo || "—"}
+                            </td>
+                            <td className="py-2 px-3 text-xs text-muted-foreground capitalize">
+                              {e.operationType || "—"}
+                            </td>
+                            <td className="py-2 px-3 text-xs text-muted-foreground">
+                              {e.country ? (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" /> {e.country}
+                                </span>
+                              ) : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {filtered.length > 50 && (
+                      <p className="text-[10px] text-muted-foreground mt-2 text-center">Showing first 50 of {filtered.length}</p>
+                    )}
+                  </div>
+                );
+              })() : (
+                <p className="text-xs text-muted-foreground">No audit log data available</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card className="glass-card">
             <CardHeader>
