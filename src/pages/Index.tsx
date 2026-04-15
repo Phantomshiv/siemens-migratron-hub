@@ -468,6 +468,42 @@ const Index = () => {
                     subtitle="pending"
                     href="/architecture"
                   />
+                  {(() => {
+                    // Compute coverage
+                    const allCaps: { status: string }[] = [];
+                    domains.forEach((d) => d.subdomains.forEach((sd) => sd.capabilities.forEach((cap) => {
+                      const linkedIds = capabilityMapping[cap.name] || [];
+                      const linked = linkedIds.map((id) => rfcAdrItems.find((r) => r.id === id)).filter(Boolean);
+                      let status = "pending";
+                      if (linked.some((r: any) => r.status === "published")) status = "covered";
+                      else if (linked.length > 0) status = "in_progress";
+                      allCaps.push({ status });
+                    })));
+                    const covered = allCaps.filter((c) => c.status === "covered").length;
+                    const inProg = allCaps.filter((c) => c.status === "in_progress").length;
+                    const pending = allCaps.filter((c) => c.status === "pending").length;
+                    const total = allCaps.length;
+                    const pct = Math.round((covered / total) * 100);
+
+                    return (
+                      <KPICard
+                        title="Capability Coverage"
+                        value={`${pct}%`}
+                        icon={CheckCircle2}
+                        changeType={pct > 30 ? "positive" : "neutral"}
+                        change={`${covered}/${total} standardized`}
+                        subtitle="OSES capabilities"
+                        href="/architecture"
+                        details={[
+                          `✅ Standardized: ${covered} capabilities with published ADRs`,
+                          `⏳ In Progress: ${inProg} capabilities with active RFCs`,
+                          `○ Pending: ${pending} capabilities with no standard yet`,
+                          `📊 Total OSES capabilities: ${total} across ${domains.length} domains`,
+                          `🎯 Goal: 100% coverage by end of FY27`,
+                        ]}
+                      />
+                    );
+                  })()}
                   <KPICard
                     title="Total Standards"
                     value={rfcStats.total}
