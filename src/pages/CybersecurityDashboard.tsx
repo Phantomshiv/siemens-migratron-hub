@@ -19,6 +19,9 @@ import { AlertDetailsTable } from "@/components/cybersecurity/AlertDetailsTable"
 import { RiskScorePanel } from "@/components/cybersecurity/RiskScorePanel";
 import { SecurityPosturePanel } from "@/components/cybersecurity/SecurityPosturePanel";
 import { SecurityOptOutPanel } from "@/components/cybersecurity/SecurityOptOutPanel";
+import { VulnDensityPanel } from "@/components/cybersecurity/VulnDensityPanel";
+import { AutomationSavingsPanel } from "@/components/cybersecurity/AutomationSavingsPanel";
+import { FalsePositivePanel } from "@/components/cybersecurity/FalsePositivePanel";
 
 const tooltipStyle = {
   backgroundColor: "hsl(215, 25%, 13%)",
@@ -303,6 +306,26 @@ const CybersecurityDashboard = () => {
             </Card>
           )}
         </div>
+
+        {/* PDF KPIs: Vulnerability Density + Automation Savings + False Positive Rate */}
+        {!securityLoading && security && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <VulnDensityPanel riskScores={security.riskScores || []} />
+            <AutomationSavingsPanel
+              totalVulnsFound={
+                (security.counts.codeScanning.open + security.counts.codeScanning.fixed) +
+                (security.counts.dependabot.open + security.counts.dependabot.fixed)
+              }
+              totalFixed={security.counts.codeScanning.fixed + security.counts.dependabot.fixed + security.counts.secretScanning.resolved}
+              mttr={security.mttr || {}}
+            />
+            <FalsePositivePanel
+              totalOpen={security.counts.codeScanning.open + security.counts.dependabot.open + security.counts.secretScanning.open}
+              totalDismissed={0}
+              totalFixed={security.counts.codeScanning.fixed + security.counts.dependabot.fixed + security.counts.secretScanning.resolved}
+            />
+          </div>
+        )}
 
         {/* Security Posture Levels */}
         {!securityLoading && postureScores.length > 0 && (
