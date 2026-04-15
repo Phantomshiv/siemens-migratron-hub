@@ -40,6 +40,8 @@ const BudgetDashboard = () => {
           <ContractorSpend />
         </div>
 
+        <BudgetVsActual />
+
         <BudgetLineItems />
 
         <GitHubBillingSection />
