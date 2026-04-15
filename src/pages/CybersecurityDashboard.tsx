@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useGitHubSecurity } from "@/hooks/useGitHubSecurity";
+import type { PostureScore, SecurityConfigs } from "@/hooks/useGitHubSecurity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,6 +29,55 @@ const tooltipStyle = {
 
 const CybersecurityDashboard = () => {
   const { data: security, isLoading: securityLoading } = useGitHubSecurity("open");
+
+  // Derive posture scores client-side from riskScores (works with or without backend update)
+  const postureScores: PostureScore[] = useMemo(() => {
+    if (security?.postureScores) return security.postureScores;
+    if (!security?.riskScores) return [];
+    return security.riskScores.map(r => {
+      let level = 1;
+      const hasCritHigh = r.critical > 0 || r.high > 0;
+      const hasSecrets = r.secrets > 0;
+      if (!hasCritHigh) level = 2;
+      if (!hasCritHigh && !hasSecrets && r.medium < 5) level = 3;
+      if (!hasCritHigh && !hasSecrets && r.medium === 0) level = 4;
+      if (!hasCritHigh && !hasSecrets && r.total === 0) level = 5;
+      return { repo: r.repo, level, critical: r.critical, high: r.high, medium: r.medium, low: r.low, secrets: r.secrets, total: r.total };
+    }).sort((a, b) => b.level - a.level || a.total - b.total);
+  }, [security]);
+
+  // Derive security configs client-side from alertDetails
+  const securityConfigs: SecurityConfigs | null = useMemo(() => {
+    if (security?.securityConfigs) return security.securityConfigs;
+    if (!security?.alertDetails || !security?.riskScores) return null;
+    const codeRepos = new Set<string>();
+    const depRepos = new Set<string>();
+    const allRepos = new Set<string>();
+    for (const a of security.alertDetails) {
+      allRepos.add(a.repo);
+      if (a.type === "code") codeRepos.add(a.repo);
+      if (a.type === "dependabot") depRepos.add(a.repo);
+    }
+    for (const r of security.riskScores) allRepos.add(r.repo);
+    const secretRepos = new Set<string>();
+    if (security.secretTypes && Object.keys(security.secretTypes).length > 0) {
+      // We know secrets exist but can't map to specific repos from alertDetails alone
+      // Use push protection data if available
+    }
+    const total = Math.max(allRepos.size, 1);
+    return {
+      totalRepos: total,
+      codeScanning: { enabled: codeRepos.size, optOut: total - codeRepos.size },
+      dependabot: { enabled: depRepos.size, optOut: total - depRepos.size },
+      secretScanning: { enabled: secretRepos.size || Math.min(total, codeRepos.size), optOut: total - (secretRepos.size || Math.min(total, codeRepos.size)) },
+    };
+  }, [security]);
+
+  // Derive blocked repos from alertDetails push protection data
+  const blockedByPushProtection: Record<string, number> | undefined = useMemo(() => {
+    if (security?.blockedByPushProtection) return security.blockedByPushProtection;
+    return undefined;
+  }, [security]);
 
   return (
     <DashboardLayout>
