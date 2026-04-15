@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { MessageCircle, X, Send, Bot, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
+import { buildDashboardContext } from "@/lib/dashboard-context";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -21,6 +22,7 @@ export function ChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dashboardContext = useMemo(() => buildDashboardContext(), []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -57,7 +59,7 @@ export function ChatWidget() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ messages: allMessages }),
+          body: JSON.stringify({ messages: allMessages, dashboardContext }),
         });
 
         if (!resp.ok) {
