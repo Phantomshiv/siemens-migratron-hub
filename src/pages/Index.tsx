@@ -284,6 +284,23 @@ const Index = () => {
             detailTitle="Backstage Catalog"
           />
           <KPICard
+            title="Clients"
+            value={clientTotal}
+            change={`${clientDone} migrated`}
+            changeType={clientDone > 0 ? "positive" : "neutral"}
+            icon={Building2}
+            subtitle={`${clientBUs} BUs · ${clientInProgress} active`}
+            href="/clients"
+            details={[
+              { label: "Total Clients", value: clientTotal, changeType: "neutral" },
+              { label: "In Progress", value: clientInProgress, changeType: "neutral" },
+              { label: "Backlog", value: clientBacklog, changeType: clientBacklog > 10 ? "negative" : "neutral" },
+              { label: "Done", value: clientDone, changeType: "positive" },
+              { label: "Total Repos", value: clientRepos.toLocaleString(), changeType: "neutral" },
+              { label: "Developers", value: clientDevs.toLocaleString(), changeType: "neutral" },
+            ]}
+            detailTitle="GHE Migration Clients"
+          <KPICard
             title="Blockers"
             value={blockerCount}
             changeType={blockerCount > 0 ? "negative" : "positive"}
