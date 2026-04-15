@@ -18,6 +18,7 @@ import { getOrgStats } from "@/lib/people-data";
 import { budgetSummary, fteTotals, byModule } from "@/lib/budget-data";
 import { releases, domains } from "@/lib/oses-data";
 import { useGitHubProjects } from "@/hooks/useGitHubProjects";
+import { getRfcStats, getActiveRfcs, rfcStatusConfig } from "@/lib/architecture-data";
 import {
   GitBranch,
   Users,
@@ -36,6 +37,7 @@ import {
   MessageSquare,
   Newspaper,
   GraduationCap,
+  FileText,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
