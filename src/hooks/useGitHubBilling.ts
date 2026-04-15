@@ -101,19 +101,12 @@ export interface ForecastMonth {
 export function buildForecastData(byMonth: { month: string; grossAmount: number; netAmount: number }[]): ForecastMonth[] {
   if (byMonth.length < 2) return byMonth.map(m => ({ ...m, forecast: false, fiscalYear: getFiscalYear(m.month) }));
 
-  // Simple linear regression on net amount
-  const n = byMonth.length;
-  const xs = byMonth.map((_, i) => i);
-  const ys = byMonth.map(m => m.netAmount);
-  const xMean = xs.reduce((a, b) => a + b, 0) / n;
-  const yMean = ys.reduce((a, b) => a + b, 0) / n;
-  const num = xs.reduce((s, x, i) => s + (x - xMean) * (ys[i] - yMean), 0);
-  const den = xs.reduce((s, x) => s + (x - xMean) ** 2, 0);
-  const slope = den !== 0 ? num / den : 0;
-  const intercept = yMean - slope * xMean;
-
-  // Gross/net ratio for forecasting gross
-  const grossNetRatio = byMonth.reduce((s, m) => s + m.grossAmount, 0) / byMonth.reduce((s, m) => s + m.netAmount, 0) || 1;
+  // Use trailing average of last 3 months (more realistic for subscription billing)
+  // Linear regression over-extrapolates early ramp-up growth
+  const trailWindow = Math.min(3, byMonth.length);
+  const recentMonths = byMonth.slice(-trailWindow);
+  const avgNet = recentMonths.reduce((s, m) => s + m.netAmount, 0) / trailWindow;
+  const avgGross = recentMonths.reduce((s, m) => s + m.grossAmount, 0) / trailWindow;
 
   const actual: ForecastMonth[] = byMonth.map(m => ({ ...m, forecast: false, fiscalYear: getFiscalYear(m.month) }));
 
