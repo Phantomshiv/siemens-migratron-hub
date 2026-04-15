@@ -1,6 +1,7 @@
 import { budgetSummary, byModule, byOrg, byCostType, byContractor, fteBreakdown, fteTotals } from "@/lib/budget-data";
 import { orgData, getOrgStats } from "@/lib/people-data";
 import { domains, releases } from "@/lib/oses-data";
+import { rfcAdrItems, getRfcStats, rfcStatusConfig } from "@/lib/architecture-data";
 
 const fmt = (n: number) => `€${n.toLocaleString("en-US")}`;
 const fmtUSD = (n: number) => {
@@ -175,6 +176,20 @@ ${domains.map((d) => `- **${d.name}:** ${d.subdomains.map((sd) => `${sd.name} ($
   // Releases (static)
   sections.push(`### Releases
 ${releases.map((r) => `- **${r.name}** (${r.quarter}) — ${r.useCases.length} use cases`).join("\n")}`);
+
+  // Architecture Standards (static)
+  const rfcStats = getRfcStats();
+  sections.push(`### Architecture Standards (RFC/ADR)
+- **Total Standards:** ${rfcStats.total} (${rfcStats.rfcs} RFCs, ${rfcStats.adrs} ADRs)
+- **Published ADRs:** ${rfcStats.published}
+- **Active RFCs:** ${rfcStats.active}
+- **Backlog:** ${rfcStats.backlog}
+
+**All RFC/ADR Items:**
+${rfcAdrItems.map((i) => `| ${i.id} | ${i.title} | ${rfcStatusConfig[i.status].label} | ${i.type} | ${i.module || "—"} | ${i.owner} |`).join("\n")}
+
+Source repo: https://siemens.ghe.com/foundation/oses-standards
+Kanban board: https://siemens.ghe.com/orgs/foundation/projects/7/views/1`);
 
   return sections.join("\n\n");
 }
