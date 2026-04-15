@@ -4,6 +4,7 @@ import { useGitHubSummary, useGitHubActivity, useGitHubMembersDetail } from "@/h
 import { useGitHubBilling, aggregateByProduct, aggregateBySku, aggregateByMonth } from "@/hooks/useGitHubBilling";
 import { useGitHubSecurity } from "@/hooks/useGitHubSecurity";
 import { useGitHubCopilotSeats } from "@/hooks/useGitHubCopilotSeats";
+import { useGitHubAuditLog } from "@/hooks/useGitHubAuditLog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,6 +38,9 @@ import {
   Search,
   Clock,
   Activity,
+  ScrollText,
+  MapPin,
+  Bot,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -95,6 +99,8 @@ const GitHubDashboard = () => {
   const { data: copilotSeatsDetail, isLoading: copilotSeatsLoading } = useGitHubCopilotSeats("open");
   const [copilotSearch, setCopilotSearch] = useState("");
   const [copilotFilter, setCopilotFilter] = useState<"all" | "active" | "inactive" | "never">("all");
+  const { data: auditLog, isLoading: auditLoading } = useGitHubAuditLog("open");
+  const [auditSearch, setAuditSearch] = useState("");
 
   // Derive stats
   const totalRepos = data?.reposTotalCount ?? data?.repos?.length ?? 0;
