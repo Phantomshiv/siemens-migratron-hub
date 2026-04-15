@@ -38,8 +38,22 @@ const Index = () => {
   const { data: secData } = useGitHubSecurity("open");
   const { data: bsSummary } = useBackstageSummary();
 
+  const { data: projectsData } = useGitHubProjects();
+
   // People
   const orgStats = getOrgStats();
+
+  // Client Management
+  const clientItems = (projectsData?.items ?? []).filter(
+    (item) => item.organization && item.title && !item.title.startsWith("Pre-Migration:") && !item.title.startsWith("Post-Migration:")
+  );
+  const clientTotal = clientItems.length;
+  const clientInProgress = clientItems.filter((c) => c.status === "In Progress").length;
+  const clientDone = clientItems.filter((c) => c.status === "Done").length;
+  const clientBacklog = clientItems.filter((c) => c.status === "Backlog").length;
+  const clientBUs = new Set(clientItems.map((c) => c.organization).filter(Boolean)).size;
+  const clientRepos = clientItems.reduce((s, c) => s + (parseInt(c.noOfRepos || "0") || 0), 0);
+  const clientDevs = clientItems.reduce((s, c) => s + (parseInt(c.noOfDevelopers || "0") || 0), 0);
 
   // GitHub metrics
   const totalRepos = ghData?.reposTotalCount ?? ghData?.repos?.length ?? 0;
