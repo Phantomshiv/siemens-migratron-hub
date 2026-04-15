@@ -13,6 +13,11 @@ export interface SecurityData {
   secretTypes: Record<string, number>;
   weeklyTrend: Array<{ week: string; code: number; secret: number; dependabot: number }>;
   topRepos: Array<{ repo: string; count: number }>;
+  mttr: Record<string, number>;
+  ageBuckets: Record<string, number>;
+  slaBreaches: Record<string, { total: number; breached: number }>;
+  ecosystems: Record<string, number>;
+  pushProtection: { bypassed: number; totalSecrets: number };
   errors?: string[];
 }
 
