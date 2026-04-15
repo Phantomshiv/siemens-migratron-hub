@@ -10,6 +10,7 @@ import { useBackstageSummary } from "@/hooks/useBackstage";
 import { getOrgStats } from "@/lib/people-data";
 import { budgetSummary, fteTotals } from "@/lib/budget-data";
 import { releases, domains } from "@/lib/oses-data";
+import { useGitHubProjects } from "@/hooks/useGitHubProjects";
 import {
   GitBranch,
   Users,
@@ -23,6 +24,7 @@ import {
   Wallet,
   Layers,
   CloudCog,
+  Building2,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
