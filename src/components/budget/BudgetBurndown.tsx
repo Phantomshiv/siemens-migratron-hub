@@ -1,10 +1,12 @@
-import { budgetSummary, spendingTimeline } from "@/lib/budget-data";
+import { useBudgetData } from "@/hooks/useBudgetData";
 import { Progress } from "@/components/ui/progress";
 
 const fmt = (n: number) => `€${(n / 1_000_000).toFixed(1)}M`;
 
 export function BudgetBurndown() {
-  const { totalBudget, actualSpend, forecastFY26 } = budgetSummary;
+  const { dataset } = useBudgetData();
+  const { totalBudget, actualSpend, forecastFY26 } = dataset.summary;
+  const { spendingTimeline } = dataset;
   const burnPct = (actualSpend / forecastFY26) * 100;
   const forecastVsBudgetPct = (forecastFY26 / totalBudget) * 100;
 

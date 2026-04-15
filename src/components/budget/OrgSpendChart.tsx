@@ -1,13 +1,14 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from "recharts";
-import { byOrg } from "@/lib/budget-data";
-
-const data = byOrg.map((o) => ({
-  name: o.org,
-  Actual: +(o.actual / 1_000_000).toFixed(2),
-  Forecast: +(o.forecast / 1_000_000).toFixed(2),
-}));
+import { useBudgetData } from "@/hooks/useBudgetData";
 
 export function OrgSpendChart() {
+  const { dataset } = useBudgetData();
+  const data = dataset.byOrg.map((o) => ({
+    name: o.org,
+    Actual: +(o.actual / 1_000_000).toFixed(2),
+    Forecast: +(o.forecast / 1_000_000).toFixed(2),
+  }));
+
   return (
     <div className="glass-card p-5">
       <h3 className="font-heading font-bold text-sm mb-1">Spend by Organization</h3>

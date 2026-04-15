@@ -1,14 +1,15 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from "recharts";
-import { byModule } from "@/lib/budget-data";
-
-const data = byModule.map((m) => ({
-  name: m.module.length > 18 ? m.module.slice(0, 16) + "…" : m.module,
-  fullName: m.module,
-  Actual: +(m.actual / 1_000_000).toFixed(2),
-  Forecast: +(m.forecast / 1_000_000).toFixed(2),
-}));
+import { useBudgetData } from "@/hooks/useBudgetData";
 
 export function BudgetByModuleChart() {
+  const { dataset } = useBudgetData();
+  const data = dataset.byModule.map((m) => ({
+    name: m.module.length > 18 ? m.module.slice(0, 16) + "…" : m.module,
+    fullName: m.module,
+    Actual: +(m.actual / 1_000_000).toFixed(2),
+    Forecast: +(m.forecast / 1_000_000).toFixed(2),
+  }));
+
   return (
     <div className="glass-card p-5">
       <h3 className="font-heading font-bold text-sm mb-1">Budget by Module</h3>

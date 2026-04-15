@@ -1,8 +1,10 @@
-import { byContractor } from "@/lib/budget-data";
+import { useBudgetData } from "@/hooks/useBudgetData";
 
 const fmt = (n: number) => `€${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 
 export function ContractorSpend() {
+  const { dataset } = useBudgetData();
+  const { byContractor } = dataset;
   const totalForecast = byContractor.reduce((s, c) => s + c.forecast, 0);
 
   return (

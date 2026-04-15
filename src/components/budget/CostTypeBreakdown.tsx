@@ -1,5 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { byCostType } from "@/lib/budget-data";
+import { useBudgetData } from "@/hooks/useBudgetData";
 
 const COLORS = [
   "hsl(var(--chart-1))",
@@ -9,14 +9,15 @@ const COLORS = [
   "hsl(var(--chart-5))",
 ];
 
-const data = byCostType.map((c) => ({
-  name: c.type,
-  value: c.forecast,
-}));
-
 const fmt = (n: number) => `€${(n / 1_000_000).toFixed(1)}M`;
 
 export function CostTypeBreakdown() {
+  const { dataset } = useBudgetData();
+  const data = dataset.byCostType.map((c) => ({
+    name: c.type,
+    value: c.forecast,
+  }));
+
   return (
     <div className="glass-card p-5">
       <h3 className="font-heading font-bold text-sm mb-1">Cost Type Breakdown</h3>
