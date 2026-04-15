@@ -91,6 +91,9 @@ const GitHubDashboard = () => {
   const { data: membersDetail, isLoading: membersLoading } = useGitHubMembersDetail("open");
   const { data: billingUsage, isLoading: billingUsageLoading } = useGitHubBilling("open");
   const { data: security, isLoading: securityLoading } = useGitHubSecurity("open");
+  const { data: copilotSeatsDetail, isLoading: copilotSeatsLoading } = useGitHubCopilotSeats("open");
+  const [copilotSearch, setCopilotSearch] = React.useState("");
+  const [copilotFilter, setCopilotFilter] = React.useState<"all" | "active" | "inactive" | "never">("all");
 
   // Derive stats
   const totalRepos = data?.reposTotalCount ?? data?.repos?.length ?? 0;
