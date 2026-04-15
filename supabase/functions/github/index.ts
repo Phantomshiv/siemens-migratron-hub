@@ -1197,6 +1197,154 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Project V2 items: fetch all items from a GitHub Projects V2 board
+    if (action === "project-items") {
+      const projectNumber = parseInt(url.searchParams.get("project") || "7");
+      const projectOrg = url.searchParams.get("project_org") || "foundation";
+
+      const cacheKey = `github:project-items:${projectOrg}:${projectNumber}`;
+      if (!noCache) {
+        const cached = await getCache(cacheKey);
+        if (cached) {
+          return new Response(JSON.stringify(cached), {
+            headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "HIT" },
+          });
+        }
+      }
+
+      const graphqlHeaders = { ...gheHeaders, "Content-Type": "application/json" };
+
+      // First fetch project metadata + fields
+      const metaQuery = `{
+        organization(login: "${projectOrg}") {
+          projectV2(number: ${projectNumber}) {
+            id title shortDescription
+            fields(first: 30) {
+              nodes {
+                ... on ProjectV2Field { id name }
+                ... on ProjectV2SingleSelectField { id name options { id name } }
+              }
+            }
+          }
+        }
+      }`;
+      const metaResp = await fetch(`${GHE_API_BASE}/api/graphql`, {
+        method: "POST", headers: graphqlHeaders, body: JSON.stringify({ query: metaQuery }),
+      });
+      const metaData = await metaResp.json();
+      const project = metaData?.data?.organization?.projectV2;
+      if (!project) {
+        return new Response(JSON.stringify({ error: "Project not found", raw: metaData }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Paginate all items
+      const allItems: unknown[] = [];
+      let hasNextPage = true;
+      let afterCursor: string | null = null;
+
+      while (hasNextPage) {
+        const afterClause = afterCursor ? `, after: "${afterCursor}"` : "";
+        const itemsQuery = `{
+          node(id: "${project.id}") {
+            ... on ProjectV2 {
+              items(first: 100${afterClause}) {
+                pageInfo { hasNextPage endCursor }
+                totalCount
+                nodes {
+                  id
+                  content {
+                    ... on Issue {
+                      title number url state
+                      assignees(first: 5) { nodes { login name avatarUrl } }
+                      labels(first: 15) { nodes { name color } }
+                      createdAt updatedAt closedAt
+                      body
+                    }
+                    ... on PullRequest {
+                      title number url state mergedAt
+                    }
+                    ... on DraftIssue {
+                      title body
+                    }
+                  }
+                  fieldValues(first: 20) {
+                    nodes {
+                      ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2SingleSelectField { name } } }
+                      ... on ProjectV2ItemFieldTextValue { text field { ... on ProjectV2Field { name } } }
+                      ... on ProjectV2ItemFieldDateValue { date field { ... on ProjectV2Field { name } } }
+                      ... on ProjectV2ItemFieldNumberValue { number field { ... on ProjectV2Field { name } } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }`;
+        const resp = await fetch(`${GHE_API_BASE}/api/graphql`, {
+          method: "POST", headers: graphqlHeaders, body: JSON.stringify({ query: itemsQuery }),
+        });
+        const data = await resp.json();
+        const items = data?.data?.node?.items;
+        if (!items) break;
+
+        allItems.push(...(items.nodes || []));
+        hasNextPage = items.pageInfo?.hasNextPage ?? false;
+        afterCursor = items.pageInfo?.endCursor ?? null;
+      }
+
+      // Parse items into a flat structure
+      const parsedItems = allItems.map((item: any) => {
+        const content = item.content || {};
+        const fieldValues: Record<string, string | number | null> = {};
+
+        for (const fv of item.fieldValues?.nodes || []) {
+          if (fv.field?.name && fv.name) fieldValues[fv.field.name] = fv.name;
+          else if (fv.field?.name && fv.text) fieldValues[fv.field.name] = fv.text;
+          else if (fv.field?.name && fv.date) fieldValues[fv.field.name] = fv.date;
+          else if (fv.field?.name && fv.number !== undefined) fieldValues[fv.field.name] = fv.number;
+        }
+
+        return {
+          id: item.id,
+          title: content.title || fieldValues["Title"] || "Untitled",
+          number: content.number || null,
+          url: content.url || null,
+          state: content.state || null,
+          status: fieldValues["Status"] || null,
+          priority: fieldValues["Priority"] || null,
+          size: fieldValues["Size"] || null,
+          startDate: fieldValues["Start date"] || null,
+          targetDate: fieldValues["Target date"] || null,
+          estimate: fieldValues["Estimate"] || null,
+          assignees: content.assignees?.nodes || [],
+          labels: (content.labels?.nodes || []).map((l: any) => ({ name: l.name, color: l.color })),
+          createdAt: content.createdAt || null,
+          updatedAt: content.updatedAt || null,
+          closedAt: content.closedAt || null,
+          body: content.body ? content.body.slice(0, 500) : null,
+          type: content.mergedAt !== undefined ? "PR" : content.body !== undefined && content.number ? "Issue" : "Draft",
+        };
+      });
+
+      // Extract status options from fields
+      const statusField = project.fields.nodes.find((f: any) => f.name === "Status");
+      const columns = statusField?.options?.map((o: any) => o.name) || [];
+
+      const result = {
+        project: { id: project.id, title: project.title, description: project.shortDescription },
+        columns,
+        items: parsedItems,
+        totalCount: parsedItems.length,
+      };
+
+      await setCache(cacheKey, result, 10);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
