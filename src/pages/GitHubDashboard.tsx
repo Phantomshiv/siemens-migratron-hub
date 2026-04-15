@@ -360,95 +360,248 @@ const GitHubDashboard = () => {
           </Card>
         )}
 
-        {/* Copilot Card */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Enhanced Copilot Section */}
+        <div>
+          <h2 className="text-lg font-heading font-bold mb-4 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" /> Copilot Analytics
+          </h2>
+
+          {/* Copilot KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <Card className="glass-card">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+                  <Users className="h-3.5 w-3.5" /> Total Seats
+                </div>
+                <p className="text-2xl font-bold font-heading">{copilotSeatsDetail?.totalSeats ?? copilotSeats?.total ?? "—"}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {copilot?.plan_type ?? "business"} plan
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+                  <Activity className="h-3.5 w-3.5" /> Active (7d)
+                </div>
+                <p className="text-2xl font-bold font-heading text-chart-1">{copilotSeatsDetail?.active7d ?? "—"}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {copilotSeatsDetail ? `${Math.round((copilotSeatsDetail.active7d / copilotSeatsDetail.totalSeats) * 100)}% of seats` : ""}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+                  <Clock className="h-3.5 w-3.5" /> Inactive (30d+)
+                </div>
+                <p className="text-2xl font-bold font-heading text-chart-3">{copilotSeatsDetail?.inactive ?? "—"}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {copilotSeatsDetail ? `${copilotSeatsDetail.neverUsed} never used` : ""}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+                  <UserCheck className="h-3.5 w-3.5" /> Adoption (30d)
+                </div>
+                <p className="text-2xl font-bold font-heading text-primary">
+                  {copilotSeatsDetail ? `${Math.round((copilotSeatsDetail.active30d / copilotSeatsDetail.totalSeats) * 100)}%` : "—"}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {copilotSeatsDetail ? `${copilotSeatsDetail.active30d} active` : ""}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Editor breakdown + Pie */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+            {/* Editor Usage */}
+            <Card className="glass-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-heading">Usage by Editor</CardTitle>
+                <p className="text-[10px] text-muted-foreground">Last used IDE/tool per seat</p>
+              </CardHeader>
+              <CardContent>
+                {copilotSeatsLoading ? (
+                  <Skeleton className="h-[200px] w-full" />
+                ) : copilotSeatsDetail?.editorBreakdown ? (
+                  <div className="space-y-2">
+                    {copilotSeatsDetail.editorBreakdown.map(({ editor, count }) => {
+                      const pct = (count / copilotSeatsDetail.totalSeats) * 100;
+                      const label = editor
+                        .replace(/_/g, " ")
+                        .replace(/copilot-chat-/g, "Chat: ")
+                        .replace(/^vscode$/, "VS Code")
+                        .replace(/^jetbrains$/, "JetBrains")
+                        .replace("never used", "Never Used");
+                      return (
+                        <div key={editor}>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="truncate capitalize">{label}</span>
+                            <span className="font-mono font-medium shrink-0 ml-2">{count}</span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+                            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No data</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Seat Distribution Pie */}
+            <Card className="glass-card lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-sm font-heading">Seat Utilization</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {copilotSeatsLoading ? (
+                  <Skeleton className="h-[200px] w-full" />
+                ) : copilotSeatsDetail ? (
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: "Active (7d)", value: copilotSeatsDetail.active7d },
+                          { name: "Active (8-30d)", value: copilotSeatsDetail.active30d - copilotSeatsDetail.active7d },
+                          { name: "Inactive (30d+)", value: copilotSeatsDetail.inactive - copilotSeatsDetail.neverUsed },
+                          { name: "Never Used", value: copilotSeatsDetail.neverUsed },
+                        ].filter(d => d.value > 0)}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        paddingAngle={3}
+                        label={({ name, value }) => `${name}: ${value}`}
+                      >
+                        {[CHART_COLORS[0], CHART_COLORS[2], CHART_COLORS[4], CHART_COLORS[3]].map((color, idx) => (
+                          <Cell key={idx} fill={color} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={tooltipStyle} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : copilotPieData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie data={copilotPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3}
+                        label={({ name, value }) => `${name}: ${value}`}>
+                        {copilotPieData.map((_, idx) => <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip contentStyle={tooltipStyle} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No data</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Seat List */}
           <Card className="glass-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-heading flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" /> Copilot
-              </CardTitle>
+            <CardHeader>
+              <CardTitle className="text-sm font-heading">Assigned Users</CardTitle>
+              <div className="flex items-center gap-3 mt-2">
+                <div className="relative flex-1 max-w-xs">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    className="w-full h-8 pl-8 pr-3 rounded-md border border-border bg-secondary/50 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    placeholder="Search users..."
+                    value={copilotSearch}
+                    onChange={(e) => setCopilotSearch(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-1">
+                  {(["all", "active", "inactive", "never"] as const).map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setCopilotFilter(f)}
+                      className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors ${
+                        copilotFilter === f
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {f === "all" ? "All" : f === "active" ? "Active" : f === "inactive" ? "Inactive" : "Never Used"}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-20 w-full" />
-              ) : copilotSeats ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <UserCheck className="h-3 w-3 text-chart-1" />
-                      <span className="text-muted-foreground">Active</span>
-                      <span className="font-medium ml-auto">{copilotSeats.active_this_cycle}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <UserX className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">Inactive</span>
-                      <span className="font-medium ml-auto">{copilotSeats.inactive_this_cycle}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <Users className="h-3 w-3 text-chart-2" />
-                      <span className="text-muted-foreground">Total</span>
-                      <span className="font-medium ml-auto">{copilotSeats.total}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <Users className="h-3 w-3 text-chart-3" />
-                      <span className="text-muted-foreground">Pending</span>
-                      <span className="font-medium ml-auto">{copilotSeats.pending_invitation}</span>
-                    </div>
-                  </div>
-                  {copilotSeats.total > 0 && (
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-muted-foreground">Adoption rate</span>
-                        <span className="font-medium">
-                          {Math.round((copilotSeats.active_this_cycle / copilotSeats.total) * 100)}%
-                        </span>
-                      </div>
-                      <Progress value={(copilotSeats.active_this_cycle / copilotSeats.total) * 100} className="h-2" />
-                    </div>
-                  )}
-                  {copilot?.seat_management_setting && (
-                    <div className="flex justify-between text-xs pt-1">
-                      <span className="text-muted-foreground">Management</span>
-                      <Badge variant="outline" className="text-[10px]">{copilot.seat_management_setting}</Badge>
-                    </div>
-                  )}
+              {copilotSeatsLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
                 </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Not available</p>
+              ) : copilotSeatsDetail?.seats ? (() => {
+                const filtered = copilotSeatsDetail.seats.filter(s => {
+                  if (copilotSearch && !s.login.toLowerCase().includes(copilotSearch.toLowerCase())) return false;
+                  if (copilotFilter === "active") return s.isActive30d;
+                  if (copilotFilter === "inactive") return !s.isActive30d && !s.neverUsed;
+                  if (copilotFilter === "never") return s.neverUsed;
+                  return true;
+                });
+                return (
+                  <>
+                    <p className="text-[10px] text-muted-foreground mb-3">{filtered.length} users shown</p>
+                    <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <thead className="sticky top-0 bg-card z-10">
+                          <tr className="border-b border-border text-muted-foreground">
+                            <th className="text-left py-2 px-3 font-medium">User</th>
+                            <th className="text-left py-2 px-3 font-medium">Last Activity</th>
+                            <th className="text-left py-2 px-3 font-medium">Editor</th>
+                            <th className="text-left py-2 px-3 font-medium">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filtered.slice(0, 50).map((s) => (
+                            <tr key={s.login} className="border-b border-border/50 hover:bg-muted/30">
+                              <td className="py-2 px-3 text-xs font-medium">{s.login}</td>
+                              <td className="py-2 px-3 text-xs text-muted-foreground">
+                                {s.lastActivityAt
+                                  ? new Date(s.lastActivityAt).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })
+                                  : "—"}
+                              </td>
+                              <td className="py-2 px-3 text-xs text-muted-foreground capitalize">
+                                {s.lastEditor?.replace(/_/g, " ").replace(/copilot-chat-/g, "Chat: ") || "—"}
+                              </td>
+                              <td className="py-2 px-3">
+                                {s.neverUsed ? (
+                                  <Badge variant="outline" className="text-[10px] border-destructive/50 text-destructive">Never Used</Badge>
+                                ) : s.isActive7d ? (
+                                  <Badge variant="outline" className="text-[10px] border-chart-1/50 text-chart-1">Active</Badge>
+                                ) : s.isActive30d ? (
+                                  <Badge variant="outline" className="text-[10px] border-chart-2/50 text-chart-2">Recent</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-[10px] border-muted-foreground/50 text-muted-foreground">Inactive</Badge>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {filtered.length > 50 && (
+                      <p className="text-[10px] text-muted-foreground mt-2 text-center">Showing first 50 of {filtered.length}</p>
+                    )}
+                  </>
+                );
+              })() : (
+                <p className="text-xs text-muted-foreground">No seat data available</p>
               )}
             </CardContent>
           </Card>
-
-          {/* Copilot Seat Distribution Pie */}
-          {copilotPieData.length > 0 && (
-            <Card className="glass-card lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="text-sm font-heading">Copilot Seat Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={copilotPieData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      paddingAngle={3}
-                      label={({ name, value }) => `${name}: ${value}`}
-                    >
-                      {copilotPieData.map((_, idx) => (
-                        <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={tooltipStyle} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          )}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Language Breakdown or Copilot Pie */}
