@@ -79,6 +79,7 @@ const GitHubDashboard = () => {
   const { data, isLoading, error } = useGitHubSummary("open");
   const { data: activity, isLoading: activityLoading } = useGitHubActivity("open");
   const { data: membersDetail, isLoading: membersLoading } = useGitHubMembersDetail("open");
+  const { data: billingUsage, isLoading: billingUsageLoading } = useGitHubBilling("open");
 
   // Derive stats
   const totalRepos = data?.reposTotalCount ?? data?.repos?.length ?? 0;
