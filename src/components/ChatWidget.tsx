@@ -22,6 +22,7 @@ export function ChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dashboardContext = useMemo(() => buildDashboardContext(), []);
 
   useEffect(() => {
     if (scrollRef.current) {
