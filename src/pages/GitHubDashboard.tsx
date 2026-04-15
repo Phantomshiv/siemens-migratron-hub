@@ -492,36 +492,7 @@ const GitHubDashboard = () => {
           </Card>
         </div>
 
-        {/* Copilot Seats Chart */}
-        {copilotPieData.length > 0 && (
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-sm font-heading">Copilot Seat Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={copilotPieData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={3}
-                    label={({ name, value }) => `${name}: ${value}`}
-                  >
-                    {copilotPieData.map((_, idx) => (
-                      <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={tooltipStyle} />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        )}
+
 
         {/* Department Breakdown */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
