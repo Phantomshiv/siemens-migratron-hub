@@ -5,6 +5,11 @@ import { RiskPanel } from "@/components/RiskPanel";
 import { useGitHubSummary, useGitHubActivity } from "@/hooks/useGitHub";
 import { useActiveSprint, useBlockers } from "@/hooks/useJira";
 import { useCostByVendor, useMonthlySpend } from "@/hooks/useCloudability";
+import { useGitHubSecurity } from "@/hooks/useGitHubSecurity";
+import { useBackstageSummary } from "@/hooks/useBackstage";
+import { getOrgStats } from "@/lib/people-data";
+import { budgetSummary, fteTotals } from "@/lib/budget-data";
+import { releases, domains } from "@/lib/oses-data";
 import {
   GitBranch,
   Users,
@@ -14,6 +19,10 @@ import {
   AlertTriangle,
   BookOpen,
   Rocket,
+  Shield,
+  Wallet,
+  Layers,
+  CloudCog,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -24,6 +33,11 @@ const Index = () => {
   const { data: blockersData } = useBlockers();
   const { data: vendorData, isLoading: cloudLoading } = useCostByVendor();
   const { data: monthlyData } = useMonthlySpend();
+  const { data: secData } = useGitHubSecurity("open");
+  const { data: bsSummary } = useBackstageSummary();
+
+  // People
+  const orgStats = getOrgStats();
 
   // GitHub metrics
   const totalRepos = ghData?.reposTotalCount ?? ghData?.repos?.length ?? 0;
@@ -34,7 +48,7 @@ const Index = () => {
   const copilotActive = copilotSeats?.active_this_cycle ?? 0;
   const copilotAdoption = copilotTotal > 0 ? Math.round((copilotActive / copilotTotal) * 100) : 0;
 
-  // PR stats from activity
+  // PR stats
   const prOpen = ghActivity?.prStats?.open ?? 0;
   const prMerged = ghActivity?.prStats?.merged ?? 0;
   const prClosed = ghActivity?.prStats?.closed ?? 0;
@@ -51,25 +65,43 @@ const Index = () => {
   ).length;
   const sprintTodo = sprintTotal - sprintDone - sprintInProgress;
   const sprintProgress = sprintTotal > 0 ? Math.round((sprintDone / sprintTotal) * 100) : 0;
-
   const blockerCount = (blockersData as any)?.issues?.length ?? 0;
 
   // Cloud metrics
   const vendorResults = (vendorData as any)?.results ?? [];
   const totalCloudSpend = vendorResults.reduce(
-    (sum: number, r: any) => sum + (parseFloat(r.unblended_cost) || 0),
-    0
+    (sum: number, r: any) => sum + (parseFloat(r.unblended_cost) || 0), 0
   );
-  const awsSpend = vendorResults.find((r: any) => r.vendor?.toLowerCase()?.includes("amazon") || r.vendor?.toLowerCase()?.includes("aws"));
-  const azureSpend = vendorResults.find((r: any) => r.vendor?.toLowerCase()?.includes("azure") || r.vendor?.toLowerCase()?.includes("microsoft"));
-
   const monthlyResults = (monthlyData as any)?.results ?? [];
   const monthlyChange = monthlyResults.length >= 2
     ? ((parseFloat(monthlyResults[1]?.unblended_cost) - parseFloat(monthlyResults[0]?.unblended_cost)) /
         parseFloat(monthlyResults[0]?.unblended_cost) * 100).toFixed(1)
     : null;
 
+  // Security
+  const secOpen = secData ? (secData.counts.codeScanning.open + secData.counts.dependabot.open + secData.counts.secretScanning.open) : 0;
+  const secFixed = secData ? (secData.counts.codeScanning.fixed + secData.counts.dependabot.fixed + secData.counts.secretScanning.resolved) : 0;
+
+  // Backstage catalog
+  const kindFacets = bsSummary?.kindFacets?.facets?.kind ?? [];
+  const totalEntities = kindFacets.reduce((s: number, f: any) => s + f.count, 0);
+  const componentCount = kindFacets.find((k: any) => k.value === "Component")?.count ?? 0;
+  const apiCount = kindFacets.find((k: any) => k.value === "API")?.count ?? 0;
+
+  // Budget
+  const budgetUsedPct = Math.round((budgetSummary.actualSpend / budgetSummary.totalBudget) * 100);
+  const forecastPct = Math.round((budgetSummary.forecastFY26 / budgetSummary.totalBudget) * 100);
+
+  // Capabilities
+  const totalCapabilities = domains.reduce((s, d) => s + d.subdomains.reduce((s2, sd) => s2 + sd.capabilities.length, 0), 0);
+
   const formatCost = (v: number) => {
+    if (v >= 1_000_000) return `€${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `€${(v / 1_000).toFixed(0)}K`;
+    return `€${v.toFixed(0)}`;
+  };
+
+  const formatCostUSD = (v: number) => {
     if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(2)}M`;
     if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
     return `$${v.toFixed(0)}`;
@@ -79,37 +111,65 @@ const Index = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-heading font-bold">OSES Program Overview</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Executive dashboard · Platform Engineering · Real-time data from GitHub, Jira & Cloudability
-          </p>
+      <div className="space-y-5">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-heading font-bold">Management Cockpit</h1>
+            <p className="text-xs text-muted-foreground mt-1">
+              ONE Software Engineering System · Platform Engineering · Real-time data
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] text-muted-foreground font-mono">
+              {new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+            </span>
+            <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
+          </div>
         </div>
 
-        {/* Executive KPI Row */}
+        {/* Row 1: Primary KPIs */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-[140px] rounded-lg" />
+              <Skeleton key={i} className="h-[130px] rounded-lg" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <KPICard
-              title="GitHub Enterprise"
-              value={`${totalMembers} members`}
-              icon={Users}
-              subtitle={`${totalRepos} repos · ${totalTeams} teams`}
-              href="/github"
+              title="Budget FY26"
+              value={formatCost(budgetSummary.totalBudget)}
+              change={`${budgetUsedPct}% spent`}
+              changeType={budgetUsedPct > 80 ? "negative" : budgetUsedPct > 50 ? "neutral" : "positive"}
+              icon={Wallet}
+              subtitle={`FC: ${formatCost(budgetSummary.forecastFY26)}`}
+              href="/budget"
               details={[
-                { label: "Total Members", value: totalMembers.toLocaleString(), changeType: "positive" },
-                { label: "Repositories", value: totalRepos.toLocaleString(), changeType: "neutral" },
-                { label: "Teams", value: totalTeams.toLocaleString(), changeType: "neutral" },
-                { label: "Open PRs", value: prOpen, changeType: prOpen > 50 ? "negative" : "neutral" },
-                { label: "PRs Merged (90d)", value: prMerged, changeType: "positive" },
+                { label: "Total Budget", value: formatCost(budgetSummary.totalBudget), changeType: "neutral" },
+                { label: "Actuals YTD", value: formatCost(budgetSummary.actualSpend), changeType: "neutral" },
+                { label: "Forecast FY26", value: formatCost(budgetSummary.forecastFY26), changeType: forecastPct > 100 ? "negative" : "positive" },
+                { label: "Budget Used", value: `${budgetUsedPct}%`, changeType: budgetUsedPct > 80 ? "negative" : "positive" },
+                { label: "Forecast vs Budget", value: `${forecastPct}%`, changeType: forecastPct > 100 ? "negative" : "positive" },
               ]}
-              detailTitle="GitHub Enterprise — Org Health"
+              detailTitle="Budget & Financials"
+            />
+            <KPICard
+              title="People"
+              value={`${orgStats.totalPeople}`}
+              change={`+${orgStats.externalCount} externals`}
+              changeType="neutral"
+              icon={Users}
+              subtitle={`${orgStats.moduleCount} modules`}
+              href="/people"
+              details={[
+                { label: "Total People", value: orgStats.totalPeople, changeType: "neutral" },
+                { label: "Internal FTEs", value: fteTotals.ownTotal, changeType: "positive" },
+                { label: "Contractor FTEs", value: fteTotals.contractorTotal, changeType: "neutral" },
+                { label: "External Ratio", value: `${Math.round((orgStats.externalCount / orgStats.totalPeople) * 100)}%`, changeType: "neutral" },
+                { label: "Modules", value: orgStats.moduleCount, changeType: "neutral" },
+              ]}
+              detailTitle="People & Organization"
             />
             <KPICard
               title="Sprint Progress"
@@ -121,7 +181,6 @@ const Index = () => {
               href="/jira"
               details={[
                 { label: "Sprint", value: sprint?.name ?? "—", changeType: "neutral" },
-                { label: "Total Issues", value: sprintTotal, changeType: "neutral" },
                 { label: "Done", value: sprintDone, changeType: "positive" },
                 { label: "In Progress", value: sprintInProgress, changeType: "neutral" },
                 { label: "To Do", value: sprintTodo, changeType: sprintTodo > 10 ? "negative" : "neutral" },
@@ -131,94 +190,165 @@ const Index = () => {
             />
             <KPICard
               title="Cloud Spend"
-              value={formatCost(totalCloudSpend)}
-              change={monthlyChange ? `${parseFloat(monthlyChange) > 0 ? "↑" : "↓"} ${Math.abs(parseFloat(monthlyChange))}% vs last month` : undefined}
+              value={formatCostUSD(totalCloudSpend)}
+              change={monthlyChange ? `${parseFloat(monthlyChange) > 0 ? "↑" : "↓"} ${Math.abs(parseFloat(monthlyChange))}% MoM` : undefined}
               changeType={monthlyChange && parseFloat(monthlyChange) < 0 ? "positive" : "negative"}
-              icon={DollarSign}
+              icon={CloudCog}
               subtitle="Last 30 days"
               href="/metrics"
               details={[
-                { label: "Total (30d)", value: formatCost(totalCloudSpend), changeType: "neutral" },
-                { label: "AWS", value: awsSpend ? formatCost(parseFloat(awsSpend.unblended_cost)) : "—", changeType: "neutral" },
-                { label: "Azure", value: azureSpend ? formatCost(parseFloat(azureSpend.unblended_cost)) : "—", changeType: "neutral" },
+                { label: "Total (30d)", value: formatCostUSD(totalCloudSpend), changeType: "neutral" },
                 ...(monthlyChange ? [{ label: "MoM Change", value: `${monthlyChange}%`, changeType: (parseFloat(monthlyChange) < 0 ? "positive" : "negative") as "positive" | "negative" }] : []),
               ]}
               detailTitle="Cloud FinOps Summary"
             />
-            <KPICard
-              title="Copilot Adoption"
-              value={`${copilotAdoption}%`}
-              change={copilotTotal > 0 ? `${copilotActive}/${copilotTotal} active` : "Not available"}
-              changeType={copilotAdoption >= 50 ? "positive" : "negative"}
-              icon={Sparkles}
-              subtitle="Active this cycle"
-              href="/github"
-              details={[
-                { label: "Total Seats", value: copilotTotal, changeType: "neutral" },
-                { label: "Active", value: copilotActive, changeType: "positive" },
-                { label: "Inactive", value: copilotSeats?.inactive_this_cycle ?? 0, changeType: "negative" },
-                { label: "Pending Invite", value: copilotSeats?.pending_invitation ?? 0, changeType: "neutral" },
-                { label: "Adoption Rate", value: `${copilotAdoption}%`, changeType: copilotAdoption >= 50 ? "positive" : "negative" },
-              ]}
-              detailTitle="Copilot Seat Breakdown"
-            />
           </div>
         )}
 
-        {/* Second Row — Program-level KPIs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Row 2: Secondary KPIs — GitHub, Security, Backstage, Copilot */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           <KPICard
-            title="Repositories"
-            value={totalRepos.toLocaleString()}
-            icon={BookOpen}
-            subtitle={`${ghData?.repos?.filter((r) => !r.archived).length ?? 0} active`}
+            title="GitHub Enterprise"
+            value={`${totalMembers}`}
+            icon={GitBranch}
+            subtitle={`${totalRepos} repos · ${totalTeams} teams`}
             href="/github"
             details={[
-              { label: "Active", value: ghData?.repos?.filter((r) => !r.archived).length ?? 0, changeType: "positive" },
-              { label: "Archived", value: ghData?.repos?.filter((r) => r.archived).length ?? 0, changeType: "neutral" },
-              { label: "Forks", value: ghData?.repos?.filter((r) => r.fork).length ?? 0, changeType: "neutral" },
-              { label: "Open Issues", value: ghData?.repos?.reduce((s, r) => s + r.open_issues_count, 0) ?? 0, changeType: "negative" },
+              { label: "Members", value: totalMembers.toLocaleString(), changeType: "positive" },
+              { label: "Repositories", value: totalRepos.toLocaleString(), changeType: "neutral" },
+              { label: "Teams", value: totalTeams.toLocaleString(), changeType: "neutral" },
+              { label: "Open PRs", value: prOpen, changeType: prOpen > 50 ? "negative" : "neutral" },
+              { label: "Merged (90d)", value: prMerged, changeType: "positive" },
             ]}
-            detailTitle="Repository Breakdown"
+            detailTitle="GitHub Org Health"
+          />
+          <KPICard
+            title="Copilot"
+            value={`${copilotAdoption}%`}
+            change={copilotTotal > 0 ? `${copilotActive}/${copilotTotal}` : "N/A"}
+            changeType={copilotAdoption >= 50 ? "positive" : "negative"}
+            icon={Sparkles}
+            subtitle="adoption"
+            href="/github"
+            details={[
+              { label: "Total Seats", value: copilotTotal, changeType: "neutral" },
+              { label: "Active", value: copilotActive, changeType: "positive" },
+              { label: "Inactive", value: copilotSeats?.inactive_this_cycle ?? 0, changeType: "negative" },
+              { label: "Pending", value: copilotSeats?.pending_invitation ?? 0, changeType: "neutral" },
+            ]}
+            detailTitle="Copilot Adoption"
+          />
+          <KPICard
+            title="Security"
+            value={`${secOpen}`}
+            change={secFixed > 0 ? `${secFixed} fixed` : undefined}
+            changeType={secOpen > 20 ? "negative" : secOpen > 0 ? "neutral" : "positive"}
+            icon={Shield}
+            subtitle="open alerts"
+            href="/cybersecurity"
+            details={[
+              { label: "Code Scanning", value: secData?.counts.codeScanning.open ?? 0, changeType: "negative" },
+              { label: "Dependabot", value: secData?.counts.dependabot.open ?? 0, changeType: "negative" },
+              { label: "Secret Scanning", value: secData?.counts.secretScanning.open ?? 0, changeType: "negative" },
+              { label: "Total Fixed", value: secFixed, changeType: "positive" },
+            ]}
+            detailTitle="Cybersecurity Posture"
+          />
+          <KPICard
+            title="Backstage"
+            value={`${totalEntities}`}
+            icon={BookOpen}
+            subtitle="catalog entities"
+            href="/backstage"
+            details={[
+              { label: "Components", value: componentCount, changeType: "neutral" },
+              { label: "APIs", value: apiCount, changeType: "neutral" },
+              { label: "Total Entities", value: totalEntities, changeType: "neutral" },
+            ]}
+            detailTitle="Backstage Catalog"
           />
           <KPICard
             title="Blockers"
             value={blockerCount}
             changeType={blockerCount > 0 ? "negative" : "positive"}
-            change={blockerCount > 0 ? "Action required" : "All clear"}
+            change={blockerCount > 0 ? "Action needed" : "All clear"}
             icon={AlertTriangle}
-            subtitle="Critical/Blocker issues"
+            subtitle="critical issues"
             href="/risks"
           />
           <KPICard
-            title="Pull Requests"
-            value={prOpen + prMerged + prClosed}
-            icon={GitBranch}
-            subtitle="Last 90 days"
-            href="/github"
-            details={[
-              { label: "Open", value: prOpen, changeType: prOpen > 50 ? "negative" : "neutral" },
-              { label: "Merged", value: prMerged, changeType: "positive" },
-              { label: "Closed", value: prClosed, changeType: "neutral" },
-            ]}
-            detailTitle="PR Activity (90 days)"
+            title="Capabilities"
+            value={totalCapabilities}
+            icon={Layers}
+            subtitle={`${domains.length} domains`}
+            href="/capabilities"
+            details={domains.map(d => ({
+              label: d.name,
+              value: `${d.subdomains.reduce((s, sd) => s + sd.capabilities.length, 0)} caps`,
+              changeType: "neutral" as const,
+            }))}
+            detailTitle="Platform Capabilities"
           />
           <KPICard
-            title="OSES Releases"
-            value="3"
+            title="Releases"
+            value={releases.length}
             icon={Rocket}
             subtitle="Q3'25 → Q1'26"
             href="/releases"
-            details={[
-              { label: "R1 – Q3 2025", value: "Foundation", changeType: "positive" },
-              { label: "R2 – Q4 2025", value: "Expansion", changeType: "neutral" },
-              { label: "R3 – Q1 2026", value: "Maturity", changeType: "neutral" },
-            ]}
+            details={releases.map(r => ({
+              label: `${r.name} — ${r.quarter}`,
+              value: `${r.useCases.length} use cases`,
+              changeType: "neutral" as const,
+            }))}
             detailTitle="Release Roadmap"
           />
         </div>
 
-        {/* Bottom Grid */}
+        {/* Row 3: Pull Requests mini-row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <KPICard
+            title="PRs Open"
+            value={prOpen}
+            icon={GitBranch}
+            changeType={prOpen > 50 ? "negative" : "neutral"}
+            change={prOpen > 50 ? "High queue" : undefined}
+            subtitle="current"
+            href="/github"
+          />
+          <KPICard
+            title="PRs Merged"
+            value={prMerged}
+            icon={GitBranch}
+            changeType="positive"
+            subtitle="last 90 days"
+            href="/github"
+          />
+          <KPICard
+            title="Own FTEs"
+            value={fteTotals.ownTotal}
+            icon={Users}
+            subtitle={`of ${fteTotals.grandTotal} total`}
+            href="/people"
+            details={[
+              { label: "Own FTEs", value: fteTotals.ownTotal, changeType: "positive" },
+              { label: "Contractor FTEs", value: fteTotals.contractorTotal, changeType: "neutral" },
+              { label: "Grand Total", value: fteTotals.grandTotal, changeType: "neutral" },
+              { label: "External Ratio", value: `${Math.round((fteTotals.contractorTotal / fteTotals.grandTotal) * 100)}%`, changeType: "neutral" },
+            ]}
+            detailTitle="FTE Breakdown"
+          />
+          <KPICard
+            title="Forecast Gap"
+            value={formatCost(budgetSummary.totalBudget - budgetSummary.forecastFY26)}
+            icon={DollarSign}
+            change={forecastPct <= 100 ? "Under budget" : "Over budget"}
+            changeType={forecastPct <= 100 ? "positive" : "negative"}
+            subtitle="budget vs forecast"
+            href="/budget"
+          />
+        </div>
+
+        {/* Bottom Grid: Roadmap + Risks */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
             <RoadmapTimeline />
