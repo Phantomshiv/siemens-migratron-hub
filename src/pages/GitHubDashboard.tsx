@@ -83,8 +83,6 @@ const GitHubDashboard = () => {
   const { data, isLoading, error } = useGitHubSummary("open");
   const { data: activity, isLoading: activityLoading } = useGitHubActivity("open");
   const { data: membersDetail, isLoading: membersLoading } = useGitHubMembersDetail("open");
-  const { data: billingUsage, isLoading: billingUsageLoading } = useGitHubBilling("open");
-  const { data: security, isLoading: securityLoading } = useGitHubSecurity("open");
   const { data: copilotSeatsDetail, isLoading: copilotSeatsLoading } = useGitHubCopilotSeats("open");
   const [copilotSearch, setCopilotSearch] = useState("");
   const [copilotFilter, setCopilotFilter] = useState<"all" | "active" | "inactive" | "never">("all");
@@ -112,14 +110,6 @@ const GitHubDashboard = () => {
   const copilot = data?.copilot;
   const copilotSeats = copilot?.seat_breakdown;
 
-  // New billing usage aggregates
-  const usageItems = billingUsage?.usageItems || [];
-  const byProduct = aggregateByProduct(usageItems);
-  const bySku = aggregateBySku(usageItems);
-  const byMonth = aggregateByMonth(usageItems);
-  const totalGross = byProduct.reduce((s, p) => s + p.grossAmount, 0);
-  const totalNet = byProduct.reduce((s, p) => s + p.netAmount, 0);
-  const totalDiscount = totalGross - totalNet;
 
   // Language breakdown
   const langMap: Record<string, number> = {};
