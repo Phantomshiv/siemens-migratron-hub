@@ -32,6 +32,10 @@ import {
   Layers,
   CloudCog,
   Building2,
+  Megaphone,
+  MessageSquare,
+  Newspaper,
+  GraduationCap,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -419,7 +423,79 @@ const Index = () => {
           />
         </div>
 
-        {/* Roadmap Quarter Progress Strip */}
+        {/* Row 4: Comms & Growth */}
+        <Card className="glass-card">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Megaphone className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm font-heading">Communication & Growth</CardTitle>
+              </div>
+              <a href="/communication-growth" className="text-[10px] text-primary hover:underline">Full dashboard →</a>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {/* Engagement KPIs */}
+              <div className="space-y-1 p-3 rounded-lg bg-muted/30">
+                <div className="flex items-center gap-1.5">
+                  <BookOpen className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground">Confluence Views</span>
+                </div>
+                <p className="text-lg font-bold font-heading">2.4k</p>
+                <span className="text-[10px] text-emerald-400">↑ 12%</span>
+              </div>
+              <div className="space-y-1 p-3 rounded-lg bg-muted/30">
+                <div className="flex items-center gap-1.5">
+                  <MessageSquare className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground">Slack Members</span>
+                </div>
+                <p className="text-lg font-bold font-heading">186</p>
+                <span className="text-[10px] text-emerald-400">↑ 8%</span>
+              </div>
+              <div className="space-y-1 p-3 rounded-lg bg-muted/30">
+                <div className="flex items-center gap-1.5">
+                  <Newspaper className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground">Newsletter Subs</span>
+                </div>
+                <p className="text-lg font-bold font-heading">312</p>
+                <span className="text-[10px] text-emerald-400">↑ 15%</span>
+              </div>
+              <div className="space-y-1 p-3 rounded-lg bg-muted/30">
+                <div className="flex items-center gap-1.5">
+                  <GraduationCap className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground">Training Sessions</span>
+                </div>
+                <p className="text-lg font-bold font-heading">6</p>
+                <span className="text-[10px] text-red-400">↓ 2</span>
+              </div>
+
+              {/* Team onboarding mini-pipeline */}
+              <div className="col-span-2 space-y-2 p-3 rounded-lg bg-muted/30">
+                <div className="flex items-center gap-1.5">
+                  <Users className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground font-medium">Team Onboarding</span>
+                </div>
+                <div className="space-y-1.5">
+                  {[
+                    { team: "Data Engineering", progress: 65 },
+                    { team: "ML Platform", progress: 40 },
+                    { team: "Network Services", progress: 15 },
+                  ].map((t) => (
+                    <div key={t.team} className="flex items-center gap-2">
+                      <span className="text-[10px] w-24 truncate">{t.team}</span>
+                      <Progress value={t.progress} className="h-1 flex-1" />
+                      <span className="text-[10px] text-muted-foreground w-7 text-right">{t.progress}%</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[9px] text-muted-foreground">3 active · 3 onboarding/evaluating</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+
         <Card className="glass-card">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
