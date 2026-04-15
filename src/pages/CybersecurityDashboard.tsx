@@ -357,6 +357,7 @@ const CybersecurityDashboard = () => {
         )}
       </div>
     </DashboardLayout>
+    </CyberSettingsProvider>
   );
 };
 
