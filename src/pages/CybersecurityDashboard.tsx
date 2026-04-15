@@ -13,6 +13,8 @@ import { MTTRPanel } from "@/components/cybersecurity/MTTRPanel";
 import { SLAPanel } from "@/components/cybersecurity/SLAPanel";
 import { EcosystemPanel } from "@/components/cybersecurity/EcosystemPanel";
 import { PushProtectionPanel } from "@/components/cybersecurity/PushProtectionPanel";
+import { AlertDetailsTable } from "@/components/cybersecurity/AlertDetailsTable";
+import { RiskScorePanel } from "@/components/cybersecurity/RiskScorePanel";
 
 const tooltipStyle = {
   backgroundColor: "hsl(215, 25%, 13%)",
@@ -249,24 +251,14 @@ const CybersecurityDashboard = () => {
           )}
         </div>
 
-        {/* Top Affected Repos */}
-        {security?.topRepos && security.topRepos.length > 0 && (
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-sm font-heading">Most Affected Repositories</CardTitle>
-              <p className="text-[10px] text-muted-foreground">By total open code scanning + dependabot alerts</p>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={Math.max(200, security.topRepos.length * 30)}>
-                <BarChart data={security.topRepos} layout="vertical" margin={{ left: 100 }}>
-                  <XAxis type="number" stroke="hsl(215, 15%, 55%)" fontSize={11} />
-                  <YAxis type="category" dataKey="repo" stroke="hsl(215, 15%, 55%)" fontSize={11} width={95} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="count" fill="hsl(0, 72%, 55%)" radius={[0, 4, 4, 0]} name="Open Alerts" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        {/* Risk Scores */}
+        {!securityLoading && security?.riskScores && security.riskScores.length > 0 && (
+          <RiskScorePanel riskScores={security.riskScores} />
+        )}
+
+        {/* Alert Details Table */}
+        {!securityLoading && security?.alertDetails && security.alertDetails.length > 0 && (
+          <AlertDetailsTable alerts={security.alertDetails} />
         )}
       </div>
     </DashboardLayout>

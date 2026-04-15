@@ -6,6 +6,34 @@ export interface SecurityCounts {
   dependabot: { open: number; fixed: number };
 }
 
+export interface AlertDetail {
+  type: "code" | "dependabot";
+  number: number;
+  createdAt: string;
+  url: string | null;
+  severity: string;
+  ruleName: string | null;
+  ruleDescription: string | null;
+  filePath: string | null;
+  line: number | null;
+  tool: string | null;
+  repo: string;
+  cveId: string | null;
+  packageName: string | null;
+  ecosystem: string | null;
+}
+
+export interface RepoRiskScore {
+  repo: string;
+  score: number;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  secrets: number;
+  total: number;
+}
+
 export interface SecurityData {
   counts: SecurityCounts;
   codeSeverity: Record<string, number>;
@@ -18,6 +46,8 @@ export interface SecurityData {
   slaBreaches: Record<string, { total: number; breached: number }>;
   ecosystems: Record<string, number>;
   pushProtection: { bypassed: number; totalSecrets: number };
+  alertDetails: AlertDetail[];
+  riskScores: RepoRiskScore[];
   errors?: string[];
 }
 

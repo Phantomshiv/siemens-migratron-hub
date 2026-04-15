@@ -817,6 +817,106 @@ Deno.serve(async (req) => {
         if (a.push_protection_bypassed) pushProtectionBypassed++;
       }
 
+      // ── Alert Details (top 50 most critical open alerts) ──
+      type CodeAlertDetail = { 
+        number: number; created_at: string; html_url?: string; state: string;
+        rule?: { id?: string; severity?: string; security_severity_level?: string; description?: string; name?: string };
+        most_recent_instance?: { location?: { path?: string; start_line?: number } };
+        tool?: { name?: string };
+        repository?: { name?: string; full_name?: string };
+      };
+      type DepAlertDetail = {
+        number: number; created_at: string; html_url?: string; state: string;
+        security_advisory?: { severity?: string; cve_id?: string; summary?: string; ghsa_id?: string };
+        dependency?: { package?: { name?: string; ecosystem?: string }; manifest_path?: string };
+        repository?: { name?: string; full_name?: string };
+      };
+
+      const sevWeight: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1, unknown: 0 };
+
+      const codeDetails = (codeAlerts as CodeAlertDetail[]).map(a => ({
+        type: "code" as const,
+        number: a.number,
+        createdAt: a.created_at,
+        url: a.html_url || null,
+        severity: a.rule?.security_severity_level || a.rule?.severity || "unknown",
+        ruleName: a.rule?.name || a.rule?.id || null,
+        ruleDescription: a.rule?.description?.slice(0, 120) || null,
+        filePath: a.most_recent_instance?.location?.path || null,
+        line: a.most_recent_instance?.location?.start_line || null,
+        tool: a.tool?.name || null,
+        repo: a.repository?.name || a.repository?.full_name || "unknown",
+        cveId: null,
+        packageName: null,
+        ecosystem: null,
+      }));
+
+      const depDetails = (depAlerts as DepAlertDetail[]).map(a => ({
+        type: "dependabot" as const,
+        number: a.number,
+        createdAt: a.created_at,
+        url: a.html_url || null,
+        severity: a.security_advisory?.severity || "unknown",
+        ruleName: a.security_advisory?.summary?.slice(0, 80) || null,
+        ruleDescription: null,
+        filePath: a.dependency?.manifest_path || null,
+        line: null,
+        tool: null,
+        repo: a.repository?.name || a.repository?.full_name || "unknown",
+        cveId: a.security_advisory?.cve_id || a.security_advisory?.ghsa_id || null,
+        packageName: a.dependency?.package?.name || null,
+        ecosystem: a.dependency?.package?.ecosystem || null,
+      }));
+
+      const alertDetails = [...codeDetails, ...depDetails]
+        .sort((a, b) => (sevWeight[b.severity] || 0) - (sevWeight[a.severity] || 0))
+        .slice(0, 50);
+
+      // ── Risk Scores per Repo ──
+      const repoRisk: Record<string, { critical: number; high: number; medium: number; low: number; secrets: number; total: number }> = {};
+      const initRepo = (name: string) => {
+        if (!repoRisk[name]) repoRisk[name] = { critical: 0, high: 0, medium: 0, low: 0, secrets: 0, total: 0 };
+      };
+
+      for (const a of codeAlerts as Array<{ rule?: { security_severity_level?: string; severity?: string }; repository?: { name?: string; full_name?: string } }>) {
+        const repo = a.repository?.name || a.repository?.full_name || "unknown";
+        const sev = a.rule?.security_severity_level || a.rule?.severity || "unknown";
+        initRepo(repo);
+        if (sev === "critical") repoRisk[repo].critical++;
+        else if (sev === "high") repoRisk[repo].high++;
+        else if (sev === "medium") repoRisk[repo].medium++;
+        else repoRisk[repo].low++;
+        repoRisk[repo].total++;
+      }
+
+      for (const a of depAlerts as Array<{ security_advisory?: { severity?: string }; repository?: { name?: string; full_name?: string } }>) {
+        const repo = a.repository?.name || a.repository?.full_name || "unknown";
+        const sev = a.security_advisory?.severity || "unknown";
+        initRepo(repo);
+        if (sev === "critical") repoRisk[repo].critical++;
+        else if (sev === "high") repoRisk[repo].high++;
+        else if (sev === "medium") repoRisk[repo].medium++;
+        else repoRisk[repo].low++;
+        repoRisk[repo].total++;
+      }
+
+      for (const a of secretAlerts as Array<{ repository?: { name?: string; full_name?: string } }>) {
+        const repo = a.repository?.name || a.repository?.full_name || "unknown";
+        initRepo(repo);
+        repoRisk[repo].secrets++;
+        repoRisk[repo].total++;
+      }
+
+      // Weighted score: critical=10, high=5, medium=2, low=0.5, secret=8
+      const riskScores = Object.entries(repoRisk)
+        .map(([repo, r]) => ({
+          repo,
+          score: Math.round(r.critical * 10 + r.high * 5 + r.medium * 2 + r.low * 0.5 + r.secrets * 8),
+          ...r,
+        }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 15);
+
       const result = {
         counts: {
           codeScanning: { open: codeAlerts.length, fixed: codeFixed.length },
@@ -836,6 +936,8 @@ Deno.serve(async (req) => {
           bypassed: pushProtectionBypassed,
           totalSecrets: pushProtectionTotal,
         },
+        alertDetails,
+        riskScores,
         errors: errors.length > 0 ? errors : undefined,
       };
 
