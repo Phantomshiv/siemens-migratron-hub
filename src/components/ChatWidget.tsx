@@ -74,6 +74,7 @@ export function ChatWidget() {
     if (!isLoading) saveMessages(messages);
   }, [messages, isLoading]);
 
+  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
