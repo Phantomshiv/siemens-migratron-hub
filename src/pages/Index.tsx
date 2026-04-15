@@ -19,15 +19,16 @@ import {
   GitBranch, Users, DollarSign, SquareKanban, Sparkles, AlertTriangle,
   BookOpen, Rocket, Shield, Wallet, Layers, CloudCog, Building2,
   FileText, CheckCircle2, TrendingUp, Server, ChevronUp, ChevronDown, GripVertical,
-  Megaphone, MessageSquare, Newspaper, GraduationCap,
+  Megaphone, MessageSquare, Newspaper, GraduationCap, ChevronRight,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 
-/* ─── Section header with reorder controls ─── */
-function SectionHeader({ icon: Icon, title, subtitle, href, linkText, onMoveUp, onMoveDown, isFirst, isLast }: {
+/* ─── Section header with reorder + collapse controls ─── */
+function SectionHeader({ icon: Icon, title, subtitle, href, linkText, onMoveUp, onMoveDown, isFirst, isLast, collapsed, onToggleCollapse }: {
   icon: React.ElementType; title: string; subtitle?: string; href?: string; linkText?: string;
   onMoveUp?: () => void; onMoveDown?: () => void; isFirst?: boolean; isLast?: boolean;
+  collapsed?: boolean; onToggleCollapse?: () => void;
 }) {
   return (
     <div className="flex items-center justify-between pt-1">
@@ -35,31 +36,24 @@ function SectionHeader({ icon: Icon, title, subtitle, href, linkText, onMoveUp, 
         <div className="flex items-center gap-0.5">
           <GripVertical className="h-3 w-3 text-muted-foreground/40" />
           <div className="flex flex-col -space-y-1">
-            <Button
-              variant="ghost" size="icon"
-              className="h-4 w-4 text-muted-foreground/50 hover:text-foreground"
-              onClick={onMoveUp} disabled={isFirst}
-            >
-              <ChevronUp className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="ghost" size="icon"
-              className="h-4 w-4 text-muted-foreground/50 hover:text-foreground"
-              onClick={onMoveDown} disabled={isLast}
-            >
-              <ChevronDown className="h-3 w-3" />
-            </Button>
+            <Button variant="ghost" size="icon" className="h-4 w-4 text-muted-foreground/50 hover:text-foreground"
+              onClick={onMoveUp} disabled={isFirst}><ChevronUp className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="icon" className="h-4 w-4 text-muted-foreground/50 hover:text-foreground"
+              onClick={onMoveDown} disabled={isLast}><ChevronDown className="h-3 w-3" /></Button>
           </div>
         </div>
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-          <Icon className="h-3.5 w-3.5 text-primary" />
-        </div>
-        <div>
-          <h2 className="text-sm font-heading font-semibold">{title}</h2>
-          {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
-        </div>
+        <button onClick={onToggleCollapse} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${collapsed ? "" : "rotate-90"}`} />
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+            <Icon className="h-3.5 w-3.5 text-primary" />
+          </div>
+          <div className="text-left">
+            <h2 className="text-sm font-heading font-semibold">{title}</h2>
+            {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
+          </div>
+        </button>
       </div>
-      {href && (
+      {href && !collapsed && (
         <a href={href} className="text-[10px] text-primary hover:underline">{linkText || "Full dashboard →"}</a>
       )}
     </div>
