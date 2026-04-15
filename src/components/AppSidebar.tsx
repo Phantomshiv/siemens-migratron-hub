@@ -52,8 +52,6 @@ const mainItems = [
 ];
 
 const secondaryItems = [
-  { title: "Systems", url: "/systems", icon: Boxes },
-  { title: "Migration Log", url: "/log", icon: FileText },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
