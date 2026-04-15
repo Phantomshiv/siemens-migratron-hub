@@ -522,6 +522,7 @@ const Index = () => {
     /* ── Client Management ── */
     clients: (
       S("clients", Building2, "Client Management", "GHE migration pipeline & top clients", "/clients",
+        <>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard title="Total Clients" value={clientTotal} icon={Building2} change={`${clientBUs} BUs`}
             changeType="neutral" subtitle={`${clientRepos.toLocaleString()} repos`} href="/clients"
@@ -556,6 +557,7 @@ const Index = () => {
             ))}
           </div>
         )}
+        </>
       )
     ),
 
