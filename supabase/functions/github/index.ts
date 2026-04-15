@@ -917,6 +917,79 @@ Deno.serve(async (req) => {
         .sort((a, b) => b.score - a.score)
         .slice(0, 15);
 
+      // ── Security Posture Levels per Repo ──
+      // Level 1: Repo exists on OSES (baseline)
+      // Level 2: No critical/high vulns
+      // Level 3: No secrets, <5 medium vulns
+      // Level 4: All vulns fixed within SLA
+      // Level 5: Full security config enabled (code scanning + dependabot + secret scanning)
+      const postureScores = Object.entries(repoRisk).map(([repo, r]) => {
+        let level = 1; // baseline
+        const hasCritHigh = r.critical > 0 || r.high > 0;
+        const hasSecrets = r.secrets > 0;
+        const lowMedOnly = r.medium < 5;
+        if (!hasCritHigh) level = 2;
+        if (!hasCritHigh && !hasSecrets && lowMedOnly) level = 3;
+        if (!hasCritHigh && !hasSecrets && r.medium === 0) level = 4;
+        if (!hasCritHigh && !hasSecrets && r.total === 0) level = 5;
+        return { repo, level, ...r };
+      }).sort((a, b) => b.level - a.level || a.total - b.total);
+
+      // ── Security Config Opt-Out Analysis ──
+      // Check which repos have code scanning, dependabot, and secret scanning enabled
+      // by looking at which repos have alerts (presence = scanning enabled)
+      const reposWithCodeScanning = new Set<string>();
+      const reposWithDependabot = new Set<string>();
+      const reposWithSecretScanning = new Set<string>();
+      
+      for (const a of [...codeAlerts, ...codeFixed] as Array<{ repository?: { name?: string; full_name?: string } }>) {
+        const name = a.repository?.name || a.repository?.full_name;
+        if (name) reposWithCodeScanning.add(name);
+      }
+      for (const a of [...depAlerts, ...depFixed] as Array<{ repository?: { name?: string; full_name?: string } }>) {
+        const name = a.repository?.name || a.repository?.full_name;
+        if (name) reposWithDependabot.add(name);
+      }
+      for (const a of [...secretAlerts, ...secretFixed] as Array<{ repository?: { name?: string; full_name?: string } }>) {
+        const name = a.repository?.name || a.repository?.full_name;
+        if (name) reposWithSecretScanning.add(name);
+      }
+
+      // Get total repos count (from allOpen alerts' unique repos + any known repos)
+      const allKnownRepos = new Set<string>([...reposWithCodeScanning, ...reposWithDependabot, ...reposWithSecretScanning]);
+      
+      // Fetch total org repos count for opt-out calculation
+      let totalOrgRepos = allKnownRepos.size;
+      try {
+        const orgResp = await fetch(`${GHE_BASE}/orgs/${org}`, { headers: gheHeaders });
+        if (orgResp.ok) {
+          const orgData = await orgResp.json();
+          totalOrgRepos = orgData.public_repos + (orgData.total_private_repos || 0);
+        }
+      } catch { /* fallback to known count */ }
+
+      const securityConfigs = {
+        totalRepos: totalOrgRepos,
+        codeScanning: { enabled: reposWithCodeScanning.size, optOut: totalOrgRepos - reposWithCodeScanning.size },
+        dependabot: { enabled: reposWithDependabot.size, optOut: totalOrgRepos - reposWithDependabot.size },
+        secretScanning: { enabled: reposWithSecretScanning.size, optOut: totalOrgRepos - reposWithSecretScanning.size },
+      };
+
+      // ── Repos Blocked by Push Protection (scanning blocked secrets) ──
+      const blockedByPushProtection: Record<string, number> = {};
+      for (const a of secretAlerts as Array<{ push_protection_bypassed?: boolean; repository?: { name?: string; full_name?: string } }>) {
+        if (a.push_protection_bypassed) {
+          const repo = a.repository?.name || a.repository?.full_name || "unknown";
+          blockedByPushProtection[repo] = (blockedByPushProtection[repo] || 0) + 1;
+        }
+      }
+      for (const a of secretFixed as Array<{ push_protection_bypassed?: boolean; repository?: { name?: string; full_name?: string } }>) {
+        if (a.push_protection_bypassed) {
+          const repo = a.repository?.name || a.repository?.full_name || "unknown";
+          blockedByPushProtection[repo] = (blockedByPushProtection[repo] || 0) + 1;
+        }
+      }
+
       const result = {
         counts: {
           codeScanning: { open: codeAlerts.length, fixed: codeFixed.length },
@@ -938,6 +1011,9 @@ Deno.serve(async (req) => {
         },
         alertDetails,
         riskScores,
+        postureScores,
+        securityConfigs,
+        blockedByPushProtection,
         errors: errors.length > 0 ? errors : undefined,
       };
 
