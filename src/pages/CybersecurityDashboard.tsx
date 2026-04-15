@@ -22,6 +22,8 @@ import { SecurityOptOutPanel } from "@/components/cybersecurity/SecurityOptOutPa
 import { VulnDensityPanel } from "@/components/cybersecurity/VulnDensityPanel";
 import { AutomationSavingsPanel } from "@/components/cybersecurity/AutomationSavingsPanel";
 import { FalsePositivePanel } from "@/components/cybersecurity/FalsePositivePanel";
+import { CyberSettingsProvider } from "@/contexts/CyberSettingsContext";
+import { CyberSettingsPanel } from "@/components/cybersecurity/CyberSettingsPanel";
 
 const tooltipStyle = {
   backgroundColor: "hsl(215, 25%, 13%)",
@@ -83,13 +85,17 @@ const CybersecurityDashboard = () => {
   }, [security]);
 
   return (
+    <CyberSettingsProvider>
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-heading font-bold">Cybersecurity</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            GitHub Enterprise security alerts · Organization: <span className="text-primary font-medium">open</span>
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-heading font-bold">Cybersecurity</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              GitHub Enterprise security alerts · Organization: <span className="text-primary font-medium">open</span>
+            </p>
+          </div>
+          <CyberSettingsPanel />
         </div>
 
         {/* KPI Cards Row */}
