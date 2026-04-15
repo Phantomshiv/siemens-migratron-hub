@@ -661,6 +661,115 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Security Overview: code-scanning, secret-scanning, dependabot alerts
+    if (action === "security") {
+      const cacheKey = `github:security:${org}`;
+      if (!noCache) {
+        const cached = await getCache(cacheKey);
+        if (cached) {
+          return new Response(JSON.stringify(cached), {
+            headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "HIT" },
+          });
+        }
+      }
+
+      const errors: string[] = [];
+
+      // Fetch all three alert types in parallel (paginated)
+      const [codeAlerts, secretAlerts, depAlerts] = await Promise.all([
+        fetchAllPages(`${GHE_BASE}/orgs/${org}/code-scanning/alerts?state=open&sort=created&direction=desc`, gheHeaders, 5)
+          .catch((e) => { errors.push(`code_scanning: ${e}`); return []; }),
+        fetchAllPages(`${GHE_BASE}/orgs/${org}/secret-scanning/alerts?state=open&sort=created&direction=desc`, gheHeaders, 5)
+          .catch((e) => { errors.push(`secret_scanning: ${e}`); return []; }),
+        fetchAllPages(`${GHE_BASE}/orgs/${org}/dependabot/alerts?state=open&sort=created&direction=desc`, gheHeaders, 5)
+          .catch((e) => { errors.push(`dependabot: ${e}`); return []; }),
+      ]);
+
+      // Also fetch closed/fixed counts for trend context
+      const [codeFixed, secretFixed, depFixed] = await Promise.all([
+        fetchAllPages(`${GHE_BASE}/orgs/${org}/code-scanning/alerts?state=fixed&sort=created&direction=desc`, gheHeaders, 3)
+          .catch(() => []),
+        fetchAllPages(`${GHE_BASE}/orgs/${org}/secret-scanning/alerts?state=resolved&sort=created&direction=desc`, gheHeaders, 3)
+          .catch(() => []),
+        fetchAllPages(`${GHE_BASE}/orgs/${org}/dependabot/alerts?state=fixed&sort=created&direction=desc`, gheHeaders, 3)
+          .catch(() => []),
+      ]);
+
+      // Severity breakdown for code scanning
+      const codeSeverity: Record<string, number> = {};
+      for (const a of codeAlerts as Array<{ rule?: { severity?: string; security_severity_level?: string } }>) {
+        const sev = a.rule?.security_severity_level || a.rule?.severity || "unknown";
+        codeSeverity[sev] = (codeSeverity[sev] || 0) + 1;
+      }
+
+      // Severity breakdown for dependabot
+      const depSeverity: Record<string, number> = {};
+      for (const a of depAlerts as Array<{ security_advisory?: { severity?: string } }>) {
+        const sev = a.security_advisory?.severity || "unknown";
+        depSeverity[sev] = (depSeverity[sev] || 0) + 1;
+      }
+
+      // Secret types breakdown
+      const secretTypes: Record<string, number> = {};
+      for (const a of secretAlerts as Array<{ secret_type_display_name?: string; secret_type?: string }>) {
+        const t = a.secret_type_display_name || a.secret_type || "unknown";
+        secretTypes[t] = (secretTypes[t] || 0) + 1;
+      }
+
+      // Timeline: alerts created per week (last 12 weeks) across all types
+      const weekBuckets: Record<string, { code: number; secret: number; dependabot: number }> = {};
+      const twelveWeeksAgo = Date.now() - 12 * 7 * 24 * 60 * 60 * 1000;
+      const allTyped = [
+        ...(codeAlerts as Array<{ created_at: string }>).map(a => ({ ...a, _type: "code" as const })),
+        ...(secretAlerts as Array<{ created_at: string }>).map(a => ({ ...a, _type: "secret" as const })),
+        ...(depAlerts as Array<{ created_at: string }>).map(a => ({ ...a, _type: "dependabot" as const })),
+      ];
+      for (const a of allTyped) {
+        const ts = new Date(a.created_at).getTime();
+        if (ts < twelveWeeksAgo) continue;
+        const d = new Date(a.created_at);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        const weekStart = new Date(d.getFullYear(), d.getMonth(), diff);
+        const key = weekStart.toISOString().split("T")[0];
+        if (!weekBuckets[key]) weekBuckets[key] = { code: 0, secret: 0, dependabot: 0 };
+        weekBuckets[key][a._type]++;
+      }
+      const weeklyTrend = Object.entries(weekBuckets)
+        .map(([week, counts]) => ({ week, ...counts }))
+        .sort((a, b) => a.week.localeCompare(b.week));
+
+      // Top affected repos
+      const repoAlertCounts: Record<string, number> = {};
+      for (const a of [...codeAlerts, ...depAlerts] as Array<{ repository?: { name?: string; full_name?: string } }>) {
+        const name = a.repository?.name || a.repository?.full_name || "unknown";
+        repoAlertCounts[name] = (repoAlertCounts[name] || 0) + 1;
+      }
+      const topRepos = Object.entries(repoAlertCounts)
+        .map(([repo, count]) => ({ repo, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      const result = {
+        counts: {
+          codeScanning: { open: codeAlerts.length, fixed: codeFixed.length },
+          secretScanning: { open: secretAlerts.length, resolved: secretFixed.length },
+          dependabot: { open: depAlerts.length, fixed: depFixed.length },
+        },
+        codeSeverity,
+        depSeverity,
+        secretTypes,
+        weeklyTrend,
+        topRepos,
+        errors: errors.length > 0 ? errors : undefined,
+      };
+
+      await setCache(cacheKey, result, 15);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
