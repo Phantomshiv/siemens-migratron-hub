@@ -1,24 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
 
-export interface ProjectItem {
-  id: string;
+export interface RepoIssue {
+  number: number;
   title: string;
-  number: number | null;
-  url: string | null;
-  state: string | null;
-  status: string | null;
-  priority: string | null;
-  size: string | null;
-  startDate: string | null;
-  targetDate: string | null;
-  estimate: number | null;
-  assignees: Array<{ login: string; name: string | null; avatarUrl: string }>;
+  state: string;
+  url: string;
+  status: string;
+  type: "RFC" | "ADR" | "Issue";
+  rfcId: string | null;
+  rfcStatus: string | null;
+  capabilities: string[];
+  authors: string[];
+  assignees: Array<{ login: string; name: string; avatarUrl: string }>;
   labels: Array<{ name: string; color: string }>;
-  createdAt: string | null;
-  updatedAt: string | null;
+  milestone: string | null;
+  commentsCount: number;
+  createdAt: string;
+  updatedAt: string;
   closedAt: string | null;
   body: string | null;
-  type: "Issue" | "PR" | "Draft";
 }
 
 export interface RepoFile {
@@ -27,17 +27,15 @@ export interface RepoFile {
   html_url: string;
 }
 
-export interface ProjectData {
-  project: { id: string; title: string; description: string | null };
-  columns: string[];
-  items: ProjectItem[];
+export interface RepoIssuesData {
+  issues: RepoIssue[];
   totalCount: number;
   repoFiles: RepoFile[];
   repoUrl: string;
 }
 
-async function fetchProjectItems(): Promise<ProjectData> {
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/github?action=project-items&project=7&project_org=foundation`;
+async function fetchRepoIssues(): Promise<RepoIssuesData> {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/github?action=repo-issues&repo=foundation/oses-standards`;
   const resp = await fetch(url, {
     headers: {
       apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
@@ -46,45 +44,43 @@ async function fetchProjectItems(): Promise<ProjectData> {
   });
   if (!resp.ok) {
     const body = await resp.text();
-    throw new Error(`Project items API error: ${resp.status} - ${body}`);
+    throw new Error(`Repo issues API error: ${resp.status} - ${body}`);
   }
   return resp.json();
 }
 
 export function useArchitectureData() {
-  return useQuery<ProjectData>({
-    queryKey: ["architecture-project-items"],
-    queryFn: fetchProjectItems,
+  return useQuery<RepoIssuesData>({
+    queryKey: ["architecture-repo-issues"],
+    queryFn: fetchRepoIssues,
     staleTime: 10 * 60 * 1000,
     retry: 1,
   });
 }
 
-// Map GHE project column names to internal status keys
-const STATUS_MAP: Record<string, string> = {
-  "Backlog": "backlog",
-  "Scrum Team Formation": "scrum_team_defined",
-  "Drafting": "drafting",
-  "Community Feedback": "community_feedback",
-  "Publish / Closeout": "published",
+// Known status labels and their display config
+export const statusConfig: Record<string, { label: string; color: string; emoji: string; order: number }> = {
+  "Backlog":                  { label: "Backlog",               color: "bg-slate-500/20 text-slate-400 border-slate-500/30",    emoji: "📋", order: 0 },
+  "Pre-planning":             { label: "Pre-planning",          color: "bg-orange-500/20 text-orange-400 border-orange-500/30", emoji: "🗂️", order: 1 },
+  "Scrum Team Formation":     { label: "Scrum Team Formation",  color: "bg-violet-500/20 text-violet-400 border-violet-500/30", emoji: "👥", order: 2 },
+  "Drafting":                 { label: "Drafting",              color: "bg-amber-500/20 text-amber-400 border-amber-500/30",    emoji: "✏️", order: 3 },
+  "Feedback":                 { label: "Feedback",              color: "bg-blue-500/20 text-blue-400 border-blue-500/30",       emoji: "💬", order: 4 },
+  "Community Feedback":       { label: "Community Feedback",    color: "bg-blue-500/20 text-blue-400 border-blue-500/30",       emoji: "💬", order: 4 },
+  "Publication / Closeout":   { label: "Published / Closeout",  color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", emoji: "✅", order: 5 },
+  "Published":                { label: "Published",             color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", emoji: "✅", order: 5 },
+  "Unknown":                  { label: "Uncategorized",         color: "bg-gray-500/20 text-gray-400 border-gray-500/30",       emoji: "❓", order: 6 },
 };
 
-export function mapStatus(gheStatus: string | null): string {
-  if (!gheStatus) return "backlog";
-  return STATUS_MAP[gheStatus] || "backlog";
+export function getStatusConfig(status: string) {
+  return statusConfig[status] || statusConfig["Unknown"];
 }
 
-// Detect RFC vs ADR from labels
-export function detectType(labels: Array<{ name: string }>): "RFC" | "ADR" {
-  for (const l of labels) {
-    if (l.name.toUpperCase() === "ADR") return "ADR";
-  }
-  return "RFC";
-}
-
-// Extract capability from labels like "capability:Code quality analysis"
-export function extractCapabilities(labels: Array<{ name: string }>): string[] {
-  return labels
-    .filter((l) => l.name.startsWith("capability:"))
-    .map((l) => l.name.replace("capability:", "").trim());
-}
+// Kanban columns derived from known statuses
+export const kanbanColumns = [
+  "Backlog",
+  "Pre-planning",
+  "Scrum Team Formation",
+  "Drafting",
+  "Feedback",
+  "Publication / Closeout",
+];
