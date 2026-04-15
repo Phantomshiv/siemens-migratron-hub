@@ -1,18 +1,21 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { KPICard } from "@/components/KPICard";
 import { RoadmapTimeline } from "@/components/RoadmapTimeline";
 import { RiskPanel } from "@/components/RiskPanel";
 import { useLiveRoadmap } from "@/hooks/useRoadmapJira";
+import { statusConfig, type RoadmapStatus } from "@/lib/oses-roadmap";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { useGitHubSummary, useGitHubActivity } from "@/hooks/useGitHub";
 import { useActiveSprint, useBlockers } from "@/hooks/useJira";
 import { useCostByVendor, useMonthlySpend } from "@/hooks/useCloudability";
 import { useGitHubSecurity } from "@/hooks/useGitHubSecurity";
 import { useBackstageSummary } from "@/hooks/useBackstage";
 import { getOrgStats } from "@/lib/people-data";
-import { budgetSummary, fteTotals } from "@/lib/budget-data";
+import { budgetSummary, fteTotals, byModule } from "@/lib/budget-data";
 import { releases, domains } from "@/lib/oses-data";
 import { useGitHubProjects } from "@/hooks/useGitHubProjects";
 import {
@@ -33,6 +36,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Index = () => {
+  const [expandedQuarter, setExpandedQuarter] = useState<string | null>(null);
   const { data: ghData, isLoading: ghLoading } = useGitHubSummary("open");
   const { data: ghActivity } = useGitHubActivity("open");
   const { data: sprintData, isLoading: sprintLoading } = useActiveSprint();
@@ -353,6 +357,14 @@ const Index = () => {
             change={prOpen > 50 ? "High queue" : undefined}
             subtitle="current"
             href="/github"
+            details={[
+              { label: "Open PRs", value: prOpen, changeType: prOpen > 50 ? "negative" as const : "neutral" as const },
+              { label: "Merged (90d)", value: prMerged, changeType: "positive" as const },
+              { label: "Closed (90d)", value: prClosed, changeType: "neutral" as const },
+              { label: "Total Activity", value: prOpen + prMerged + prClosed, changeType: "neutral" as const },
+              { label: "Merge Rate", value: `${prMerged + prClosed > 0 ? Math.round((prMerged / (prMerged + prClosed)) * 100) : 0}%`, changeType: "positive" as const },
+            ]}
+            detailTitle="Pull Request Activity"
           />
           <KPICard
             title="PRs Merged"
@@ -361,6 +373,13 @@ const Index = () => {
             changeType="positive"
             subtitle="last 90 days"
             href="/github"
+            details={[
+              { label: "Merged", value: prMerged, changeType: "positive" as const },
+              { label: "Closed (no merge)", value: prClosed, changeType: "neutral" as const },
+              { label: "Still Open", value: prOpen, changeType: prOpen > 50 ? "negative" as const : "neutral" as const },
+              { label: "Merge Rate", value: `${prMerged + prClosed > 0 ? Math.round((prMerged / (prMerged + prClosed)) * 100) : 0}%`, changeType: "positive" as const },
+            ]}
+            detailTitle="Merge Statistics"
           />
           <KPICard
             title="Own FTEs"
@@ -384,6 +403,19 @@ const Index = () => {
             changeType={forecastPct <= 100 ? "positive" : "negative"}
             subtitle="budget vs forecast"
             href="/budget"
+            details={[
+              { label: "Total Budget", value: formatCost(budgetSummary.totalBudget), changeType: "neutral" as const },
+              { label: "Forecast FY26", value: formatCost(budgetSummary.forecastFY26), changeType: forecastPct > 100 ? "negative" as const : "positive" as const },
+              { label: "Gap", value: formatCost(budgetSummary.totalBudget - budgetSummary.forecastFY26), changeType: forecastPct <= 100 ? "positive" as const : "negative" as const },
+              { label: "Actuals YTD", value: formatCost(budgetSummary.actualSpend), changeType: "neutral" as const },
+              { label: "Remaining to Spend", value: formatCost(budgetSummary.forecastFY26 - budgetSummary.actualSpend), changeType: "neutral" as const },
+              ...byModule.map(m => ({
+                label: m.module,
+                value: formatCost(m.forecast - m.actual),
+                changeType: "neutral" as const,
+              })),
+            ]}
+            detailTitle="Forecast Gap Breakdown"
           />
         </div>
 
@@ -395,12 +427,19 @@ const Index = () => {
               <a href="/roadmap" className="text-[10px] text-primary hover:underline">View full roadmap →</a>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {roadmapQuarters.map((q) => {
                 const pct = q.totalItems > 0 ? Math.round((q.released / q.totalItems) * 100) : 0;
+                const isExpanded = expandedQuarter === q.quarter;
                 return (
-                  <div key={q.quarter} className="space-y-2 p-3 rounded-lg bg-muted/30">
+                  <div
+                    key={q.quarter}
+                    className={`space-y-2 p-3 rounded-lg cursor-pointer transition-all ${
+                      isExpanded ? "bg-primary/10 ring-1 ring-primary/30" : "bg-muted/30 hover:bg-muted/50"
+                    }`}
+                    onClick={() => setExpandedQuarter(isExpanded ? null : q.quarter)}
+                  >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold">{q.quarter}</span>
                       <span className="text-[10px] text-muted-foreground">{pct}%</span>
@@ -416,6 +455,49 @@ const Index = () => {
                 );
               })}
             </div>
+
+            {/* Expanded quarter detail */}
+            {expandedQuarter && (() => {
+              const q = roadmapQuarters.find((q) => q.quarter === expandedQuarter);
+              if (!q) return null;
+              const allItems = q.categories.flatMap((c: any) =>
+                c.items.map((item: any) => ({ ...item, category: c.name }))
+              );
+              return (
+                <div className="border-t border-border pt-3 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-heading font-semibold">{q.quarter} — {allItems.length} items</span>
+                    <button onClick={() => setExpandedQuarter(null)} className="text-[10px] text-muted-foreground hover:text-foreground">Close ✕</button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 max-h-[200px] overflow-y-auto">
+                    {allItems.map((item: any) => {
+                      const statusColor = item.status === "released"
+                        ? "text-emerald-400"
+                        : item.status === "committed"
+                        ? "text-blue-400"
+                        : item.status === "exploring"
+                        ? "text-amber-400"
+                        : "text-slate-400";
+                      return (
+                        <a
+                          key={item.id}
+                          href={`https://fdsone.atlassian.net/browse/${item.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-start gap-2 p-2 rounded-md bg-background/50 hover:bg-muted/50 transition-colors group"
+                        >
+                          <span className={`text-[10px] font-mono ${statusColor} flex-shrink-0 mt-0.5`}>{item.id}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-medium truncate group-hover:text-primary transition-colors">{item.title}</p>
+                            <p className="text-[9px] text-muted-foreground truncate">{item.category} · {item.jiraStatus || statusConfig[item.status as RoadmapStatus]?.label || item.status}</p>
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
 
