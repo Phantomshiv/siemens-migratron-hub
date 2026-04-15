@@ -242,8 +242,7 @@ const Index = () => {
   const sections: Record<string, ReactNode> = {
     /* ── Budget & Costs ── */
     budget: (
-      <div className="space-y-3" key="budget">
-        <SectionHeader icon={Wallet} title="Budget & Costs" subtitle="FY26 financials, cloud spend & forecast" href="/budget" {...sectionProps("budget")} />
+      S("budget", Wallet, "Budget & Costs", "FY26 financials, cloud spend & forecast", "/budget",
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard title="Budget FY26" value={fmt(budgetSummary.totalBudget)} change={`${budgetUsedPct}% spent`}
             changeType={budgetUsedPct > 80 ? "negative" : budgetUsedPct > 50 ? "neutral" : "positive"}
@@ -290,8 +289,7 @@ const Index = () => {
 
     /* ── GitHub ── */
     github: (
-      <div className="space-y-3" key="github">
-        <SectionHeader icon={GitBranch} title="GitHub Enterprise" subtitle="Org health, PRs & Copilot adoption" href="/github" {...sectionProps("github")} />
+      S("github", GitBranch, "GitHub Enterprise", "Org health, PRs & Copilot adoption", "/github",
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <KPICard title="Members" value={totalMembers} icon={Users} subtitle={`${totalTeams} teams`} href="/github"
             details={[
@@ -330,8 +328,7 @@ const Index = () => {
 
     /* ── Delivery & Roadmap ── */
     delivery: (
-      <div className="space-y-3" key="delivery">
-        <SectionHeader icon={Rocket} title="Delivery & Roadmap" subtitle="Releases, sprint progress & roadmap" href="/roadmap" {...sectionProps("delivery")} />
+      S("delivery", Rocket, "Delivery & Roadmap", "Releases, sprint progress & roadmap", "/roadmap",
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <KPICard title="Sprint Progress" value={`${sprintProgress}%`}
             change={sprint?.name || "No active sprint"} changeType={sprintProgress >= 50 ? "positive" : "negative"}
@@ -372,8 +369,7 @@ const Index = () => {
 
     /* ── Architecture Standards ── */
     architecture: (
-      <div className="space-y-3" key="architecture">
-        <SectionHeader icon={FileText} title="Architecture Standards" subtitle="RFC/ADR process & capability coverage" href="/architecture" {...sectionProps("architecture")} />
+      S("architecture", FileText, "Architecture Standards", "RFC/ADR process & capability coverage", "/architecture",
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <KPICard title="Published ADRs" value={rfcStats.published} icon={BookOpen} changeType="positive" change="decisions made" subtitle="standards" href="/architecture" />
           <KPICard title="Active RFCs" value={rfcStats.active} icon={FileText} changeType="neutral" subtitle="in progress" href="/architecture" />
@@ -411,8 +407,7 @@ const Index = () => {
 
     /* ── People ── */
     people: (
-      <div className="space-y-3" key="people">
-        <SectionHeader icon={Users} title="People & Organization" subtitle="Headcount, FTEs & team structure" href="/people" {...sectionProps("people")} />
+      S("people", Users, "People & Organization", "Headcount, FTEs & team structure", "/people",
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard title="Total People" value={orgStats.totalPeople} icon={Users} change={`${orgStats.moduleCount} modules`}
             changeType="neutral" subtitle={`${orgStats.internalCount} internal`} href="/people"
@@ -437,8 +432,7 @@ const Index = () => {
 
     /* ── Security ── */
     security: (
-      <div className="space-y-3" key="security">
-        <SectionHeader icon={Shield} title="Security" subtitle="Vulnerability posture & scanning alerts" href="/cybersecurity" {...sectionProps("security")} />
+      S("security", Shield, "Security", "Vulnerability posture & scanning alerts", "/cybersecurity",
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard title="Open Alerts" value={secOpen} icon={Shield}
             changeType={secOpen > 20 ? "negative" : secOpen > 0 ? "neutral" : "positive"}
@@ -468,8 +462,7 @@ const Index = () => {
 
     /* ── Risks & Blockers (compact) ── */
     risks: (
-      <div className="space-y-3" key="risks">
-        <SectionHeader icon={AlertTriangle} title="Risks & Blockers" subtitle="Critical issues requiring attention" href="/risks" {...sectionProps("risks")} />
+      S("risks", AlertTriangle, "Risks & Blockers", "Critical issues requiring attention", "/risks",
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard title="Blockers" value={blockerCount}
             changeType={blockerCount > 0 ? "negative" : "positive"}
@@ -511,8 +504,7 @@ const Index = () => {
 
     /* ── Backstage ── */
     backstage: (
-      <div className="space-y-3" key="backstage">
-        <SectionHeader icon={BookOpen} title="Backstage Developer Portal" subtitle="Service catalog & API registry" href="/backstage" {...sectionProps("backstage")} />
+      S("backstage", BookOpen, "Backstage Developer Portal", "Service catalog & API registry", "/backstage",
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard title="Total Entities" value={totalEntities} icon={BookOpen} subtitle="catalog items" href="/backstage"
             details={kindFacets.map((k: any) => ({ label: k.value, value: k.count, changeType: "neutral" as const }))}
@@ -529,8 +521,7 @@ const Index = () => {
 
     /* ── Client Management ── */
     clients: (
-      <div className="space-y-3" key="clients">
-        <SectionHeader icon={Building2} title="Client Management" subtitle="GHE migration pipeline & top clients" href="/clients" {...sectionProps("clients")} />
+      S("clients", Building2, "Client Management", "GHE migration pipeline & top clients", "/clients",
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard title="Total Clients" value={clientTotal} icon={Building2} change={`${clientBUs} BUs`}
             changeType="neutral" subtitle={`${clientRepos.toLocaleString()} repos`} href="/clients"
@@ -570,8 +561,7 @@ const Index = () => {
 
     /* ── Comms & Growth ── */
     comms: (
-      <div className="space-y-3" key="comms">
-        <SectionHeader icon={Megaphone} title="Communication & Growth" subtitle="Engagement metrics & team onboarding" href="/communication-growth" {...sectionProps("comms")} />
+      S("comms", Megaphone, "Communication & Growth", "Engagement metrics & team onboarding", "/communication-growth",
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <KPICard title="Confluence Views" value="2.4k" change="↑ 12%" changeType="positive"
             icon={BookOpen} subtitle="this month" href="/communication-growth"
