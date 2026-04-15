@@ -36,6 +36,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Index = () => {
+  const [expandedQuarter, setExpandedQuarter] = useState<string | null>(null);
   const { data: ghData, isLoading: ghLoading } = useGitHubSummary("open");
   const { data: ghActivity } = useGitHubActivity("open");
   const { data: sprintData, isLoading: sprintLoading } = useActiveSprint();
