@@ -21,11 +21,19 @@ export interface ProjectItem {
   type: "Issue" | "PR" | "Draft";
 }
 
+export interface RepoFile {
+  name: string;
+  path: string;
+  html_url: string;
+}
+
 export interface ProjectData {
   project: { id: string; title: string; description: string | null };
   columns: string[];
   items: ProjectItem[];
   totalCount: number;
+  repoFiles: RepoFile[];
+  repoUrl: string;
 }
 
 async function fetchProjectItems(): Promise<ProjectData> {
