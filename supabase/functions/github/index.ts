@@ -1197,6 +1197,152 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Repo issues: fetch all issues from a specific repo with labels, assignees, body
+    if (action === "repo-issues") {
+      const repo = url.searchParams.get("repo") || "foundation/oses-standards";
+      const [repoOwner, repoName] = repo.split("/");
+
+      const cacheKey = `github:repo-issues:${repo}`;
+      if (!noCache) {
+        const cached = await getCache(cacheKey);
+        if (cached) {
+          return new Response(JSON.stringify(cached), {
+            headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "HIT" },
+          });
+        }
+      }
+
+      const graphqlHeaders = { ...gheHeaders, "Content-Type": "application/json" };
+      const allIssues: unknown[] = [];
+      let hasNextPage = true;
+      let afterCursor: string | null = null;
+
+      while (hasNextPage) {
+        const afterClause = afterCursor ? `, after: "${afterCursor}"` : "";
+        const query = `{
+          repository(owner: "${repoOwner}", name: "${repoName}") {
+            issues(first: 100, orderBy: {field: UPDATED_AT, direction: DESC}${afterClause}) {
+              pageInfo { hasNextPage endCursor }
+              totalCount
+              nodes {
+                number title state url
+                createdAt updatedAt closedAt
+                body
+                labels(first: 15) { nodes { name color } }
+                assignees(first: 5) { nodes { login name avatarUrl } }
+                milestone { title }
+                comments { totalCount }
+              }
+            }
+          }
+        }`;
+        const resp = await fetch(`${GHE_API_BASE}/api/graphql`, {
+          method: "POST", headers: graphqlHeaders, body: JSON.stringify({ query }),
+        });
+        const data = await resp.json();
+        const issues = data?.data?.repository?.issues;
+        if (!issues) break;
+
+        allIssues.push(...(issues.nodes || []));
+        hasNextPage = issues.pageInfo?.hasNextPage ?? false;
+        afterCursor = issues.pageInfo?.endCursor ?? null;
+      }
+
+      // Parse into clean structure
+      const parsedIssues = allIssues.map((issue: any) => {
+        // Extract status from labels (matching known status labels)
+        const statusLabels = ["Backlog", "Pre-planning", "Scrum Team Formation", "Drafting", "Feedback", "Community Feedback", "Publication / Closeout", "Published"];
+        const labelNames = (issue.labels?.nodes || []).map((l: any) => l.name);
+        let status = "Unknown";
+        for (const sl of statusLabels) {
+          if (labelNames.some((ln: string) => ln.toLowerCase() === sl.toLowerCase())) {
+            status = sl;
+            break;
+          }
+        }
+
+        // Detect type from labels
+        let type: "RFC" | "ADR" | "Issue" = "Issue";
+        if (labelNames.some((n: string) => n.toUpperCase() === "RFC")) type = "RFC";
+        else if (labelNames.some((n: string) => n.toUpperCase() === "ADR")) type = "ADR";
+
+        // Extract capabilities from labels
+        const capabilities = labelNames
+          .filter((n: string) => n.startsWith("capability:"))
+          .map((n: string) => n.replace("capability:", "").trim());
+
+        // Extract RFC metadata from body frontmatter if present
+        let rfcId: string | null = null;
+        let rfcStatus: string | null = null;
+        let authors: string[] = [];
+        if (issue.body) {
+          const idMatch = issue.body.match(/RFC ID:\s*\[([^\]]+)\]/);
+          if (idMatch) rfcId = idMatch[1];
+          const statusMatch = issue.body.match(/Status:\s*(\w[\w\s]*?)(?:\s*#|$)/m);
+          if (statusMatch) rfcStatus = statusMatch[1].trim();
+          const authorMatch = issue.body.match(/Author\(s\):\s*\[([^\]]+)\]/);
+          if (authorMatch) authors = authorMatch[1].split(",").map((a: string) => a.trim().replace("@", ""));
+        }
+
+        return {
+          number: issue.number,
+          title: issue.title,
+          state: issue.state,
+          url: issue.url,
+          status,
+          type,
+          rfcId,
+          rfcStatus,
+          capabilities,
+          authors,
+          assignees: (issue.assignees?.nodes || []).map((a: any) => ({
+            login: a.login,
+            name: a.name?.replace(/^GitHubArchive\\\\/, "") || a.login,
+            avatarUrl: a.avatarUrl,
+          })),
+          labels: (issue.labels?.nodes || []).map((l: any) => ({ name: l.name, color: l.color })),
+          milestone: issue.milestone?.title || null,
+          commentsCount: issue.comments?.totalCount || 0,
+          createdAt: issue.createdAt,
+          updatedAt: issue.updatedAt,
+          closedAt: issue.closedAt,
+          body: issue.body ? issue.body.slice(0, 800) : null,
+        };
+      });
+
+      // Also fetch repo file tree for document links
+      const repoFiles: Array<{ name: string; path: string; html_url: string }> = [];
+      try {
+        const treeResp = await fetch(`${GHE_BASE}/repos/${repo}/git/trees/main?recursive=1`, { headers: gheHeaders });
+        if (treeResp.ok) {
+          const treeData = await treeResp.json();
+          for (const entry of treeData.tree || []) {
+            if (entry.type === "blob" && entry.path.endsWith(".md") && (entry.path.startsWith("ADR/") || entry.path.startsWith("RFC/"))) {
+              repoFiles.push({
+                name: entry.path.split("/").pop() || entry.path,
+                path: entry.path,
+                html_url: `https://siemens.ghe.com/${repo}/blob/main/${entry.path}`,
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to fetch repo tree:", e);
+      }
+
+      const result = {
+        issues: parsedIssues,
+        totalCount: parsedIssues.length,
+        repoFiles,
+        repoUrl: `https://siemens.ghe.com/${repo}`,
+      };
+
+      await setCache(cacheKey, result, 10);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
+      });
+    }
+
     // Project V2 items: fetch all items from a GitHub Projects V2 board
     if (action === "project-items") {
       const projectNumber = parseInt(url.searchParams.get("project") || "7");
