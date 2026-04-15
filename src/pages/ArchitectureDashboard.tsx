@@ -50,7 +50,7 @@ const GHE_STATUS_TO_KEY: Record<string, RfcStatus> = {
   "Publish / Closeout": "published",
 };
 
-function ItemCard({ item, expanded, onToggle }: { item: ProjectItem; expanded: boolean; onToggle: () => void }) {
+function ItemCard({ item, expanded, onToggle, repoFiles = [] }: { item: ProjectItem; expanded: boolean; onToggle: () => void; repoFiles?: RepoFile[] }) {
   const statusKey = GHE_STATUS_TO_KEY[item.status || ""] || "backlog";
   const sc = rfcStatusConfig[statusKey];
   const type = detectType(item.labels);
