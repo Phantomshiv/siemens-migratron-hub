@@ -116,6 +116,15 @@ const Index = () => {
     });
   }, []);
 
+  const toggleCollapse = useCallback((id: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+
   // ── Derived metrics (all hooks called unconditionally above) ──
   const orgStats = getOrgStats();
 
@@ -216,6 +225,8 @@ const Index = () => {
     onMoveDown: () => moveSection(id, 1),
     isFirst: sectionOrder.indexOf(id) === 0,
     isLast: sectionOrder.indexOf(id) === sectionOrder.length - 1,
+    collapsed: collapsedSections.has(id),
+    onToggleCollapse: () => toggleCollapse(id),
   });
 
   const sections: Record<string, ReactNode> = {
