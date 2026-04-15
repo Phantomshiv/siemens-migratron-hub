@@ -79,8 +79,18 @@ function loadOrder(): string[] {
   return [...DEFAULT_ORDER];
 }
 
+const COLLAPSED_KEY = "oses-overview-collapsed";
+function loadCollapsed(): Set<string> {
+  try {
+    const saved = localStorage.getItem(COLLAPSED_KEY);
+    if (saved) return new Set(JSON.parse(saved));
+  } catch {}
+  return new Set();
+}
+
 const Index = () => {
   const [sectionOrder, setSectionOrder] = useState<string[]>(loadOrder);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(loadCollapsed);
 
   const { data: ghData, isLoading: ghLoading } = useGitHubSummary("open");
   const { data: ghActivity } = useGitHubActivity("open");
