@@ -375,7 +375,7 @@ const GitHubDashboard = () => {
                 </div>
                 <p className="text-2xl font-bold font-heading">{copilotSeatsDetail?.totalSeats ?? copilotSeats?.total ?? "—"}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {copilot?.plan_type ?? "business"} plan
+                  {(copilot as Record<string, unknown>)?.plan_type as string ?? "business"} plan
                 </p>
               </CardContent>
             </Card>
