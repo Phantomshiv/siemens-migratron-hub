@@ -284,6 +284,7 @@ const Index = () => {
             ]} detailTitle="GitHub Billing Estimate"
           />
         </div>
+      )
     ),
 
     /* ── GitHub ── */
