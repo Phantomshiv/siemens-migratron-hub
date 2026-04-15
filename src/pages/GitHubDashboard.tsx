@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useGitHubSummary, useGitHubActivity, useGitHubMembersDetail } from "@/hooks/useGitHub";
-import { useGitHubBilling, aggregateByProduct, aggregateBySku, aggregateByMonth } from "@/hooks/useGitHubBilling";
-import { useGitHubSecurity } from "@/hooks/useGitHubSecurity";
 import { useGitHubCopilotSeats } from "@/hooks/useGitHubCopilotSeats";
 import { useGitHubAuditLog } from "@/hooks/useGitHubAuditLog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,8 +16,6 @@ import {
   UsersRound,
   Archive,
   Code,
-  CreditCard,
-  HardDrive,
   Cpu,
   Sparkles,
   UserCheck,
@@ -28,13 +24,6 @@ import {
   GitCommit,
   TrendingUp,
   Building2,
-  DollarSign,
-  Receipt,
-  ShieldAlert,
-  ShieldCheck,
-  Bug,
-  KeyRound,
-  Package,
   Search,
   Clock,
   Activity,
