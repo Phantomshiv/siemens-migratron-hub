@@ -59,6 +59,42 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_snapshots: {
+        Row: {
+          created_at: string
+          executive_summary: string | null
+          full_digest: string | null
+          id: string
+          raw_data: Json | null
+          status: string
+          title: string
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          executive_summary?: string | null
+          full_digest?: string | null
+          id?: string
+          raw_data?: Json | null
+          status?: string
+          title: string
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          executive_summary?: string | null
+          full_digest?: string | null
+          id?: string
+          raw_data?: Json | null
+          status?: string
+          title?: string
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
