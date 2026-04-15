@@ -1342,7 +1342,7 @@ Deno.serve(async (req) => {
           const treeData = await treeResp.json();
           for (const entry of treeData.tree || []) {
             if (entry.type === "blob" && entry.path.endsWith(".md") && (entry.path.startsWith("ADR/") || entry.path.startsWith("RFC/"))) {
-              refiles: repoFiles.push({
+              repoFiles.push({
                 name: entry.path.split("/").pop() || entry.path,
                 path: entry.path,
                 html_url: `https://siemens.ghe.com/${repo}/blob/main/${entry.path}`,
