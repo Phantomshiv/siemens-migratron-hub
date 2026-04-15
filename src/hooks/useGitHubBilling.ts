@@ -101,19 +101,12 @@ export interface ForecastMonth {
 export function buildForecastData(byMonth: { month: string; grossAmount: number; netAmount: number }[]): ForecastMonth[] {
   if (byMonth.length < 2) return byMonth.map(m => ({ ...m, forecast: false, fiscalYear: getFiscalYear(m.month) }));
 
-  // Simple linear regression on net amount
-  const n = byMonth.length;
-  const xs = byMonth.map((_, i) => i);
-  const ys = byMonth.map(m => m.netAmount);
-  const xMean = xs.reduce((a, b) => a + b, 0) / n;
-  const yMean = ys.reduce((a, b) => a + b, 0) / n;
-  const num = xs.reduce((s, x, i) => s + (x - xMean) * (ys[i] - yMean), 0);
-  const den = xs.reduce((s, x) => s + (x - xMean) ** 2, 0);
-  const slope = den !== 0 ? num / den : 0;
-  const intercept = yMean - slope * xMean;
-
-  // Gross/net ratio for forecasting gross
-  const grossNetRatio = byMonth.reduce((s, m) => s + m.grossAmount, 0) / byMonth.reduce((s, m) => s + m.netAmount, 0) || 1;
+  // Use trailing average of last 3 months (more realistic for subscription billing)
+  // Linear regression over-extrapolates early ramp-up growth
+  const trailWindow = Math.min(3, byMonth.length);
+  const recentMonths = byMonth.slice(-trailWindow);
+  const avgNet = recentMonths.reduce((s, m) => s + m.netAmount, 0) / trailWindow;
+  const avgGross = recentMonths.reduce((s, m) => s + m.grossAmount, 0) / trailWindow;
 
   const actual: ForecastMonth[] = byMonth.map(m => ({ ...m, forecast: false, fiscalYear: getFiscalYear(m.month) }));
 
@@ -133,7 +126,6 @@ export function buildForecastData(byMonth: { month: string; grossAmount: number;
   // Generate forecast months until end of second FY
   const forecastEnd = fyEnds[fyEnds.length - 1];
   let cursor = lastMonth;
-  let idx = n;
   const forecasted: ForecastMonth[] = [];
   while (true) {
     const [cy, cm] = cursor.split("-").map(Number);
@@ -141,15 +133,13 @@ export function buildForecastData(byMonth: { month: string; grossAmount: number;
     const ny = cm === 12 ? cy + 1 : cy;
     cursor = `${ny}-${String(nm).padStart(2, "0")}`;
     if (cursor > forecastEnd) break;
-    const netForecast = Math.max(0, intercept + slope * idx);
     forecasted.push({
       month: cursor,
-      netAmount: +netForecast.toFixed(2),
-      grossAmount: +(netForecast * grossNetRatio).toFixed(2),
+      netAmount: +avgNet.toFixed(2),
+      grossAmount: +avgGross.toFixed(2),
       forecast: true,
       fiscalYear: getFiscalYear(cursor),
     });
-    idx++;
   }
 
   return [...actual, ...forecasted];
