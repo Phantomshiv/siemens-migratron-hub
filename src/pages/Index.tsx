@@ -436,39 +436,78 @@ const Index = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {/* Engagement KPIs */}
-              <div className="space-y-1 p-3 rounded-lg bg-muted/30">
-                <div className="flex items-center gap-1.5">
-                  <BookOpen className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground">Confluence Views</span>
-                </div>
-                <p className="text-lg font-bold font-heading">2.4k</p>
-                <span className="text-[10px] text-emerald-400">↑ 12%</span>
-              </div>
-              <div className="space-y-1 p-3 rounded-lg bg-muted/30">
-                <div className="flex items-center gap-1.5">
-                  <MessageSquare className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground">Slack Members</span>
-                </div>
-                <p className="text-lg font-bold font-heading">186</p>
-                <span className="text-[10px] text-emerald-400">↑ 8%</span>
-              </div>
-              <div className="space-y-1 p-3 rounded-lg bg-muted/30">
-                <div className="flex items-center gap-1.5">
-                  <Newspaper className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground">Newsletter Subs</span>
-                </div>
-                <p className="text-lg font-bold font-heading">312</p>
-                <span className="text-[10px] text-emerald-400">↑ 15%</span>
-              </div>
-              <div className="space-y-1 p-3 rounded-lg bg-muted/30">
-                <div className="flex items-center gap-1.5">
-                  <GraduationCap className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground">Training Sessions</span>
-                </div>
-                <p className="text-lg font-bold font-heading">6</p>
-                <span className="text-[10px] text-red-400">↓ 2</span>
-              </div>
+              <KPICard
+                title="Confluence Views"
+                value="2.4k"
+                change="↑ 12%"
+                changeType="positive"
+                icon={BookOpen}
+                subtitle="this month"
+                href="/communication-growth"
+                details={[
+                  { label: "Apr", value: "2,400", changeType: "positive" },
+                  { label: "Mar", value: "2,140", changeType: "positive" },
+                  { label: "Feb", value: "1,870", changeType: "neutral" },
+                  { label: "Jan", value: "1,650", changeType: "neutral" },
+                  { label: "Dec", value: "1,420", changeType: "neutral" },
+                  { label: "Avg Growth", value: "+14%/mo", changeType: "positive" },
+                ]}
+                detailTitle="Confluence Views Trend"
+              />
+              <KPICard
+                title="Slack Members"
+                value="186"
+                change="↑ 8%"
+                changeType="positive"
+                icon={MessageSquare}
+                subtitle="channel members"
+                href="/communication-growth"
+                details={[
+                  { label: "Apr", value: "186", changeType: "positive" },
+                  { label: "Mar", value: "172", changeType: "positive" },
+                  { label: "Feb", value: "155", changeType: "neutral" },
+                  { label: "Jan", value: "138", changeType: "neutral" },
+                  { label: "Dec", value: "120", changeType: "neutral" },
+                  { label: "Active Rate", value: "68%", changeType: "positive" },
+                ]}
+                detailTitle="Slack Growth Trend"
+              />
+              <KPICard
+                title="Newsletter Subs"
+                value="312"
+                change="↑ 15%"
+                changeType="positive"
+                icon={Newspaper}
+                subtitle="subscribers"
+                href="/communication-growth"
+                details={[
+                  { label: "Apr", value: "312", changeType: "positive" },
+                  { label: "Mar", value: "271", changeType: "positive" },
+                  { label: "Feb", value: "230", changeType: "neutral" },
+                  { label: "Jan", value: "195", changeType: "neutral" },
+                  { label: "Open Rate", value: "42%", changeType: "positive" },
+                  { label: "Click Rate", value: "18%", changeType: "positive" },
+                ]}
+                detailTitle="Newsletter Trend"
+              />
+              <KPICard
+                title="Training Sessions"
+                value="6"
+                change="↓ 2"
+                changeType="negative"
+                icon={GraduationCap}
+                subtitle="this quarter"
+                href="/communication-growth"
+                details={[
+                  { label: "Q2'26", value: "6", changeType: "negative" },
+                  { label: "Q1'26", value: "8", changeType: "positive" },
+                  { label: "Q4'25", value: "5", changeType: "neutral" },
+                  { label: "Q3'25", value: "4", changeType: "neutral" },
+                  { label: "Avg Attendance", value: "24", changeType: "positive" },
+                  { label: "Satisfaction", value: "4.6/5", changeType: "positive" },
+                ]}
+                detailTitle="Training History"
+              />
 
               {/* Team onboarding mini-pipeline */}
               <div className="col-span-2 space-y-2 p-3 rounded-lg bg-muted/30">
