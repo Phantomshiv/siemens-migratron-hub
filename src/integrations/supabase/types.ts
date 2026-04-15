@@ -61,10 +61,12 @@ export type Database = {
       }
       weekly_snapshots: {
         Row: {
+          cadence: string
           created_at: string
           executive_summary: string | null
           full_digest: string | null
           id: string
+          key_metrics: Json | null
           raw_data: Json | null
           status: string
           title: string
@@ -72,10 +74,12 @@ export type Database = {
           week_start: string
         }
         Insert: {
+          cadence?: string
           created_at?: string
           executive_summary?: string | null
           full_digest?: string | null
           id?: string
+          key_metrics?: Json | null
           raw_data?: Json | null
           status?: string
           title: string
@@ -83,10 +87,12 @@ export type Database = {
           week_start: string
         }
         Update: {
+          cadence?: string
           created_at?: string
           executive_summary?: string | null
           full_digest?: string | null
           id?: string
+          key_metrics?: Json | null
           raw_data?: Json | null
           status?: string
           title?: string
