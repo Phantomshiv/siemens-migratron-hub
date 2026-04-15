@@ -126,7 +126,6 @@ export function buildForecastData(byMonth: { month: string; grossAmount: number;
   // Generate forecast months until end of second FY
   const forecastEnd = fyEnds[fyEnds.length - 1];
   let cursor = lastMonth;
-  let idx = n;
   const forecasted: ForecastMonth[] = [];
   while (true) {
     const [cy, cm] = cursor.split("-").map(Number);
@@ -134,15 +133,13 @@ export function buildForecastData(byMonth: { month: string; grossAmount: number;
     const ny = cm === 12 ? cy + 1 : cy;
     cursor = `${ny}-${String(nm).padStart(2, "0")}`;
     if (cursor > forecastEnd) break;
-    const netForecast = Math.max(0, intercept + slope * idx);
     forecasted.push({
       month: cursor,
-      netAmount: +netForecast.toFixed(2),
-      grossAmount: +(netForecast * grossNetRatio).toFixed(2),
+      netAmount: +avgNet.toFixed(2),
+      grossAmount: +avgGross.toFixed(2),
       forecast: true,
       fiscalYear: getFiscalYear(cursor),
     });
-    idx++;
   }
 
   return [...actual, ...forecasted];
