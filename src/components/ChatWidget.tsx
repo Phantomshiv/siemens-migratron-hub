@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { MessageCircle, X, Send, Bot, User, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Bot, User, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import { buildDashboardContext } from "@/lib/dashboard-context";
@@ -14,6 +14,18 @@ import { useLiveRoadmap } from "@/hooks/useRoadmapJira";
 type Msg = { role: "user" | "assistant"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+const STORAGE_KEY = "oses-chat-history";
+
+function loadMessages(): Msg[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch { return []; }
+}
+
+function saveMessages(msgs: Msg[]) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs)); } catch {}
+}
 
 const SUGGESTIONS = [
   "What's the current budget status?",
@@ -24,7 +36,7 @@ const SUGGESTIONS = [
 
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const [messages, setMessages] = useState<Msg[]>(loadMessages);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -56,6 +68,11 @@ export function ChatWidget() {
       }),
     [ghData, ghActivity, sprintData, blockersData, vendorData, secData, bsSummary, clientsData, roadmapData]
   );
+
+  // Persist messages to localStorage
+  useEffect(() => {
+    if (!isLoading) saveMessages(messages);
+  }, [messages, isLoading]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -179,6 +196,17 @@ export function ChatWidget() {
               <p className="text-sm font-heading font-semibold">OSES Assistant</p>
               <p className="text-[10px] text-muted-foreground">Ask anything about the dashboard</p>
             </div>
+            {messages.length > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                title="New chat"
+                onClick={() => { setMessages([]); localStorage.removeItem(STORAGE_KEY); }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setOpen(false)}>
               <X className="h-4 w-4" />
             </Button>
