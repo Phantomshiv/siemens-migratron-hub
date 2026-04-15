@@ -323,6 +323,7 @@ const Index = () => {
             icon={TrendingUp} subtitle="est. dev-hours saved/mo" changeType="positive" change="~30% boost" href="/github"
           />
         </div>
+      )
     ),
 
     /* ── Delivery & Roadmap ── */
@@ -363,6 +364,7 @@ const Index = () => {
           />
           <KPICard title="Jira Items" value={sprintTotal} icon={SquareKanban} subtitle="current sprint" href="/jira" />
         </div>
+      )
     ),
 
     /* ── Architecture Standards ── */
@@ -400,6 +402,7 @@ const Index = () => {
             <a href="/architecture" className="text-[8px] text-primary hover:underline">View all →</a>
           </div>
         </div>
+      )
     ),
 
     /* ── People ── */
@@ -424,6 +427,7 @@ const Index = () => {
           <KPICard title="Contractor FTEs" value={fteTotals.contractorTotal} icon={Users} subtitle="external" changeType="neutral" href="/budget" />
           <KPICard title="Modules" value={orgStats.moduleCount} icon={Layers} subtitle="org units" href="/people" />
         </div>
+      )
     ),
 
     /* ── Security ── */
@@ -453,6 +457,7 @@ const Index = () => {
             changeType={secData?.counts.secretScanning.open ? "negative" : "positive"} subtitle="exposed secrets" href="/cybersecurity"
           />
         </div>
+      )
     ),
 
     /* ── Risks & Blockers (compact) ── */
@@ -494,6 +499,7 @@ const Index = () => {
             )}
           </div>
         </div>
+      )
     ),
 
     /* ── Backstage ── */
@@ -510,6 +516,7 @@ const Index = () => {
             icon={CheckCircle2} subtitle="component ratio" href="/backstage" changeType="neutral"
           />
         </div>
+      )
     ),
 
     /* ── Client Management ── */
@@ -549,6 +556,7 @@ const Index = () => {
             ))}
           </div>
         )}
+      )
     ),
 
     /* ── Comms & Growth ── */
@@ -612,6 +620,7 @@ const Index = () => {
             <p className="text-[9px] text-muted-foreground">3 active · 3 onboarding/evaluating</p>
           </div>
         </div>
+      )
     ),
   };
 
