@@ -221,8 +221,8 @@ const Index = () => {
           </div>
         )}
 
-        {/* Row 2: Secondary KPIs — GitHub, Security, Backstage, Copilot */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        {/* Row 2: Secondary KPIs — GitHub, Security, Backstage, Clients, Copilot */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           <KPICard
             title="GitHub Enterprise"
             value={`${totalMembers}`}
