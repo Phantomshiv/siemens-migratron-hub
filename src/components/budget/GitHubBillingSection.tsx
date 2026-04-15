@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DollarSign, Receipt, TrendingUp, Cpu, Download, FileSpreadsheet } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, Legend, ReferenceLine,
@@ -18,6 +20,7 @@ import {
   exportBillingExcel,
   type BillingUsageItem,
   type ForecastMonth,
+  type ForecastMethod,
 } from "@/hooks/useGitHubBilling";
 
 const tooltipStyle = {
@@ -29,6 +32,7 @@ const tooltipStyle = {
 
 export function GitHubBillingSection() {
   const { data: billingUsage, isLoading } = useGitHubBilling("open");
+  const [forecastMethod, setForecastMethod] = useState<ForecastMethod>("linear");
 
   const usageItems = billingUsage?.usageItems || [];
   const byProduct = aggregateByProduct(usageItems);
@@ -38,7 +42,7 @@ export function GitHubBillingSection() {
   const totalNet = byProduct.reduce((s, p) => s + p.netAmount, 0);
   const totalDiscount = totalGross - totalNet;
 
-  const forecastData = buildForecastData(byMonth);
+  const forecastData = buildForecastData(byMonth, forecastMethod);
   const byFY = aggregateByFiscalYear(forecastData);
 
   // Find boundary between actual and forecast
@@ -130,9 +134,25 @@ export function GitHubBillingSection() {
             <CardTitle className="text-sm font-heading flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary" /> Monthly Spend & Forecast
             </CardTitle>
-            <p className="text-[10px] text-muted-foreground">
-              Linear regression forecast through October (FY boundary)
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-muted-foreground">
+                {forecastMethod === "linear" ? "Linear regression" : "Trailing 3-month average"} forecast through October
+              </p>
+              <ToggleGroup
+                type="single"
+                value={forecastMethod}
+                onValueChange={(v) => v && setForecastMethod(v as ForecastMethod)}
+                size="sm"
+                className="gap-0"
+              >
+                <ToggleGroupItem value="linear" className="text-[10px] h-6 px-2 rounded-r-none border border-border">
+                  Linear
+                </ToggleGroupItem>
+                <ToggleGroupItem value="trailing" className="text-[10px] h-6 px-2 rounded-l-none border border-border border-l-0">
+                  Trailing Avg
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (

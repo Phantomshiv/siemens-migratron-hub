@@ -98,21 +98,33 @@ export interface ForecastMonth {
   fiscalYear: string;
 }
 
-export function buildForecastData(byMonth: { month: string; grossAmount: number; netAmount: number }[]): ForecastMonth[] {
+export type ForecastMethod = "linear" | "trailing";
+
+export function buildForecastData(byMonth: { month: string; grossAmount: number; netAmount: number }[], method: ForecastMethod = "linear"): ForecastMonth[] {
   if (byMonth.length < 2) return byMonth.map(m => ({ ...m, forecast: false, fiscalYear: getFiscalYear(m.month) }));
 
-  // Linear regression on net amount
   const n = byMonth.length;
-  const xs = byMonth.map((_, i) => i);
-  const ys = byMonth.map(m => m.netAmount);
-  const xMean = xs.reduce((a, b) => a + b, 0) / n;
-  const yMean = ys.reduce((a, b) => a + b, 0) / n;
-  const num = xs.reduce((s, x, i) => s + (x - xMean) * (ys[i] - yMean), 0);
-  const den = xs.reduce((s, x) => s + (x - xMean) ** 2, 0);
-  const slope = den !== 0 ? num / den : 0;
-  const intercept = yMean - slope * xMean;
-
   const grossNetRatio = byMonth.reduce((s, m) => s + m.grossAmount, 0) / byMonth.reduce((s, m) => s + m.netAmount, 0) || 1;
+
+  // Linear regression params
+  let slope = 0, intercept = 0;
+  if (method === "linear") {
+    const xs = byMonth.map((_, i) => i);
+    const ys = byMonth.map(m => m.netAmount);
+    const xMean = xs.reduce((a, b) => a + b, 0) / n;
+    const yMean = ys.reduce((a, b) => a + b, 0) / n;
+    const num = xs.reduce((s, x, i) => s + (x - xMean) * (ys[i] - yMean), 0);
+    const den = xs.reduce((s, x) => s + (x - xMean) ** 2, 0);
+    slope = den !== 0 ? num / den : 0;
+    intercept = yMean - slope * xMean;
+  }
+
+  // Trailing average params (last 3 months)
+  let trailingAvgNet = 0;
+  if (method === "trailing") {
+    const recent = byMonth.slice(-3);
+    trailingAvgNet = recent.reduce((s, m) => s + m.netAmount, 0) / recent.length;
+  }
 
   const actual: ForecastMonth[] = byMonth.map(m => ({ ...m, forecast: false, fiscalYear: getFiscalYear(m.month) }));
 
@@ -137,7 +149,9 @@ export function buildForecastData(byMonth: { month: string; grossAmount: number;
     const ny = cm === 12 ? cy + 1 : cy;
     cursor = `${ny}-${String(nm).padStart(2, "0")}`;
     if (cursor > forecastEnd) break;
-    const netForecast = Math.max(0, intercept + slope * idx);
+    const netForecast = method === "linear"
+      ? Math.max(0, intercept + slope * idx)
+      : Math.max(0, trailingAvgNet);
     forecasted.push({
       month: cursor,
       netAmount: +netForecast.toFixed(2),
