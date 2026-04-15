@@ -1,6 +1,7 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useGitHubSummary, useGitHubActivity, useGitHubMembersDetail } from "@/hooks/useGitHub";
 import { useGitHubBilling, aggregateByProduct, aggregateBySku, aggregateByMonth } from "@/hooks/useGitHubBilling";
+import { useGitHubSecurity } from "@/hooks/useGitHubSecurity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +27,11 @@ import {
   Building2,
   DollarSign,
   Receipt,
+  ShieldAlert,
+  ShieldCheck,
+  Bug,
+  KeyRound,
+  Package,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -80,6 +86,7 @@ const GitHubDashboard = () => {
   const { data: activity, isLoading: activityLoading } = useGitHubActivity("open");
   const { data: membersDetail, isLoading: membersLoading } = useGitHubMembersDetail("open");
   const { data: billingUsage, isLoading: billingUsageLoading } = useGitHubBilling("open");
+  const { data: security, isLoading: securityLoading } = useGitHubSecurity("open");
 
   // Derive stats
   const totalRepos = data?.reposTotalCount ?? data?.repos?.length ?? 0;
