@@ -315,6 +315,7 @@ const ArchitectureDashboard = () => {
                             item={item}
                             expanded={expandedCard === item.id}
                             onToggle={() => setExpandedCard(expandedCard === item.id ? null : item.id)}
+                            repoFiles={repoFiles}
                           />
                         ))}
                         {colItems.length === 0 && (
@@ -442,6 +443,7 @@ const ArchitectureDashboard = () => {
                       item={item}
                       expanded={expandedCard === item.id}
                       onToggle={() => setExpandedCard(expandedCard === item.id ? null : item.id)}
+                      repoFiles={repoFiles}
                     />
                   ))}
                 {items.filter((i) => i.status === "Publish / Closeout").length === 0 && (
