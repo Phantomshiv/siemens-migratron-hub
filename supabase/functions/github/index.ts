@@ -770,6 +770,101 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Copilot Seats: full seat-level detail
+    if (action === "copilot-seats") {
+      const cacheKey = `github:copilot-seats:${org}`;
+      if (!noCache) {
+        const cached = await getCache(cacheKey);
+        if (cached) {
+          return new Response(JSON.stringify(cached), {
+            headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "HIT" },
+          });
+        }
+      }
+
+      const allSeats: unknown[] = [];
+      let page = 1;
+      let hasMore = true;
+      while (hasMore && page <= 20) {
+        const resp = await fetch(
+          `${GHE_API_BASE}/api/v3/orgs/${org}/copilot/billing/seats?per_page=100&page=${page}`,
+          { headers: gheHeaders }
+        );
+        if (!resp.ok) {
+          const body = await resp.text();
+          console.error(`Copilot seats error [${resp.status}]:`, body);
+          break;
+        }
+        const data = await resp.json();
+        const seats = data.seats || [];
+        allSeats.push(...seats);
+        if (seats.length < 100) hasMore = false;
+        page++;
+      }
+
+      // Process seats
+      const now = Date.now();
+      const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+      const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+      const processed = (allSeats as Array<{
+        assignee: { login: string; avatar_url: string };
+        last_activity_at: string | null;
+        last_activity_editor: string | null;
+        last_authenticated_at: string | null;
+        created_at: string;
+        plan_type: string;
+      }>).map(s => {
+        const lastActivity = s.last_activity_at ? new Date(s.last_activity_at).getTime() : 0;
+        return {
+          login: s.assignee.login,
+          avatarUrl: s.assignee.avatar_url,
+          lastActivityAt: s.last_activity_at,
+          lastEditor: s.last_activity_editor,
+          lastAuthAt: s.last_authenticated_at,
+          createdAt: s.created_at,
+          planType: s.plan_type,
+          isActive7d: lastActivity > sevenDaysAgo,
+          isActive30d: lastActivity > thirtyDaysAgo,
+          neverUsed: !s.last_activity_at,
+        };
+      });
+
+      // Editor usage breakdown
+      const editorCounts: Record<string, number> = {};
+      for (const s of processed) {
+        const ed = s.lastEditor || "never_used";
+        editorCounts[ed] = (editorCounts[ed] || 0) + 1;
+      }
+
+      const active7d = processed.filter(s => s.isActive7d).length;
+      const active30d = processed.filter(s => s.isActive30d).length;
+      const neverUsed = processed.filter(s => s.neverUsed).length;
+      const inactive = processed.length - active30d;
+
+      const result = {
+        totalSeats: processed.length,
+        active7d,
+        active30d,
+        neverUsed,
+        inactive,
+        editorBreakdown: Object.entries(editorCounts)
+          .map(([editor, count]) => ({ editor, count }))
+          .sort((a, b) => b.count - a.count),
+        seats: processed.sort((a, b) => {
+          // Active first, then by last activity desc
+          const aTime = a.lastActivityAt ? new Date(a.lastActivityAt).getTime() : 0;
+          const bTime = b.lastActivityAt ? new Date(b.lastActivityAt).getTime() : 0;
+          return bTime - aTime;
+        }),
+      };
+
+      await setCache(cacheKey, result, 15);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
