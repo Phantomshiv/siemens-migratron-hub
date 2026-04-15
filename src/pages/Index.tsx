@@ -19,15 +19,16 @@ import {
   GitBranch, Users, DollarSign, SquareKanban, Sparkles, AlertTriangle,
   BookOpen, Rocket, Shield, Wallet, Layers, CloudCog, Building2,
   FileText, CheckCircle2, TrendingUp, Server, ChevronUp, ChevronDown, GripVertical,
-  Megaphone, MessageSquare, Newspaper, GraduationCap,
+  Megaphone, MessageSquare, Newspaper, GraduationCap, ChevronRight,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 
-/* ─── Section header with reorder controls ─── */
-function SectionHeader({ icon: Icon, title, subtitle, href, linkText, onMoveUp, onMoveDown, isFirst, isLast }: {
+/* ─── Section header with reorder + collapse controls ─── */
+function SectionHeader({ icon: Icon, title, subtitle, href, linkText, onMoveUp, onMoveDown, isFirst, isLast, collapsed, onToggleCollapse }: {
   icon: React.ElementType; title: string; subtitle?: string; href?: string; linkText?: string;
   onMoveUp?: () => void; onMoveDown?: () => void; isFirst?: boolean; isLast?: boolean;
+  collapsed?: boolean; onToggleCollapse?: () => void;
 }) {
   return (
     <div className="flex items-center justify-between pt-1">
@@ -35,31 +36,24 @@ function SectionHeader({ icon: Icon, title, subtitle, href, linkText, onMoveUp, 
         <div className="flex items-center gap-0.5">
           <GripVertical className="h-3 w-3 text-muted-foreground/40" />
           <div className="flex flex-col -space-y-1">
-            <Button
-              variant="ghost" size="icon"
-              className="h-4 w-4 text-muted-foreground/50 hover:text-foreground"
-              onClick={onMoveUp} disabled={isFirst}
-            >
-              <ChevronUp className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="ghost" size="icon"
-              className="h-4 w-4 text-muted-foreground/50 hover:text-foreground"
-              onClick={onMoveDown} disabled={isLast}
-            >
-              <ChevronDown className="h-3 w-3" />
-            </Button>
+            <Button variant="ghost" size="icon" className="h-4 w-4 text-muted-foreground/50 hover:text-foreground"
+              onClick={onMoveUp} disabled={isFirst}><ChevronUp className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="icon" className="h-4 w-4 text-muted-foreground/50 hover:text-foreground"
+              onClick={onMoveDown} disabled={isLast}><ChevronDown className="h-3 w-3" /></Button>
           </div>
         </div>
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-          <Icon className="h-3.5 w-3.5 text-primary" />
-        </div>
-        <div>
-          <h2 className="text-sm font-heading font-semibold">{title}</h2>
-          {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
-        </div>
+        <button onClick={onToggleCollapse} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${collapsed ? "" : "rotate-90"}`} />
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+            <Icon className="h-3.5 w-3.5 text-primary" />
+          </div>
+          <div className="text-left">
+            <h2 className="text-sm font-heading font-semibold">{title}</h2>
+            {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
+          </div>
+        </button>
       </div>
-      {href && (
+      {href && !collapsed && (
         <a href={href} className="text-[10px] text-primary hover:underline">{linkText || "Full dashboard →"}</a>
       )}
     </div>
@@ -85,8 +79,18 @@ function loadOrder(): string[] {
   return [...DEFAULT_ORDER];
 }
 
+const COLLAPSED_KEY = "oses-overview-collapsed";
+function loadCollapsed(): Set<string> {
+  try {
+    const saved = localStorage.getItem(COLLAPSED_KEY);
+    if (saved) return new Set(JSON.parse(saved));
+  } catch {}
+  return new Set();
+}
+
 const Index = () => {
   const [sectionOrder, setSectionOrder] = useState<string[]>(loadOrder);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(loadCollapsed);
 
   const { data: ghData, isLoading: ghLoading } = useGitHubSummary("open");
   const { data: ghActivity } = useGitHubActivity("open");
@@ -108,6 +112,15 @@ const Index = () => {
       const next = [...prev];
       [next[idx], next[target]] = [next[target], next[idx]];
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const toggleCollapse = useCallback((id: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...next]));
       return next;
     });
   }, []);
@@ -212,13 +225,24 @@ const Index = () => {
     onMoveDown: () => moveSection(id, 1),
     isFirst: sectionOrder.indexOf(id) === 0,
     isLast: sectionOrder.indexOf(id) === sectionOrder.length - 1,
+    collapsed: collapsedSections.has(id),
+    onToggleCollapse: () => toggleCollapse(id),
   });
+
+  // Helper: wraps section content with collapse
+  const S = (id: string, icon: React.ElementType, title: string, subtitle: string, href: string, children: ReactNode) => (
+    <div className="space-y-3" key={id}>
+      <SectionHeader icon={icon} title={title} subtitle={subtitle} href={href} {...sectionProps(id)} />
+      {!collapsedSections.has(id) && (
+        <div className="animate-in fade-in slide-in-from-top-1 duration-200">{children}</div>
+      )}
+    </div>
+  );
 
   const sections: Record<string, ReactNode> = {
     /* ── Budget & Costs ── */
     budget: (
-      <div className="space-y-3" key="budget">
-        <SectionHeader icon={Wallet} title="Budget & Costs" subtitle="FY26 financials, cloud spend & forecast" href="/budget" {...sectionProps("budget")} />
+      S("budget", Wallet, "Budget & Costs", "FY26 financials, cloud spend & forecast", "/budget",
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard title="Budget FY26" value={fmt(budgetSummary.totalBudget)} change={`${budgetUsedPct}% spent`}
             changeType={budgetUsedPct > 80 ? "negative" : budgetUsedPct > 50 ? "neutral" : "positive"}
@@ -260,13 +284,11 @@ const Index = () => {
             ]} detailTitle="GitHub Billing Estimate"
           />
         </div>
-      </div>
     ),
 
     /* ── GitHub ── */
     github: (
-      <div className="space-y-3" key="github">
-        <SectionHeader icon={GitBranch} title="GitHub Enterprise" subtitle="Org health, PRs & Copilot adoption" href="/github" {...sectionProps("github")} />
+      S("github", GitBranch, "GitHub Enterprise", "Org health, PRs & Copilot adoption", "/github",
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <KPICard title="Members" value={totalMembers} icon={Users} subtitle={`${totalTeams} teams`} href="/github"
             details={[
@@ -300,13 +322,11 @@ const Index = () => {
             icon={TrendingUp} subtitle="est. dev-hours saved/mo" changeType="positive" change="~30% boost" href="/github"
           />
         </div>
-      </div>
     ),
 
     /* ── Delivery & Roadmap ── */
     delivery: (
-      <div className="space-y-3" key="delivery">
-        <SectionHeader icon={Rocket} title="Delivery & Roadmap" subtitle="Releases, sprint progress & roadmap" href="/roadmap" {...sectionProps("delivery")} />
+      S("delivery", Rocket, "Delivery & Roadmap", "Releases, sprint progress & roadmap", "/roadmap",
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <KPICard title="Sprint Progress" value={`${sprintProgress}%`}
             change={sprint?.name || "No active sprint"} changeType={sprintProgress >= 50 ? "positive" : "negative"}
@@ -342,13 +362,11 @@ const Index = () => {
           />
           <KPICard title="Jira Items" value={sprintTotal} icon={SquareKanban} subtitle="current sprint" href="/jira" />
         </div>
-      </div>
     ),
 
     /* ── Architecture Standards ── */
     architecture: (
-      <div className="space-y-3" key="architecture">
-        <SectionHeader icon={FileText} title="Architecture Standards" subtitle="RFC/ADR process & capability coverage" href="/architecture" {...sectionProps("architecture")} />
+      S("architecture", FileText, "Architecture Standards", "RFC/ADR process & capability coverage", "/architecture",
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <KPICard title="Published ADRs" value={rfcStats.published} icon={BookOpen} changeType="positive" change="decisions made" subtitle="standards" href="/architecture" />
           <KPICard title="Active RFCs" value={rfcStats.active} icon={FileText} changeType="neutral" subtitle="in progress" href="/architecture" />
@@ -381,13 +399,11 @@ const Index = () => {
             <a href="/architecture" className="text-[8px] text-primary hover:underline">View all →</a>
           </div>
         </div>
-      </div>
     ),
 
     /* ── People ── */
     people: (
-      <div className="space-y-3" key="people">
-        <SectionHeader icon={Users} title="People & Organization" subtitle="Headcount, FTEs & team structure" href="/people" {...sectionProps("people")} />
+      S("people", Users, "People & Organization", "Headcount, FTEs & team structure", "/people",
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard title="Total People" value={orgStats.totalPeople} icon={Users} change={`${orgStats.moduleCount} modules`}
             changeType="neutral" subtitle={`${orgStats.internalCount} internal`} href="/people"
@@ -407,13 +423,11 @@ const Index = () => {
           <KPICard title="Contractor FTEs" value={fteTotals.contractorTotal} icon={Users} subtitle="external" changeType="neutral" href="/budget" />
           <KPICard title="Modules" value={orgStats.moduleCount} icon={Layers} subtitle="org units" href="/people" />
         </div>
-      </div>
     ),
 
     /* ── Security ── */
     security: (
-      <div className="space-y-3" key="security">
-        <SectionHeader icon={Shield} title="Security" subtitle="Vulnerability posture & scanning alerts" href="/cybersecurity" {...sectionProps("security")} />
+      S("security", Shield, "Security", "Vulnerability posture & scanning alerts", "/cybersecurity",
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard title="Open Alerts" value={secOpen} icon={Shield}
             changeType={secOpen > 20 ? "negative" : secOpen > 0 ? "neutral" : "positive"}
@@ -438,13 +452,11 @@ const Index = () => {
             changeType={secData?.counts.secretScanning.open ? "negative" : "positive"} subtitle="exposed secrets" href="/cybersecurity"
           />
         </div>
-      </div>
     ),
 
     /* ── Risks & Blockers (compact) ── */
     risks: (
-      <div className="space-y-3" key="risks">
-        <SectionHeader icon={AlertTriangle} title="Risks & Blockers" subtitle="Critical issues requiring attention" href="/risks" {...sectionProps("risks")} />
+      S("risks", AlertTriangle, "Risks & Blockers", "Critical issues requiring attention", "/risks",
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard title="Blockers" value={blockerCount}
             changeType={blockerCount > 0 ? "negative" : "positive"}
@@ -481,13 +493,11 @@ const Index = () => {
             )}
           </div>
         </div>
-      </div>
     ),
 
     /* ── Backstage ── */
     backstage: (
-      <div className="space-y-3" key="backstage">
-        <SectionHeader icon={BookOpen} title="Backstage Developer Portal" subtitle="Service catalog & API registry" href="/backstage" {...sectionProps("backstage")} />
+      S("backstage", BookOpen, "Backstage Developer Portal", "Service catalog & API registry", "/backstage",
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard title="Total Entities" value={totalEntities} icon={BookOpen} subtitle="catalog items" href="/backstage"
             details={kindFacets.map((k: any) => ({ label: k.value, value: k.count, changeType: "neutral" as const }))}
@@ -499,13 +509,11 @@ const Index = () => {
             icon={CheckCircle2} subtitle="component ratio" href="/backstage" changeType="neutral"
           />
         </div>
-      </div>
     ),
 
     /* ── Client Management ── */
     clients: (
-      <div className="space-y-3" key="clients">
-        <SectionHeader icon={Building2} title="Client Management" subtitle="GHE migration pipeline & top clients" href="/clients" {...sectionProps("clients")} />
+      S("clients", Building2, "Client Management", "GHE migration pipeline & top clients", "/clients",
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard title="Total Clients" value={clientTotal} icon={Building2} change={`${clientBUs} BUs`}
             changeType="neutral" subtitle={`${clientRepos.toLocaleString()} repos`} href="/clients"
@@ -540,13 +548,11 @@ const Index = () => {
             ))}
           </div>
         )}
-      </div>
     ),
 
     /* ── Comms & Growth ── */
     comms: (
-      <div className="space-y-3" key="comms">
-        <SectionHeader icon={Megaphone} title="Communication & Growth" subtitle="Engagement metrics & team onboarding" href="/communication-growth" {...sectionProps("comms")} />
+      S("comms", Megaphone, "Communication & Growth", "Engagement metrics & team onboarding", "/communication-growth",
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <KPICard title="Confluence Views" value="2.4k" change="↑ 12%" changeType="positive"
             icon={BookOpen} subtitle="this month" href="/communication-growth"
@@ -605,7 +611,6 @@ const Index = () => {
             <p className="text-[9px] text-muted-foreground">3 active · 3 onboarding/evaluating</p>
           </div>
         </div>
-      </div>
     ),
   };
 
@@ -635,7 +640,13 @@ const Index = () => {
         )}
 
         {/* Render sections in user-defined order */}
-        {sectionOrder.map((id) => sections[id])}
+        {sectionOrder.map((id) => {
+          const content = sections[id];
+          if (!content) return null;
+          // content is a <div> with children [SectionHeader, ...rest]
+          // We wrap to handle collapse at render level
+          return content;
+        })}
       </div>
     </DashboardLayout>
   );
