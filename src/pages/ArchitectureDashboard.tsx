@@ -11,6 +11,7 @@ import {
   getRfcStats,
   getPublishedAdrs,
   getActiveRfcs,
+  capabilityMapping,
   type RfcAdr,
   type RfcStatus,
 } from "@/lib/architecture-data";
