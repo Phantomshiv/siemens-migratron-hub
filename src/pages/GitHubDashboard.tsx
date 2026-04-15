@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useGitHubSummary, useGitHubActivity, useGitHubMembersDetail } from "@/hooks/useGitHub";
-import { useGitHubBilling, aggregateByProduct, aggregateBySku, aggregateByMonth } from "@/hooks/useGitHubBilling";
-import { useGitHubSecurity } from "@/hooks/useGitHubSecurity";
 import { useGitHubCopilotSeats } from "@/hooks/useGitHubCopilotSeats";
 import { useGitHubAuditLog } from "@/hooks/useGitHubAuditLog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,8 +16,6 @@ import {
   UsersRound,
   Archive,
   Code,
-  CreditCard,
-  HardDrive,
   Cpu,
   Sparkles,
   UserCheck,
@@ -28,13 +24,6 @@ import {
   GitCommit,
   TrendingUp,
   Building2,
-  DollarSign,
-  Receipt,
-  ShieldAlert,
-  ShieldCheck,
-  Bug,
-  KeyRound,
-  Package,
   Search,
   Clock,
   Activity,
@@ -94,8 +83,6 @@ const GitHubDashboard = () => {
   const { data, isLoading, error } = useGitHubSummary("open");
   const { data: activity, isLoading: activityLoading } = useGitHubActivity("open");
   const { data: membersDetail, isLoading: membersLoading } = useGitHubMembersDetail("open");
-  const { data: billingUsage, isLoading: billingUsageLoading } = useGitHubBilling("open");
-  const { data: security, isLoading: securityLoading } = useGitHubSecurity("open");
   const { data: copilotSeatsDetail, isLoading: copilotSeatsLoading } = useGitHubCopilotSeats("open");
   const [copilotSearch, setCopilotSearch] = useState("");
   const [copilotFilter, setCopilotFilter] = useState<"all" | "active" | "inactive" | "never">("all");
@@ -123,14 +110,6 @@ const GitHubDashboard = () => {
   const copilot = data?.copilot;
   const copilotSeats = copilot?.seat_breakdown;
 
-  // New billing usage aggregates
-  const usageItems = billingUsage?.usageItems || [];
-  const byProduct = aggregateByProduct(usageItems);
-  const bySku = aggregateBySku(usageItems);
-  const byMonth = aggregateByMonth(usageItems);
-  const totalGross = byProduct.reduce((s, p) => s + p.grossAmount, 0);
-  const totalNet = byProduct.reduce((s, p) => s + p.netAmount, 0);
-  const totalDiscount = totalGross - totalNet;
 
   // Language breakdown
   const langMap: Record<string, number> = {};
@@ -210,163 +189,8 @@ const GitHubDashboard = () => {
           )}
         </div>
 
-        {/* Billing Usage & Copilot Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="glass-card">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                <DollarSign className="h-3.5 w-3.5" /> Gross Usage
-              </div>
-              <p className="text-2xl font-bold font-heading">${totalGross.toFixed(2)}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{usageItems.length} line items</p>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                <Receipt className="h-3.5 w-3.5" /> Net Cost
-              </div>
-              <p className="text-2xl font-bold font-heading text-primary">${totalNet.toFixed(2)}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">${totalDiscount.toFixed(2)} discounted</p>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                <Sparkles className="h-3.5 w-3.5" /> Copilot Seats
-              </div>
-              <p className="text-2xl font-bold font-heading">{copilotSeats?.total ?? "—"}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                {copilotSeats ? `${copilotSeats.active_this_cycle} active · ${Math.round((copilotSeats.active_this_cycle / copilotSeats.total) * 100)}% adoption` : "N/A"}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                <Cpu className="h-3.5 w-3.5" /> Products Billed
-              </div>
-              <p className="text-2xl font-bold font-heading">{byProduct.length}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{byMonth.length} months of data</p>
-            </CardContent>
-          </Card>
-        </div>
 
-        {/* Billing Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Cost by Product */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-sm font-heading flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-primary" /> Cost by Product
-              </CardTitle>
-              <p className="text-[10px] text-muted-foreground">Gross amount by GitHub product</p>
-            </CardHeader>
-            <CardContent>
-              {billingUsageLoading ? (
-                <Skeleton className="h-[250px] w-full" />
-              ) : byProduct.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={byProduct.map(p => ({
-                    name: p.product.charAt(0).toUpperCase() + p.product.slice(1),
-                    Gross: +p.grossAmount.toFixed(2),
-                    Net: +p.netAmount.toFixed(2),
-                  }))}>
-                    <XAxis dataKey="name" stroke="hsl(215, 15%, 55%)" fontSize={11} />
-                    <YAxis stroke="hsl(215, 15%, 55%)" fontSize={11} tickFormatter={(v) => `$${v}`} />
-                    <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`$${v.toFixed(2)}`]} />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="Gross" fill="hsl(215, 20%, 40%)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Net" fill="hsl(174, 100%, 40%)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-xs text-muted-foreground">No billing data available</p>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Monthly Cost Trend */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-sm font-heading flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-primary" /> Monthly Cost Trend
-              </CardTitle>
-              <p className="text-[10px] text-muted-foreground">Gross vs net over time</p>
-            </CardHeader>
-            <CardContent>
-              {billingUsageLoading ? (
-                <Skeleton className="h-[250px] w-full" />
-              ) : byMonth.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <AreaChart data={byMonth.map(m => ({
-                    month: m.month.slice(5),
-                    Gross: +m.grossAmount.toFixed(2),
-                    Net: +m.netAmount.toFixed(2),
-                  }))}>
-                    <XAxis dataKey="month" stroke="hsl(215, 15%, 55%)" fontSize={11} />
-                    <YAxis stroke="hsl(215, 15%, 55%)" fontSize={11} tickFormatter={(v) => `$${v}`} />
-                    <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`$${v.toFixed(2)}`]} />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Area type="monotone" dataKey="Gross" stroke="hsl(215, 20%, 40%)" fill="hsl(215, 20%, 40%)" fillOpacity={0.2} strokeWidth={2} />
-                    <Area type="monotone" dataKey="Net" stroke="hsl(174, 100%, 40%)" fill="hsl(174, 100%, 40%)" fillOpacity={0.15} strokeWidth={2} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-xs text-muted-foreground">No billing data available</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* SKU Breakdown Table */}
-        {bySku.length > 0 && (
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-sm font-heading flex items-center gap-2">
-                <Receipt className="h-4 w-4 text-primary" /> SKU Breakdown
-              </CardTitle>
-              <p className="text-[10px] text-muted-foreground">{bySku.length} SKUs across all products</p>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-muted-foreground">
-                      <th className="text-left py-2 px-3 font-medium">SKU</th>
-                      <th className="text-left py-2 px-3 font-medium">Product</th>
-                      <th className="text-right py-2 px-3 font-medium">Quantity</th>
-                      <th className="text-left py-2 px-3 font-medium">Unit</th>
-                      <th className="text-right py-2 px-3 font-medium">Gross</th>
-                      <th className="text-right py-2 px-3 font-medium">Net</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bySku.slice(0, 15).map((s) => (
-                      <tr key={s.sku} className="border-b border-border/50 hover:bg-muted/30">
-                        <td className="py-2 px-3 font-medium text-xs">{s.sku}</td>
-                        <td className="py-2 px-3 text-muted-foreground text-xs capitalize">{s.product}</td>
-                        <td className="py-2 px-3 text-right text-xs font-mono">{s.quantity.toLocaleString(undefined, { maximumFractionDigits: 1 })}</td>
-                        <td className="py-2 px-3 text-muted-foreground text-xs">{s.unitType}</td>
-                        <td className="py-2 px-3 text-right text-xs font-mono">${s.grossAmount.toFixed(2)}</td>
-                        <td className="py-2 px-3 text-right text-xs font-mono text-primary">${s.netAmount.toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t border-border font-bold text-xs">
-                      <td className="py-2 px-3" colSpan={4}>Total</td>
-                      <td className="py-2 px-3 text-right font-mono">${totalGross.toFixed(2)}</td>
-                      <td className="py-2 px-3 text-right font-mono text-primary">${totalNet.toFixed(2)}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Enhanced Copilot Section */}
         <div>
           <h2 className="text-lg font-heading font-bold mb-4 flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" /> Copilot Analytics
@@ -666,212 +490,7 @@ const GitHubDashboard = () => {
           </Card>
         </div>
 
-        {/* Security Overview */}
-        <div>
-          <h2 className="text-lg font-heading font-bold mb-4 flex items-center gap-2">
-            <ShieldAlert className="h-5 w-5 text-primary" /> Security Overview
-          </h2>
 
-          {/* Security KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <Card className="glass-card">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                  <Bug className="h-3.5 w-3.5" /> Code Scanning
-                </div>
-                {securityLoading ? <Skeleton className="h-8 w-20" /> : (
-                  <>
-                    <p className="text-2xl font-bold font-heading text-destructive">{security?.counts.codeScanning.open ?? "—"}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      open alerts · {security?.counts.codeScanning.fixed ?? 0} fixed
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-            <Card className="glass-card">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                  <KeyRound className="h-3.5 w-3.5" /> Secret Scanning
-                </div>
-                {securityLoading ? <Skeleton className="h-8 w-20" /> : (
-                  <>
-                    <p className="text-2xl font-bold font-heading text-chart-3">{security?.counts.secretScanning.open ?? "—"}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      open alerts · {security?.counts.secretScanning.resolved ?? 0} resolved
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-            <Card className="glass-card">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                  <Package className="h-3.5 w-3.5" /> Dependabot
-                </div>
-                {securityLoading ? <Skeleton className="h-8 w-20" /> : (
-                  <>
-                    <p className="text-2xl font-bold font-heading text-chart-1">{security?.counts.dependabot.open ?? "—"}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      open alerts · {security?.counts.dependabot.fixed ?? 0} fixed
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Security Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            {/* Weekly Trend */}
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="text-sm font-heading flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-primary" /> New Alerts by Week
-                </CardTitle>
-                <p className="text-[10px] text-muted-foreground">Open alerts created in the last 12 weeks</p>
-              </CardHeader>
-              <CardContent>
-                {securityLoading ? (
-                  <Skeleton className="h-[250px] w-full" />
-                ) : security?.weeklyTrend && security.weeklyTrend.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={security.weeklyTrend.map(w => ({
-                      week: new Date(w.week).toLocaleDateString("en", { month: "short", day: "numeric" }),
-                      "Code Scanning": w.code,
-                      "Secrets": w.secret,
-                      "Dependabot": w.dependabot,
-                    }))}>
-                      <XAxis dataKey="week" stroke="hsl(215, 15%, 55%)" fontSize={10} />
-                      <YAxis stroke="hsl(215, 15%, 55%)" fontSize={11} />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Bar dataKey="Code Scanning" stackId="a" fill="hsl(0, 72%, 55%)" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="Secrets" stackId="a" fill="hsl(45, 90%, 55%)" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="Dependabot" stackId="a" fill="hsl(174, 100%, 40%)" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-xs text-muted-foreground">No trend data available</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Severity Breakdown */}
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="text-sm font-heading flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-primary" /> Severity Breakdown
-                </CardTitle>
-                <p className="text-[10px] text-muted-foreground">Code scanning & Dependabot by severity</p>
-              </CardHeader>
-              <CardContent>
-                {securityLoading ? (
-                  <Skeleton className="h-[250px] w-full" />
-                ) : (
-                  <div className="space-y-6">
-                    {/* Code Scanning Severity */}
-                    {security?.codeSeverity && Object.keys(security.codeSeverity).length > 0 && (
-                      <div>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Code Scanning</p>
-                        <div className="space-y-2">
-                          {Object.entries(security.codeSeverity)
-                            .sort(([, a], [, b]) => b - a)
-                            .map(([sev, count]) => {
-                              const total = Object.values(security.codeSeverity).reduce((s, v) => s + v, 0);
-                              const pct = total > 0 ? (count / total) * 100 : 0;
-                              return (
-                                <div key={`code-${sev}`}>
-                                  <div className="flex justify-between text-xs mb-1">
-                                    <span className="capitalize">{sev}</span>
-                                    <span className="font-mono font-medium">{count}</span>
-                                  </div>
-                                  <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                                    <div
-                                      className={`h-full rounded-full transition-all ${sev === "critical" || sev === "high" ? "bg-destructive" : sev === "medium" ? "bg-chart-3" : "bg-chart-2"}`}
-                                      style={{ width: `${pct}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              );
-                            })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Dependabot Severity */}
-                    {security?.depSeverity && Object.keys(security.depSeverity).length > 0 && (
-                      <div>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Dependabot</p>
-                        <div className="space-y-2">
-                          {Object.entries(security.depSeverity)
-                            .sort(([, a], [, b]) => b - a)
-                            .map(([sev, count]) => {
-                              const total = Object.values(security.depSeverity).reduce((s, v) => s + v, 0);
-                              const pct = total > 0 ? (count / total) * 100 : 0;
-                              return (
-                                <div key={`dep-${sev}`}>
-                                  <div className="flex justify-between text-xs mb-1">
-                                    <span className="capitalize">{sev}</span>
-                                    <span className="font-mono font-medium">{count}</span>
-                                  </div>
-                                  <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                                    <div
-                                      className={`h-full rounded-full transition-all ${sev === "critical" || sev === "high" ? "bg-destructive" : sev === "medium" ? "bg-chart-3" : "bg-chart-1"}`}
-                                      style={{ width: `${pct}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              );
-                            })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Secret Types */}
-                    {security?.secretTypes && Object.keys(security.secretTypes).length > 0 && (
-                      <div>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Exposed Secret Types</p>
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(security.secretTypes)
-                            .sort(([, a], [, b]) => b - a)
-                            .slice(0, 8)
-                            .map(([type, count]) => (
-                              <Badge key={type} variant="outline" className="text-[10px]">
-                                {type}: {count}
-                              </Badge>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Top Affected Repos */}
-          {security?.topRepos && security.topRepos.length > 0 && (
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="text-sm font-heading">Most Affected Repositories</CardTitle>
-                <p className="text-[10px] text-muted-foreground">By total open code scanning + dependabot alerts</p>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={Math.max(200, security.topRepos.length * 30)}>
-                  <BarChart data={security.topRepos} layout="vertical" margin={{ left: 100 }}>
-                    <XAxis type="number" stroke="hsl(215, 15%, 55%)" fontSize={11} />
-                    <YAxis type="category" dataKey="repo" stroke="hsl(215, 15%, 55%)" fontSize={11} width={95} />
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="count" fill="hsl(0, 72%, 55%)" radius={[0, 4, 4, 0]} name="Open Alerts" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Audit Log */}
         <div>
           <h2 className="text-lg font-heading font-bold mb-4 flex items-center gap-2">
             <ScrollText className="h-5 w-5 text-primary" /> Audit Log

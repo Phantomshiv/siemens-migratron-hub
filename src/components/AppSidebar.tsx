@@ -16,6 +16,7 @@ import {
   Briefcase,
   Wallet,
   Users,
+  ShieldAlert,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -46,6 +47,7 @@ const mainItems = [
   { title: "Comms & Growth", url: "/communication", icon: Megaphone },
   { title: "Client Mgmt", url: "/clients", icon: Briefcase },
   { title: "Budget", url: "/budget", icon: Wallet },
+  { title: "Cybersecurity", url: "/cybersecurity", icon: ShieldAlert },
   { title: "People", url: "/people", icon: Users },
 ];
 
