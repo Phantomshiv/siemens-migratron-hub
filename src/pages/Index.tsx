@@ -425,7 +425,85 @@ const Index = () => {
           />
         </div>
 
-        {/* Row 4: Comms & Growth */}
+        {/* Row 4: Architecture Standards */}
+        {(() => {
+          const rfcStats = getRfcStats();
+          const activeRfcs = getActiveRfcs();
+          return (
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <CardTitle className="text-sm font-heading">Architecture Standards (RFC/ADR)</CardTitle>
+                  </div>
+                  <a href="/architecture" className="text-[10px] text-primary hover:underline">Full dashboard →</a>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  <KPICard
+                    title="Published ADRs"
+                    value={rfcStats.published}
+                    icon={BookOpen}
+                    changeType="positive"
+                    change="decisions made"
+                    subtitle="standards"
+                    href="/architecture"
+                  />
+                  <KPICard
+                    title="Active RFCs"
+                    value={rfcStats.active}
+                    icon={FileText}
+                    changeType="neutral"
+                    subtitle="in progress"
+                    href="/architecture"
+                  />
+                  <KPICard
+                    title="Backlog"
+                    value={rfcStats.backlog}
+                    icon={Layers}
+                    changeType="neutral"
+                    subtitle="pending"
+                    href="/architecture"
+                  />
+                  <KPICard
+                    title="Total Standards"
+                    value={rfcStats.total}
+                    icon={FileText}
+                    subtitle={`${rfcStats.rfcs} RFCs · ${rfcStats.adrs} ADRs`}
+                    href="/architecture"
+                  />
+
+                  {/* Active RFC pipeline mini-view */}
+                  <div className="col-span-2 space-y-2 p-3 rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground font-medium">Active RFC Pipeline</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {activeRfcs.slice(0, 4).map((rfc) => {
+                        const sc = rfcStatusConfig[rfc.status];
+                        return (
+                          <div key={rfc.id} className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono text-primary w-14 flex-shrink-0">{rfc.id}</span>
+                            <span className="text-[10px] truncate flex-1">{rfc.title}</span>
+                            <Badge className={`${sc.color} text-[8px] h-3.5 px-1 flex-shrink-0`}>
+                              {sc.emoji} {sc.label}
+                            </Badge>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <a href="/architecture" className="text-[9px] text-primary hover:underline">View all →</a>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
+        {/* Row 5: Comms & Growth */}
         <Card className="glass-card">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
