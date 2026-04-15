@@ -12,7 +12,7 @@ import { useCostByVendor, useMonthlySpend } from "@/hooks/useCloudability";
 import { useGitHubSecurity } from "@/hooks/useGitHubSecurity";
 import { useBackstageSummary } from "@/hooks/useBackstage";
 import { getOrgStats } from "@/lib/people-data";
-import { budgetSummary, fteTotals } from "@/lib/budget-data";
+import { budgetSummary, fteTotals, byModule } from "@/lib/budget-data";
 import { releases, domains } from "@/lib/oses-data";
 import { useGitHubProjects } from "@/hooks/useGitHubProjects";
 import {
