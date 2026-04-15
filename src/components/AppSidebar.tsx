@@ -48,6 +48,7 @@ const mainItems = [
   { title: "Client Mgmt", url: "/clients", icon: Briefcase },
   { title: "Budget", url: "/budget", icon: Wallet },
   { title: "Cybersecurity", url: "/cybersecurity", icon: ShieldAlert },
+  { title: "Architecture", url: "/architecture", icon: FileText },
   { title: "People", url: "/people", icon: Users },
 ];
 
