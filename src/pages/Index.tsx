@@ -495,11 +495,11 @@ const Index = () => {
                         subtitle="OSES capabilities"
                         href="/architecture"
                         details={[
-                          `✅ Standardized: ${covered} capabilities with published ADRs`,
-                          `⏳ In Progress: ${inProg} capabilities with active RFCs`,
-                          `○ Pending: ${pending} capabilities with no standard yet`,
-                          `📊 Total OSES capabilities: ${total} across ${domains.length} domains`,
-                          `🎯 Goal: 100% coverage by end of FY27`,
+                          { label: "Standardized", value: `${covered} capabilities`, changeType: "positive" as const },
+                          { label: "In Progress", value: `${inProg} with active RFCs`, changeType: "neutral" as const },
+                          { label: "Pending", value: `${pending} no standard yet`, changeType: "negative" as const },
+                          { label: "Total Capabilities", value: `${total} across ${domains.length} domains` },
+                          { label: "Target", value: "100% by end FY27", changeType: "positive" as const },
                         ]}
                       />
                     );
