@@ -196,6 +196,17 @@ export function ChatWidget() {
               <p className="text-sm font-heading font-semibold">OSES Assistant</p>
               <p className="text-[10px] text-muted-foreground">Ask anything about the dashboard</p>
             </div>
+            {messages.length > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                title="New chat"
+                onClick={() => { setMessages([]); localStorage.removeItem(STORAGE_KEY); }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setOpen(false)}>
               <X className="h-4 w-4" />
             </Button>
