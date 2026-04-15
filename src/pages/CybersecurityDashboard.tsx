@@ -305,15 +305,15 @@ const CybersecurityDashboard = () => {
         </div>
 
         {/* Security Posture Levels */}
-        {!securityLoading && security?.postureScores && security.postureScores.length > 0 && (
-          <SecurityPosturePanel postureScores={security.postureScores} />
+        {!securityLoading && postureScores.length > 0 && (
+          <SecurityPosturePanel postureScores={postureScores} />
         )}
 
         {/* Security Config Opt-Out & Blocked Repos */}
-        {!securityLoading && security?.securityConfigs && (
+        {!securityLoading && securityConfigs && (
           <SecurityOptOutPanel
-            securityConfigs={security.securityConfigs}
-            blockedByPushProtection={security.blockedByPushProtection}
+            securityConfigs={securityConfigs}
+            blockedByPushProtection={blockedByPushProtection}
           />
         )}
 
