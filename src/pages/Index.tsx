@@ -650,7 +650,13 @@ const Index = () => {
         )}
 
         {/* Render sections in user-defined order */}
-        {sectionOrder.map((id) => sections[id])}
+        {sectionOrder.map((id) => {
+          const content = sections[id];
+          if (!content) return null;
+          // content is a <div> with children [SectionHeader, ...rest]
+          // We wrap to handle collapse at render level
+          return content;
+        })}
       </div>
     </DashboardLayout>
   );
