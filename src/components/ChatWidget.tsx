@@ -3,6 +3,13 @@ import { MessageCircle, X, Send, Bot, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import { buildDashboardContext } from "@/lib/dashboard-context";
+import { useGitHubSummary, useGitHubActivity } from "@/hooks/useGitHub";
+import { useActiveSprint, useBlockers } from "@/hooks/useJira";
+import { useCostByVendor } from "@/hooks/useCloudability";
+import { useGitHubSecurity } from "@/hooks/useGitHubSecurity";
+import { useBackstageSummary } from "@/hooks/useBackstage";
+import { useGitHubProjects } from "@/hooks/useGitHubProjects";
+import { useLiveRoadmap } from "@/hooks/useRoadmapJira";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -22,7 +29,33 @@ export function ChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const dashboardContext = useMemo(() => buildDashboardContext(), []);
+
+  // Live API data
+  const { data: ghData } = useGitHubSummary("open");
+  const { data: ghActivity } = useGitHubActivity("open");
+  const { data: sprintData } = useActiveSprint();
+  const { data: blockersData } = useBlockers();
+  const { data: vendorData } = useCostByVendor();
+  const { data: secData } = useGitHubSecurity("open");
+  const { data: bsSummary } = useBackstageSummary();
+  const { data: clientsData } = useGitHubProjects();
+  const { data: roadmapData } = useLiveRoadmap();
+
+  const dashboardContext = useMemo(
+    () =>
+      buildDashboardContext({
+        github: ghData,
+        githubActivity: ghActivity,
+        sprint: sprintData ? { sprint: sprintData.sprint, issues: sprintData.issues } : undefined,
+        blockers: blockersData,
+        cloudVendor: vendorData,
+        security: secData,
+        backstage: bsSummary,
+        clients: clientsData,
+        roadmap: roadmapData,
+      }),
+    [ghData, ghActivity, sprintData, blockersData, vendorData, secData, bsSummary, clientsData, roadmapData]
+  );
 
   useEffect(() => {
     if (scrollRef.current) {
