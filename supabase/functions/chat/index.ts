@@ -24,7 +24,12 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, dashboardContext } = await req.json();
+    
+    const fullSystemPrompt = SYSTEM_PROMPT + (dashboardContext 
+      ? `\n\n## LIVE DASHBOARD DATA\n${dashboardContext}` 
+      : "");
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
