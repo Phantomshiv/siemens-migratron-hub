@@ -7,6 +7,7 @@ import { ContractorSpend } from "@/components/budget/ContractorSpend";
 import { OrgSpendChart } from "@/components/budget/OrgSpendChart";
 import { BudgetBurndown } from "@/components/budget/BudgetBurndown";
 import { BudgetLineItems } from "@/components/budget/BudgetLineItems";
+import { BudgetVsActual } from "@/components/budget/BudgetVsActual";
 import { GitHubBillingSection } from "@/components/budget/GitHubBillingSection";
 
 const BudgetDashboard = () => {
