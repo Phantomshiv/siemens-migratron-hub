@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { lineItems } from "@/lib/budget-data";
+import { useBudgetData } from "@/hooks/useBudgetData";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -19,6 +19,8 @@ const costTypeBadge = (type: string) => {
 
 export function BudgetLineItems() {
   const [search, setSearch] = useState("");
+  const { dataset } = useBudgetData();
+  const { lineItems } = dataset;
 
   const filtered = lineItems.filter((item) =>
     `${item.title} ${item.module} ${item.contractor} ${item.costType}`.toLowerCase().includes(search.toLowerCase())

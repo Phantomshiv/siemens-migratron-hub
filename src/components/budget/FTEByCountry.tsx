@@ -1,15 +1,18 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from "recharts";
-import { fteBreakdown, fteTotals } from "@/lib/budget-data";
-
-const data = fteBreakdown.map((f) => ({
-  name: `${f.countryCode}`,
-  country: f.country,
-  "Own FTEs": f.ownFTEs,
-  Contractors: f.contractorFTEs,
-  total: f.ownFTEs + f.contractorFTEs,
-}));
+import { useBudgetData } from "@/hooks/useBudgetData";
 
 export function FTEByCountry() {
+  const { dataset } = useBudgetData();
+  const { fteBreakdown, fteTotals } = dataset;
+
+  const data = fteBreakdown.map((f) => ({
+    name: `${f.countryCode}`,
+    country: f.country,
+    "Own FTEs": f.ownFTEs,
+    Contractors: f.contractorFTEs,
+    total: f.ownFTEs + f.contractorFTEs,
+  }));
+
   return (
     <div className="glass-card p-5">
       <div className="flex items-center justify-between mb-1">

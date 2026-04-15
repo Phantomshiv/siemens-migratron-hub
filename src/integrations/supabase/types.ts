@@ -35,6 +35,30 @@ export type Database = {
         }
         Relationships: []
       }
+      budget_uploads: {
+        Row: {
+          data: Json
+          filename: string
+          id: string
+          is_active: boolean
+          uploaded_at: string
+        }
+        Insert: {
+          data: Json
+          filename: string
+          id?: string
+          is_active?: boolean
+          uploaded_at?: string
+        }
+        Update: {
+          data?: Json
+          filename?: string
+          id?: string
+          is_active?: boolean
+          uploaded_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

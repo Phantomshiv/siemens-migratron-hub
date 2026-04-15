@@ -1,19 +1,20 @@
 import { DollarSign, TrendingUp, Users, PieChart } from "lucide-react";
-import { budgetSummary, fteTotals, spendingTimeline } from "@/lib/budget-data";
+import { useBudgetData } from "@/hooks/useBudgetData";
 
 const fmt = (n: number) => `€${(n / 1_000_000).toFixed(1)}M`;
 const pct = (n: number, d: number) => d > 0 ? `${(n / d * 100).toFixed(1)}%` : "0%";
 
 export function BudgetKPIs() {
-  const { totalBudget, actualSpend, forecastFY26 } = budgetSummary;
-  const burnRate = actualSpend / forecastFY26 * 100;
+  const { dataset } = useBudgetData();
+  const { summary, fteTotals } = dataset;
+  const { totalBudget, actualSpend, forecastFY26 } = summary;
   const remaining = forecastFY26 - actualSpend;
 
   const cards = [
     {
       title: "Total Budget FY26",
       value: fmt(totalBudget),
-      sub: `SAP: ${budgetSummary.sapNo}`,
+      sub: `SAP: ${summary.sapNo}`,
       icon: DollarSign,
       accent: "text-primary",
     },
