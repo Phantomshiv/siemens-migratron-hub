@@ -1,9 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Filter, CheckCircle } from "lucide-react";
-
-// Configurable constants
-const INDUSTRY_FP_RATE = 40; // Industry average false positive rate (%) — Gartner/OWASP benchmark
+import { useCyberSettings } from "@/contexts/CyberSettingsContext";
 
 interface Props {
   totalOpen: number; // Total open alerts
@@ -12,6 +10,8 @@ interface Props {
 }
 
 export function FalsePositivePanel({ totalOpen, totalDismissed, totalFixed }: Props) {
+  const { settings } = useCyberSettings();
+  const INDUSTRY_FP_RATE = settings.industryFpRate;
   const totalProcessed = totalDismissed + totalFixed;
   // Estimate: dismissed alerts are roughly false positives or accepted risk
   // A more accurate approach would track `dismissed_reason === "false_positive"` specifically

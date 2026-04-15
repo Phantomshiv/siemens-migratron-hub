@@ -2,11 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Zap, Clock, TrendingDown } from "lucide-react";
-
-// Configurable constants from the PDF formula: (Vulns Found) × (T1 - T2)
-const T1_HOURS = 4; // Avg hours to remediate in late dev/deployment
-const T2_HOURS = 0.25; // Avg hours to fix early in dev (15 min)
-const HOURLY_RATE_EUR = 85; // Average developer hourly rate (€)
+import { useCyberSettings } from "@/contexts/CyberSettingsContext";
 
 interface Props {
   totalVulnsFound: number; // Total vulnerabilities detected by OSES scanning
@@ -15,6 +11,10 @@ interface Props {
 }
 
 export function AutomationSavingsPanel({ totalVulnsFound, totalFixed, mttr }: Props) {
+  const { settings } = useCyberSettings();
+  const T1_HOURS = settings.t1Hours;
+  const T2_HOURS = settings.t2Hours;
+  const HOURLY_RATE_EUR = settings.hourlyRateEur;
   const [animatedHours, setAnimatedHours] = useState(0);
 
   const timeDelta = T1_HOURS - T2_HOURS; // Hours saved per vuln

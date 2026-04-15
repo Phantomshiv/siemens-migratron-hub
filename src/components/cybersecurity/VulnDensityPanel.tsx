@@ -5,6 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine,
 } from "recharts";
 import type { RepoRiskScore } from "@/hooks/useGitHubSecurity";
+import { useCyberSettings } from "@/contexts/CyberSettingsContext";
 
 const tooltipStyle = {
   backgroundColor: "hsl(215, 25%, 13%)",
@@ -13,15 +14,15 @@ const tooltipStyle = {
   color: "hsl(210, 20%, 92%)",
 };
 
-// Configurable constants — estimated LOC per repo (since GitHub API doesn't expose LOC directly)
-const ESTIMATED_LOC_PER_REPO = 15_000; // Average LOC per repo across the org
-const LEGACY_VULN_DENSITY = 8.5; // Industry average: vulns per 1K LOC for legacy/manual builds (OWASP benchmark)
-
 interface Props {
   riskScores: RepoRiskScore[];
 }
 
 export function VulnDensityPanel({ riskScores }: Props) {
+  const { settings } = useCyberSettings();
+  const ESTIMATED_LOC_PER_REPO = settings.estimatedLocPerRepo;
+  const LEGACY_VULN_DENSITY = settings.legacyVulnDensity;
+
   // Calculate vulnerability density per 1K LOC for each repo
   const densityData = riskScores
     .filter(r => r.total > 0)
