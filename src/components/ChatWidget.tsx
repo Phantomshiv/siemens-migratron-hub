@@ -69,7 +69,11 @@ export function ChatWidget() {
     [ghData, ghActivity, sprintData, blockersData, vendorData, secData, bsSummary, clientsData, roadmapData]
   );
 
+  // Persist messages to localStorage
   useEffect(() => {
+    if (!isLoading) saveMessages(messages);
+  }, [messages, isLoading]);
+
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
