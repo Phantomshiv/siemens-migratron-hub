@@ -94,13 +94,22 @@ const GitHubDashboard = () => {
   const filledSeats = data?.org?.plan?.filled_seats;
   const totalSeats = data?.org?.plan?.seats;
 
-  // Billing
+  // Billing (legacy - may be null with new API)
   const billing = data?.billingActions;
   const storage = data?.billingStorage;
 
   // Copilot
   const copilot = data?.copilot;
   const copilotSeats = copilot?.seat_breakdown;
+
+  // New billing usage aggregates
+  const usageItems = billingUsage?.usageItems || [];
+  const byProduct = aggregateByProduct(usageItems);
+  const bySku = aggregateBySku(usageItems);
+  const byMonth = aggregateByMonth(usageItems);
+  const totalGross = byProduct.reduce((s, p) => s + p.grossAmount, 0);
+  const totalNet = byProduct.reduce((s, p) => s + p.netAmount, 0);
+  const totalDiscount = totalGross - totalNet;
 
   // Language breakdown
   const langMap: Record<string, number> = {};
