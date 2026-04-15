@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
-const GHE_REPO_BASE = "https://siemens.ghe.com/foundation/oses-standards/blob/main";
+
 
 function RfcCard({ item, expanded, onToggle }: { item: RfcAdr; expanded: boolean; onToggle: () => void }) {
   const sc = rfcStatusConfig[item.status];
@@ -87,17 +87,15 @@ function RfcCard({ item, expanded, onToggle }: { item: RfcAdr; expanded: boolean
               {item.module && (
                 <span className="text-[10px] bg-muted/50 px-2 py-0.5 rounded">Module: {item.module}</span>
               )}
-              {item.ghePath && (
-                <a
-                  href={`${GHE_REPO_BASE}/${item.ghePath}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] text-primary hover:underline flex items-center gap-1"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <ExternalLink className="h-3 w-3" /> View in GHE
-                </a>
-              )}
+              <a
+                href="https://siemens.ghe.com/orgs/foundation/projects/7/views/1"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ExternalLink className="h-3 w-3" /> View in Kanban
+              </a>
             </div>
           </div>
         )}
@@ -308,11 +306,9 @@ const ArchitectureDashboard = () => {
                     <div className="flex flex-wrap gap-1">
                       {item.tags.map((t) => <Badge key={t} variant="outline" className="text-[9px] h-4 px-1.5">{t}</Badge>)}
                     </div>
-                    {item.ghePath && (
-                      <a href={`${GHE_REPO_BASE}/${item.ghePath}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-1">
-                        <ExternalLink className="h-3 w-3" /> View in GHE
-                      </a>
-                    )}
+                    <a href="https://siemens.ghe.com/orgs/foundation/projects/7/views/1" target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-1">
+                      <ExternalLink className="h-3 w-3" /> View in Kanban
+                    </a>
                   </CardContent>
                 </Card>
               );
