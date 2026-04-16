@@ -7,6 +7,7 @@ export interface CyberSettings {
   t2Hours: number;
   hourlyRateEur: number;
   industryFpRate: number;
+  legacyMttrDays: number;
 }
 
 const defaults: CyberSettings = {
@@ -16,6 +17,7 @@ const defaults: CyberSettings = {
   t2Hours: 0.25,
   hourlyRateEur: 85,
   industryFpRate: 40,
+  legacyMttrDays: 30,
 };
 
 interface CyberSettingsContextType {
