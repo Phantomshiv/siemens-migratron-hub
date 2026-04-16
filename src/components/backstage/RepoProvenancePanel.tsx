@@ -82,6 +82,16 @@ export function RepoProvenancePanel() {
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
               How repos enter the org · last {days} days
+              {data && data.orgRepoTotal !== null && (
+                <>
+                  {" · "}
+                  <span className="text-foreground font-medium">{data.uniqueReposCreated}</span>
+                  <span> of {data.orgRepoTotal} org repos </span>
+                  {data.preExistingRepos > 0 && (
+                    <span>({data.preExistingRepos} pre-date window)</span>
+                  )}
+                </>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-1">
