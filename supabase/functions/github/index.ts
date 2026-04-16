@@ -1202,7 +1202,17 @@ Deno.serve(async (req) => {
     // how many repos were created via tooling vs manually.
     if (action === "repo-provenance") {
       const days = Math.min(365, Math.max(1, parseInt(url.searchParams.get("days") || "180")));
-      const cacheKey = `github:repo-provenance:${org}:${days}`;
+      const allowlistRaw = url.searchParams.get("allowlist") || "";
+      const allowlist = Array.from(
+        new Set(
+          allowlistRaw
+            .split(/[,\s;]+/)
+            .map((s) => s.trim().toLowerCase())
+            .filter(Boolean),
+        ),
+      );
+      const allowlistKey = allowlist.length ? `:${allowlist.slice().sort().join(",")}` : "";
+      const cacheKey = `github:repo-provenance:${org}:${days}${allowlistKey}`;
       if (!noCache) {
         const cached = await getCache(cacheKey);
         if (cached) {
