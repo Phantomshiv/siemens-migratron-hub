@@ -47,6 +47,9 @@ export function ChatWidget() {
   const { data: ghActivity } = useGitHubActivity("open");
   const { data: sprintData } = useActiveSprint();
   const { data: blockersData } = useBlockers();
+  const { data: epicsData } = useEpics();
+  const { data: statusDistData } = useStatusDistribution();
+  const { data: recentData } = useRecentActivity();
   const { data: vendorData } = useCostByVendor();
   const { data: secData } = useGitHubSecurity("open");
   const { data: bsSummary } = useBackstageSummary();
@@ -60,13 +63,16 @@ export function ChatWidget() {
         githubActivity: ghActivity,
         sprint: sprintData ? { sprint: sprintData.sprint, issues: sprintData.issues } : undefined,
         blockers: blockersData,
+        epics: epicsData,
+        statusDistribution: statusDistData,
+        recentActivity: recentData,
         cloudVendor: vendorData,
         security: secData,
         backstage: bsSummary,
         clients: clientsData,
         roadmap: roadmapData,
       }),
-    [ghData, ghActivity, sprintData, blockersData, vendorData, secData, bsSummary, clientsData, roadmapData]
+    [ghData, ghActivity, sprintData, blockersData, epicsData, statusDistData, recentData, vendorData, secData, bsSummary, clientsData, roadmapData]
   );
 
   // Persist messages to localStorage
