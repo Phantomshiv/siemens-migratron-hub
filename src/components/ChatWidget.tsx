@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import { buildDashboardContext } from "@/lib/dashboard-context";
 import { useGitHubSummary, useGitHubActivity } from "@/hooks/useGitHub";
-import { useActiveSprint, useBlockers } from "@/hooks/useJira";
+import { useActiveSprint, useBlockers, useEpics, useStatusDistribution, useRecentActivity } from "@/hooks/useJira";
 import { useCostByVendor } from "@/hooks/useCloudability";
 import { useGitHubSecurity } from "@/hooks/useGitHubSecurity";
 import { useBackstageSummary } from "@/hooks/useBackstage";
@@ -28,10 +28,10 @@ function saveMessages(msgs: Msg[]) {
 }
 
 const SUGGESTIONS = [
-  "What's the current budget status?",
-  "How many clients are migrating?",
-  "What's the Copilot adoption rate?",
-  "Show me the roadmap progress",
+  "What's the current sprint progress?",
+  "List all open blockers with assignees",
+  "How many epics are in progress?",
+  "Show me the budget vs actuals",
 ];
 
 export function ChatWidget() {
@@ -47,6 +47,9 @@ export function ChatWidget() {
   const { data: ghActivity } = useGitHubActivity("open");
   const { data: sprintData } = useActiveSprint();
   const { data: blockersData } = useBlockers();
+  const { data: epicsData } = useEpics();
+  const { data: statusDistData } = useStatusDistribution();
+  const { data: recentData } = useRecentActivity();
   const { data: vendorData } = useCostByVendor();
   const { data: secData } = useGitHubSecurity("open");
   const { data: bsSummary } = useBackstageSummary();
@@ -60,13 +63,16 @@ export function ChatWidget() {
         githubActivity: ghActivity,
         sprint: sprintData ? { sprint: sprintData.sprint, issues: sprintData.issues } : undefined,
         blockers: blockersData,
+        epics: epicsData,
+        statusDistribution: statusDistData,
+        recentActivity: recentData,
         cloudVendor: vendorData,
         security: secData,
         backstage: bsSummary,
         clients: clientsData,
         roadmap: roadmapData,
       }),
-    [ghData, ghActivity, sprintData, blockersData, vendorData, secData, bsSummary, clientsData, roadmapData]
+    [ghData, ghActivity, sprintData, blockersData, epicsData, statusDistData, recentData, vendorData, secData, bsSummary, clientsData, roadmapData]
   );
 
   // Persist messages to localStorage

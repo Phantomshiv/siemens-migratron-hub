@@ -15,6 +15,9 @@ export interface LiveApiData {
   githubActivity?: any;
   sprint?: any;
   blockers?: any;
+  epics?: any;
+  statusDistribution?: any;
+  recentActivity?: any;
   cloudVendor?: any;
   cloudMonthly?: any;
   security?: any;
@@ -94,6 +97,42 @@ ${orgData.modules.map((m) => `- **${m.name}** — Leads: ${m.leads.join(", ")} |
 - **Progress:** ${total > 0 ? Math.round((done / total) * 100) : 0}% (${done}/${total} done)
 - In Progress: ${inProg}, To Do: ${todo}
 - **Blockers:** ${live.blockers?.issues?.length ?? 0}`);
+  }
+
+  // Jira Blockers detail (live)
+  if (live?.blockers?.issues?.length > 0) {
+    sections.push(`### Jira Blockers & Risks (Live)
+${live.blockers.issues.map((i: any) => `| ${i.key} | ${i.fields?.summary} | ${i.fields?.priority?.name ?? "?"} | ${i.fields?.status?.name ?? "?"} | ${i.fields?.assignee?.displayName ?? "Unassigned"} |`).join("\n")}`);
+  }
+
+  // Jira Epics (live)
+  if (live?.epics?.issues?.length > 0) {
+    const epics = live.epics.issues;
+    const epicDone = epics.filter((e: any) => e.fields?.status?.statusCategory?.key === "done").length;
+    const epicInProg = epics.filter((e: any) => e.fields?.status?.statusCategory?.key === "indeterminate").length;
+    sections.push(`### Jira Epics (Live)
+- **Total Epics:** ${epics.length}, Done: ${epicDone}, In Progress: ${epicInProg}, To Do: ${epics.length - epicDone - epicInProg}
+
+**All Epics:**
+${epics.map((e: any) => `| ${e.key} | ${e.fields?.summary} | ${e.fields?.status?.name ?? "?"} | ${e.fields?.priority?.name ?? "?"} |`).join("\n")}`);
+  }
+
+  // Jira Status Distribution (live)
+  if (live?.statusDistribution && typeof live.statusDistribution === "object") {
+    const counts = live.statusDistribution as Record<string, { name: string; count: number }>;
+    const entries = Object.values(counts);
+    if (entries.length > 0) {
+      const total = entries.reduce((s, e) => s + e.count, 0);
+      sections.push(`### Jira Issue Status Distribution (Live)
+- **Total Issues:** ${total}
+${entries.map((e) => `| ${e.name} | ${e.count} (${total > 0 ? Math.round((e.count / total) * 100) : 0}%) |`).join("\n")}`);
+    }
+  }
+
+  // Jira Recent Activity (live)
+  if (live?.recentActivity?.issues?.length > 0) {
+    sections.push(`### Jira Recent Activity (Live — last 15 updated)
+${live.recentActivity.issues.slice(0, 15).map((i: any) => `| ${i.key} | ${i.fields?.summary} | ${i.fields?.status?.name ?? "?"} | ${i.fields?.assignee?.displayName ?? "Unassigned"} | ${i.fields?.issuetype?.name ?? "?"} |`).join("\n")}`);
   }
 
   // Cloud Spend (live)
