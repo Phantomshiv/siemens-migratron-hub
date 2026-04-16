@@ -81,10 +81,19 @@ export function useOKRResolver() {
     map.set("lead-time", { value: null, hint: "Pending PR-merge analytics" });
     map.set("cfr", { value: null, hint: "Manual — incident tagging" });
 
-    const mttrHours = security.data?.mttr?.dependabot ?? security.data?.mttr?.code ?? null;
+    // MTTR by severity is in DAYS — pick critical for the headline metric
+    const mttrDays =
+      security.data?.mttr?.critical ??
+      security.data?.mttr?.high ??
+      security.data?.mttr?.medium ??
+      null;
+    const mttrHours = mttrDays !== null ? mttrDays * 24 : null;
     map.set("mttr", {
       value: mttrHours !== null ? mttrHours.toFixed(1) : null,
-      hint: mttrHours !== null ? `Industry elite ≤${settings.targetMttrHours}h` : undefined,
+      hint:
+        mttrHours !== null
+          ? `${mttrDays?.toFixed(1)} days for critical/high • elite ≤${settings.targetMttrHours}h`
+          : undefined,
       trend:
         mttrHours !== null
           ? mttrHours <= settings.targetMttrHours
