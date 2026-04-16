@@ -1307,6 +1307,9 @@ Deno.serve(async (req) => {
       }> = [];
 
       // De-duplicate by repo (multiple repo.create events can fire for the same repo)
+      // Cap per bucket so small buckets (e.g. Importer / GEI) are never squeezed out
+      const PER_BUCKET_CAP = 25;
+      const perBucketCount: Record<string, number> = {};
       const seenRepos = new Set<string>();
       for (const e of allEvents) {
         const repoName = e.repo || e.repository || "";
@@ -1315,7 +1318,9 @@ Deno.serve(async (req) => {
 
         const bucket = classify(e);
         buckets[bucket]++;
-        if (samples.length < 50) {
+        const used = perBucketCount[bucket] ?? 0;
+        if (used < PER_BUCKET_CAP) {
+          perBucketCount[bucket] = used + 1;
           samples.push({
             repo: repoName,
             actor: e.actor || "unknown",
