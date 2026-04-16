@@ -22,6 +22,7 @@ import ArchitectureDashboard from "./pages/ArchitectureDashboard.tsx";
 import SnapshotAI from "./pages/SnapshotAI.tsx";
 import OKRsDashboard from "./pages/OKRs.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import { RepoProvenanceSettingsProvider } from "./contexts/RepoProvenanceSettingsContext";
 
 const queryClient = new QueryClient();
 
@@ -29,10 +30,11 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
+        <RepoProvenanceSettingsProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/metrics" element={<CloudUsage />} />
             <Route path="/jira" element={<JiraDashboard />} />
