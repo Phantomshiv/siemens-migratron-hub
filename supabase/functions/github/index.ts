@@ -1526,21 +1526,28 @@ Deno.serve(async (req) => {
         buckets["GitHub CLI"];
       const manualTotal = buckets["Manual (UI)"];
 
-      // Coverage check — how many repos exist in the org vs how many we accounted for.
-      // Pre-existing repos (created before the audit window) won't appear in the log.
+      // Coverage check — how many repos *currently exist* in the org vs how many we
+      // observed creation events for in the window. Uses the same paginated list
+      // count that the GitHub dashboard's "Total Repos" tile shows, so the numbers
+      // line up. Repos created before the window won't appear in the audit log.
       let orgRepoTotal: number | null = null;
       try {
-        const orgResp = await fetch(`${GHE_BASE}/orgs/${org}`, { headers: gheHeaders });
-        if (orgResp.ok) {
-          const orgData = await orgResp.json() as {
-            public_repos?: number;
-            total_private_repos?: number;
-            owned_private_repos?: number;
-          };
-          orgRepoTotal =
-            (orgData.public_repos ?? 0) +
-            (orgData.total_private_repos ?? orgData.owned_private_repos ?? 0);
+        // Match the summary endpoint: paginated /orgs/{org}/repos count
+        let count = 0;
+        let p = 1;
+        while (p <= 20) {
+          const r = await fetch(
+            `${GHE_BASE}/orgs/${org}/repos?per_page=100&page=${p}&type=all`,
+            { headers: gheHeaders },
+          );
+          if (!r.ok) break;
+          const arr = await r.json() as unknown[];
+          if (!Array.isArray(arr) || arr.length === 0) break;
+          count += arr.length;
+          if (arr.length < 100) break;
+          p++;
         }
+        orgRepoTotal = count || null;
       } catch {
         // ignore
       }
