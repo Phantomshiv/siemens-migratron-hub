@@ -8,6 +8,7 @@ import { BackstageSystemsList } from "@/components/backstage/SystemsList";
 import { BackstageBUChart } from "@/components/backstage/BUChart";
 import { BackstageAPICatalog } from "@/components/backstage/APICatalog";
 import { AdoptionMetrics } from "@/components/backstage/AdoptionMetrics";
+import { RepoProvenancePanel } from "@/components/backstage/RepoProvenancePanel";
 import { Separator } from "@/components/ui/separator";
 
 const BackstageDashboard = () => {
@@ -38,6 +39,8 @@ const BackstageDashboard = () => {
           <BackstageComponentsTable />
           <BackstageAPICatalog />
         </div>
+
+        <RepoProvenancePanel />
 
         <Separator className="my-2" />
         <div>
