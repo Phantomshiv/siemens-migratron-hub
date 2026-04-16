@@ -158,10 +158,13 @@ export function RepoProvenancePanel() {
                 .map((b) => {
                   const Icon = bucketIcon[b.bucket] ?? HelpCircle;
                   const pct = (b.count / total) * 100;
+                  const isActive = activeBucket === b.bucket;
                   return (
-                    <div
+                    <button
                       key={b.bucket}
-                      className={`flex items-center justify-between rounded-md border px-2.5 py-1.5 text-xs ${bucketTone[b.bucket] ?? ""}`}
+                      type="button"
+                      onClick={() => setActiveBucket(isActive ? null : b.bucket)}
+                      className={`w-full flex items-center justify-between rounded-md border px-2.5 py-1.5 text-xs text-left transition-all hover:opacity-90 cursor-pointer ${bucketTone[b.bucket] ?? ""} ${isActive ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : ""}`}
                     >
                       <div className="flex items-center gap-2">
                         <Icon className="h-3.5 w-3.5" />
@@ -171,40 +174,63 @@ export function RepoProvenancePanel() {
                         <span>{b.count}</span>
                         <span className="text-muted-foreground">{pct.toFixed(1)}%</span>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
             </div>
 
             {/* Sample list */}
-            {data.samples.length > 0 && (
-              <div>
-                <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">
-                  Recent sample ({data.samples.length})
-                </div>
-                <ScrollArea className="h-48 rounded-md border border-border">
-                  <div className="divide-y divide-border">
-                    {data.samples.map((s, i) => (
-                      <div key={`${s.repo}-${i}`} className="px-2.5 py-1.5 text-[11px]">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-mono truncate">{s.repo || "—"}</span>
-                          <Badge
-                            variant="outline"
-                            className={`text-[9px] ${bucketTone[s.bucket] ?? ""}`}
-                          >
-                            {s.bucket}
-                          </Badge>
-                        </div>
-                        <div className="text-muted-foreground truncate">
-                          {s.actor} · {new Date(s.createdAt).toLocaleDateString()}
-                          {s.userAgent ? ` · ${s.userAgent.slice(0, 60)}` : ""}
-                        </div>
-                      </div>
-                    ))}
+            {data.samples.length > 0 && (() => {
+              const filteredSamples = activeBucket
+                ? data.samples.filter((s) => s.bucket === activeBucket)
+                : data.samples;
+              return (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Recent sample ({filteredSamples.length}
+                      {activeBucket ? ` · ${activeBucket}` : ""})
+                    </div>
+                    {activeBucket && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveBucket(null)}
+                        className="text-[10px] text-primary hover:underline"
+                      >
+                        Clear filter
+                      </button>
+                    )}
                   </div>
-                </ScrollArea>
-              </div>
-            )}
+                  <ScrollArea className="h-48 rounded-md border border-border">
+                    <div className="divide-y divide-border">
+                      {filteredSamples.length === 0 ? (
+                        <div className="px-2.5 py-3 text-[11px] text-muted-foreground">
+                          No sample entries for {activeBucket} (count exceeds the 50-sample cap).
+                        </div>
+                      ) : (
+                        filteredSamples.map((s, i) => (
+                          <div key={`${s.repo}-${i}`} className="px-2.5 py-1.5 text-[11px]">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-mono truncate">{s.repo || "—"}</span>
+                              <Badge
+                                variant="outline"
+                                className={`text-[9px] ${bucketTone[s.bucket] ?? ""}`}
+                              >
+                                {s.bucket}
+                              </Badge>
+                            </div>
+                            <div className="text-muted-foreground truncate">
+                              {s.actor} · {new Date(s.createdAt).toLocaleDateString()}
+                              {s.userAgent ? ` · ${s.userAgent.slice(0, 60)}` : ""}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+              );
+            })()}
 
             <p className="text-[10px] text-muted-foreground">
               Source: GHEC audit log · <code>action:repo.create</code> · classified by user-agent &amp; actor flags.
