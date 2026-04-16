@@ -30,9 +30,14 @@ import {
   RefreshCw,
   AlertCircle,
   MessageSquare,
+  Shield,
+  ScrollText,
+  Gavel,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+
+/* ──────────────────── Issue Card (shared) ──────────────────── */
 
 function IssueCard({ issue, expanded, onToggle, repoFiles }: { issue: RepoIssue; expanded: boolean; onToggle: () => void; repoFiles: RepoFile[] }) {
   const sc = getStatusConfig(issue.status);
@@ -55,13 +60,7 @@ function IssueCard({ issue, expanded, onToggle, repoFiles }: { issue: RepoIssue;
         </div>
         <p className="text-xs font-medium leading-snug line-clamp-2">{issue.title}</p>
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-          <a
-            href={issue.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline flex items-center gap-1"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <a href={issue.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             #{issue.number}
           </a>
           {issue.rfcId && <span className="font-mono">{issue.rfcId}</span>}
@@ -98,33 +97,17 @@ function IssueCard({ issue, expanded, onToggle, repoFiles }: { issue: RepoIssue;
                   <Badge key={l.name} variant="outline" className="text-[8px] h-3.5 px-1">{l.name}</Badge>
                 ))}
             </div>
-            {issue.rfcStatus && (
-              <p className="text-[9px] text-muted-foreground">RFC Status: <span className="font-medium">{issue.rfcStatus}</span></p>
-            )}
             {repoFiles.length > 0 && (
               <div className="space-y-1">
                 <span className="text-[9px] text-muted-foreground font-medium">📄 Repo Documents:</span>
                 {repoFiles.map((f) => (
-                  <a
-                    key={f.path}
-                    href={f.html_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-primary hover:underline flex items-center gap-1"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <a key={f.path} href={f.html_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     <FileText className="h-3 w-3" /> {f.path}
                   </a>
                 ))}
               </div>
             )}
-            <a
-              href={issue.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[10px] text-primary hover:underline flex items-center gap-1"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <a href={issue.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
               <ExternalLink className="h-3 w-3" /> View in GitHub
             </a>
           </div>
@@ -134,23 +117,147 @@ function IssueCard({ issue, expanded, onToggle, repoFiles }: { issue: RepoIssue;
   );
 }
 
+/* ──────────────────── Issue Table (shared) ──────────────────── */
+
+function IssueTable({ issues, expandedCard, setExpandedCard, isLoading, repoFiles }: {
+  issues: RepoIssue[];
+  expandedCard: number | null;
+  setExpandedCard: (n: number | null) => void;
+  isLoading: boolean;
+  repoFiles: RepoFile[];
+}) {
+  return (
+    <>
+      <Card className="glass-card">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left">
+                  <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">#</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">Title</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">Status</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">Capabilities</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">Assignee</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">💬</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={i} className="border-b border-border/50">
+                      <td colSpan={7} className="px-4 py-2.5"><Skeleton className="h-5 w-full" /></td>
+                    </tr>
+                  ))
+                ) : issues.length === 0 ? (
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-xs text-muted-foreground">No items found</td></tr>
+                ) : (
+                  issues.map((issue) => {
+                    const sc = getStatusConfig(issue.status);
+                    return (
+                      <tr
+                        key={issue.number}
+                        className={`border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors ${issue.state === "CLOSED" ? "opacity-50" : ""}`}
+                        onClick={() => setExpandedCard(expandedCard === issue.number ? null : issue.number)}
+                      >
+                        <td className="px-4 py-2.5 text-xs font-mono">
+                          <a href={issue.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-primary hover:underline">
+                            #{issue.number}
+                          </a>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs max-w-[300px]">
+                          <span className="truncate block">{issue.title}</span>
+                          {issue.rfcId && <span className="text-[9px] text-muted-foreground font-mono">{issue.rfcId}</span>}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <Badge className={`${sc.color} text-[9px] h-4 px-1.5`}>{sc.emoji} {sc.label}</Badge>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex flex-wrap gap-1 max-w-[200px]">
+                            {issue.capabilities.slice(0, 2).map((c) => (
+                              <Badge key={c} variant="outline" className="text-[8px] h-3.5 px-1 truncate max-w-[120px]">{c}</Badge>
+                            ))}
+                            {issue.capabilities.length > 2 && (
+                              <Badge variant="outline" className="text-[8px] h-3.5 px-1">+{issue.capabilities.length - 2}</Badge>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[120px]">
+                          {issue.assignees.length > 0 ? issue.assignees[0].name : "—"}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground text-center">
+                          {issue.commentsCount || "—"}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(issue.updatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Expanded detail */}
+      {expandedCard && (() => {
+        const issue = issues.find((i) => i.number === expandedCard);
+        if (!issue) return null;
+        return (
+          <Card className="glass-card mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <a href={issue.url} target="_blank" rel="noopener noreferrer" className="text-sm font-mono text-primary hover:underline">#{issue.number}</a>
+                  <span className="text-sm font-semibold">{issue.title}</span>
+                </div>
+                <button onClick={() => setExpandedCard(null)} className="text-xs text-muted-foreground hover:text-foreground">Close ✕</button>
+              </div>
+              {issue.rfcId && <p className="text-xs text-muted-foreground">RFC ID: <span className="font-mono font-medium">{issue.rfcId}</span></p>}
+              {issue.body && (
+                <div className="bg-muted/30 rounded-lg p-3 max-h-[300px] overflow-y-auto">
+                  <pre className="text-[10px] text-muted-foreground whitespace-pre-wrap font-sans">{issue.body}</pre>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-1">
+                {issue.labels.map((l) => <Badge key={l.name} variant="outline" className="text-[9px] h-4 px-1.5">{l.name}</Badge>)}
+              </div>
+              {issue.capabilities.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  <span className="text-[9px] text-muted-foreground">Capabilities:</span>
+                  {issue.capabilities.map((c) => (
+                    <Badge key={c} className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[8px] h-3.5 px-1">{c}</Badge>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
+    </>
+  );
+}
+
+/* ──────────────────── Main Dashboard ──────────────────── */
+
 const ArchitectureDashboard = () => {
   const [expandedCard, setExpandedCard] = useState<number | null>(null);
-  const [filterType, setFilterType] = useState<string | null>(null);
   const [showClosed, setShowClosed] = useState(false);
   const { data, isLoading, error, refetch, isFetching } = useArchitectureData();
 
   const allIssues = data?.issues || [];
   const repoFiles = data?.repoFiles || [];
 
-  // Filter issues
-  const issues = allIssues.filter((i) => {
-    if (!showClosed && i.state === "CLOSED") return false;
-    if (filterType && i.type !== filterType) return false;
-    return true;
-  });
+  // Separate ADRs and RFCs
+  const filteredIssues = allIssues.filter((i) => showClosed || i.state !== "CLOSED");
+  const adrIssues = filteredIssues.filter((i) => i.type === "ADR");
+  const rfcIssues = filteredIssues.filter((i) => i.type === "RFC");
+  const otherIssues = filteredIssues.filter((i) => i.type === "Issue");
 
-  // Stats (from all non-closed)
+  // Stats
   const openIssues = allIssues.filter((i) => i.state !== "CLOSED");
   const rfcCount = openIssues.filter((i) => i.type === "RFC").length;
   const adrCount = openIssues.filter((i) => i.type === "ADR").length;
@@ -177,14 +284,16 @@ const ArchitectureDashboard = () => {
             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => refetch()} disabled={isFetching}>
               <RefreshCw className={`h-3 w-3 mr-1 ${isFetching ? "animate-spin" : ""}`} /> Refresh
             </Button>
+            <Button
+              size="sm"
+              variant={showClosed ? "default" : "outline"}
+              className="h-7 text-xs"
+              onClick={() => setShowClosed(!showClosed)}
+            >
+              {showClosed ? "Hide Closed" : "Show Closed"}
+            </Button>
             <a href="https://siemens.ghe.com/foundation/oses-standards" target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
               <ExternalLink className="h-3.5 w-3.5" /> Repo
-            </a>
-            <a href="https://siemens.ghe.com/foundation/oses-standards/issues" target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
-              <List className="h-3.5 w-3.5" /> Issues
-            </a>
-            <a href="https://siemens.ghe.com/orgs/foundation/projects/7/views/1" target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
-              <LayoutGrid className="h-3.5 w-3.5" /> Kanban
             </a>
           </div>
         </div>
@@ -213,8 +322,8 @@ const ArchitectureDashboard = () => {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {[
               { label: "Total Open", value: openIssues.length, icon: FileText },
-              { label: "RFCs", value: rfcCount, icon: Clock },
-              { label: "ADRs", value: adrCount, icon: BookOpen },
+              { label: "RFCs (Process)", value: rfcCount, icon: ScrollText },
+              { label: "ADRs (Decisions)", value: adrCount, icon: Gavel },
               { label: "In Feedback", value: feedbackCount, icon: MessageSquare },
               { label: "Published", value: publishedCount, icon: CheckCircle2 },
             ].map((kpi) => (
@@ -233,208 +342,173 @@ const ArchitectureDashboard = () => {
           </div>
         )}
 
-        {/* Filters */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-          {[null, "RFC", "ADR", "Issue"].map((t) => (
-            <Button
-              key={t || "all"}
-              size="sm"
-              variant={filterType === t ? "default" : "outline"}
-              className="h-7 text-xs"
-              onClick={() => setFilterType(t)}
-            >
-              {t || "All"}
-            </Button>
-          ))}
-          <div className="ml-auto">
-            <Button
-              size="sm"
-              variant={showClosed ? "default" : "outline"}
-              className="h-7 text-xs"
-              onClick={() => setShowClosed(!showClosed)}
-            >
-              {showClosed ? "Hide Closed" : "Show Closed"}
-            </Button>
-          </div>
-        </div>
-
-        <Tabs defaultValue="list" className="space-y-4">
+        {/* ──── Top-level tabs: ADRs vs RFCs ──── */}
+        <Tabs defaultValue="adrs" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="list" className="text-xs"><List className="h-3 w-3 mr-1" /> List</TabsTrigger>
-            <TabsTrigger value="kanban" className="text-xs"><LayoutGrid className="h-3 w-3 mr-1" /> Kanban</TabsTrigger>
-            <TabsTrigger value="coverage" className="text-xs"><Map className="h-3 w-3 mr-1" /> Capability Coverage</TabsTrigger>
-            <TabsTrigger value="docs" className="text-xs"><FileText className="h-3 w-3 mr-1" /> Documents</TabsTrigger>
+            <TabsTrigger value="adrs" className="text-xs gap-1.5">
+              <Gavel className="h-3 w-3" /> ADRs — Current Decisions
+            </TabsTrigger>
+            <TabsTrigger value="rfcs" className="text-xs gap-1.5">
+              <ScrollText className="h-3 w-3" /> RFCs — Deep Dive Records
+            </TabsTrigger>
+            <TabsTrigger value="coverage" className="text-xs gap-1.5">
+              <Map className="h-3 w-3" /> Capability Coverage
+            </TabsTrigger>
+            <TabsTrigger value="docs" className="text-xs gap-1.5">
+              <FileText className="h-3 w-3" /> Documents
+            </TabsTrigger>
           </TabsList>
 
-          {/* List View */}
-          <TabsContent value="list">
-            <Card className="glass-card">
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border text-left">
-                        <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">#</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">Title</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">Type</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">Status</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">Capabilities</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">Assignee</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">💬</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">Updated</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {isLoading ? (
-                        Array.from({ length: 8 }).map((_, i) => (
-                          <tr key={i} className="border-b border-border/50">
-                            <td colSpan={8} className="px-4 py-2.5"><Skeleton className="h-5 w-full" /></td>
-                          </tr>
-                        ))
-                      ) : (
-                        issues.map((issue) => {
-                          const sc = getStatusConfig(issue.status);
-                          return (
-                            <tr
-                              key={issue.number}
-                              className={`border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors ${issue.state === "CLOSED" ? "opacity-50" : ""}`}
-                              onClick={() => setExpandedCard(expandedCard === issue.number ? null : issue.number)}
-                            >
-                              <td className="px-4 py-2.5 text-xs font-mono">
-                                <a href={issue.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-primary hover:underline">
-                                  #{issue.number}
-                                </a>
-                              </td>
-                              <td className="px-4 py-2.5 text-xs max-w-[300px]">
-                                <span className="truncate block">{issue.title}</span>
-                                {issue.rfcId && <span className="text-[9px] text-muted-foreground font-mono">{issue.rfcId}</span>}
-                              </td>
-                              <td className="px-4 py-2.5">
-                                <Badge variant="outline" className="text-[9px] h-4 px-1.5">{issue.type}</Badge>
-                              </td>
-                              <td className="px-4 py-2.5">
-                                <Badge className={`${sc.color} text-[9px] h-4 px-1.5`}>{sc.emoji} {sc.label}</Badge>
-                              </td>
-                              <td className="px-4 py-2.5">
-                                <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                  {issue.capabilities.slice(0, 2).map((c) => (
-                                    <Badge key={c} variant="outline" className="text-[8px] h-3.5 px-1 truncate max-w-[120px]">{c}</Badge>
-                                  ))}
-                                  {issue.capabilities.length > 2 && (
-                                    <Badge variant="outline" className="text-[8px] h-3.5 px-1">+{issue.capabilities.length - 2}</Badge>
-                                  )}
+          {/* ──── ADRs Tab ──── */}
+          <TabsContent value="adrs">
+            <div className="space-y-4">
+              <Card className="glass-card bg-emerald-500/5 border-emerald-500/20">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <Gavel className="h-5 w-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold">Architecture Decision Records</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      ADRs capture the <span className="font-medium text-foreground">current set of decisions</span> that teams should follow.
+                      They represent ratified standards and the "what is decided" for the organization.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <IssueTable
+                issues={adrIssues}
+                expandedCard={expandedCard}
+                setExpandedCard={setExpandedCard}
+                isLoading={isLoading}
+                repoFiles={repoFiles}
+              />
+            </div>
+          </TabsContent>
+
+          {/* ──── RFCs Tab ──── */}
+          <TabsContent value="rfcs">
+            <div className="space-y-4">
+              <Card className="glass-card bg-blue-500/5 border-blue-500/20">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <ScrollText className="h-5 w-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold">Requests for Comments</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      RFCs are <span className="font-medium text-foreground">immutable records</span> of the decision-making process.
+                      They document proposals, alternatives considered, and rationale for people who want to deep dive into the "why" behind decisions.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Sub-tabs: List vs Kanban for RFCs */}
+              <Tabs defaultValue="rfc-kanban" className="space-y-3">
+                <TabsList className="h-8">
+                  <TabsTrigger value="rfc-kanban" className="text-xs h-6"><LayoutGrid className="h-3 w-3 mr-1" /> Kanban</TabsTrigger>
+                  <TabsTrigger value="rfc-list" className="text-xs h-6"><List className="h-3 w-3 mr-1" /> List</TabsTrigger>
+                </TabsList>
+
+                {/* RFC Kanban */}
+                <TabsContent value="rfc-kanban">
+                  {isLoading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="space-y-2"><Skeleton className="h-6 w-full" /><Skeleton className="h-32 w-full" /></div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                      {kanbanColumns.map((colName) => {
+                        const colIssues = rfcIssues.filter((i) => {
+                          if (colName === "Feedback") return ["Feedback", "Community Feedback"].includes(i.status);
+                          if (colName === "Publication / Closeout") return ["Publication / Closeout", "Published"].includes(i.status);
+                          return i.status === colName;
+                        });
+                        const sc = getStatusConfig(colName);
+                        return (
+                          <div key={colName} className="space-y-2">
+                            <div className="flex items-center justify-between px-1">
+                              <span className="text-xs font-semibold flex items-center gap-1.5">
+                                {sc.emoji} {sc.label}
+                              </span>
+                              <Badge variant="outline" className="text-[9px] h-4 px-1.5">{colIssues.length}</Badge>
+                            </div>
+                            <div className="space-y-2 min-h-[100px]">
+                              {colIssues.map((issue) => (
+                                <IssueCard
+                                  key={issue.number}
+                                  issue={issue}
+                                  expanded={expandedCard === issue.number}
+                                  onToggle={() => setExpandedCard(expandedCard === issue.number ? null : issue.number)}
+                                  repoFiles={repoFiles}
+                                />
+                              ))}
+                              {colIssues.length === 0 && (
+                                <div className="text-[10px] text-muted-foreground text-center py-8 border border-dashed border-border rounded-lg">
+                                  No items
                                 </div>
-                              </td>
-                              <td className="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[120px]">
-                                {issue.assignees.length > 0 ? issue.assignees[0].name : "—"}
-                              </td>
-                              <td className="px-4 py-2.5 text-xs text-muted-foreground text-center">
-                                {issue.commentsCount || "—"}
-                              </td>
-                              <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                                {new Date(issue.updatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Expanded detail */}
-            {expandedCard && (() => {
-              const issue = issues.find((i) => i.number === expandedCard);
-              if (!issue) return null;
-              return (
-                <Card className="glass-card mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <a href={issue.url} target="_blank" rel="noopener noreferrer" className="text-sm font-mono text-primary hover:underline">#{issue.number}</a>
-                        <span className="text-sm font-semibold">{issue.title}</span>
-                      </div>
-                      <button onClick={() => setExpandedCard(null)} className="text-xs text-muted-foreground hover:text-foreground">Close ✕</button>
-                    </div>
-                    {issue.rfcId && <p className="text-xs text-muted-foreground">RFC ID: <span className="font-mono font-medium">{issue.rfcId}</span></p>}
-                    {issue.body && (
-                      <div className="bg-muted/30 rounded-lg p-3 max-h-[300px] overflow-y-auto">
-                        <pre className="text-[10px] text-muted-foreground whitespace-pre-wrap font-sans">{issue.body}</pre>
-                      </div>
-                    )}
-                    <div className="flex flex-wrap gap-1">
-                      {issue.labels.map((l) => <Badge key={l.name} variant="outline" className="text-[9px] h-4 px-1.5">{l.name}</Badge>)}
-                    </div>
-                    {issue.capabilities.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        <span className="text-[9px] text-muted-foreground">Capabilities:</span>
-                        {issue.capabilities.map((c) => (
-                          <Badge key={c} className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[8px] h-3.5 px-1">{c}</Badge>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })()}
-          </TabsContent>
-
-          {/* Kanban View */}
-          <TabsContent value="kanban">
-            {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="space-y-2"><Skeleton className="h-6 w-full" /><Skeleton className="h-32 w-full" /></div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                {kanbanColumns.map((colName) => {
-                  const colIssues = issues.filter((i) => {
-                    // Match status including aliases
-                    if (colName === "Feedback") return ["Feedback", "Community Feedback"].includes(i.status);
-                    if (colName === "Publication / Closeout") return ["Publication / Closeout", "Published"].includes(i.status);
-                    return i.status === colName;
-                  });
-                  const sc = getStatusConfig(colName);
-                  return (
-                    <div key={colName} className="space-y-2">
-                      <div className="flex items-center justify-between px-1">
-                        <span className="text-xs font-semibold flex items-center gap-1.5">
-                          {sc.emoji} {sc.label}
-                        </span>
-                        <Badge variant="outline" className="text-[9px] h-4 px-1.5">{colIssues.length}</Badge>
-                      </div>
-                      <div className="space-y-2 min-h-[100px]">
-                        {colIssues.map((issue) => (
-                          <IssueCard
-                            key={issue.number}
-                            issue={issue}
-                            expanded={expandedCard === issue.number}
-                            onToggle={() => setExpandedCard(expandedCard === issue.number ? null : issue.number)}
-                            repoFiles={repoFiles}
-                          />
-                        ))}
-                        {colIssues.length === 0 && (
-                          <div className="text-[10px] text-muted-foreground text-center py-8 border border-dashed border-border rounded-lg">
-                            No items
+                              )}
+                            </div>
                           </div>
-                        )}
-                      </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  )}
+                </TabsContent>
+
+                {/* RFC List */}
+                <TabsContent value="rfc-list">
+                  <IssueTable
+                    issues={rfcIssues}
+                    expandedCard={expandedCard}
+                    setExpandedCard={setExpandedCard}
+                    isLoading={isLoading}
+                    repoFiles={repoFiles}
+                  />
+                </TabsContent>
+              </Tabs>
+
+              {/* RFC Process overview */}
+              <Card className="glass-card">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-heading">RFC Process Flow</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                    {kanbanColumns.map((colName, i) => {
+                      const sc = getStatusConfig(colName);
+                      const count = rfcIssues.filter((it) => {
+                        if (colName === "Feedback") return ["Feedback", "Community Feedback"].includes(it.status);
+                        if (colName === "Publication / Closeout") return ["Publication / Closeout", "Published"].includes(it.status);
+                        return it.status === colName;
+                      }).length;
+                      return (
+                        <div key={colName} className="flex items-center gap-2 flex-shrink-0">
+                          <div className="text-center px-3 py-2 rounded-lg bg-muted/30 min-w-[110px]">
+                            <span className="text-lg">{sc.emoji}</span>
+                            <p className="text-[10px] font-medium mt-1">{sc.label}</p>
+                            <p className="text-[9px] text-muted-foreground">{count} items</p>
+                          </div>
+                          {i < kanbanColumns.length - 1 && <span className="text-muted-foreground text-lg">→</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-2">
+                    Live data from{" "}
+                    <a href="https://siemens.ghe.com/foundation/oses-standards/issues" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                      oses-standards issues →
+                    </a>{" "}
+                    · Cached 10 min
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
-          {/* Capability Coverage */}
+          {/* ──── Capability Coverage (shared) ──── */}
           <TabsContent value="coverage">
             {(() => {
-              // Build capability status from live issues
               const capToStatus: Record<string, "covered" | "in_progress" | "pending"> = {};
               for (const issue of allIssues) {
                 if (issue.state === "CLOSED") continue;
@@ -529,7 +603,7 @@ const ArchitectureDashboard = () => {
             })()}
           </TabsContent>
 
-          {/* Documents Tab */}
+          {/* ──── Documents Tab ──── */}
           <TabsContent value="docs">
             <Card className="glass-card">
               <CardHeader className="pb-2">
@@ -567,42 +641,6 @@ const ArchitectureDashboard = () => {
             </Card>
           </TabsContent>
         </Tabs>
-
-        {/* Process overview */}
-        <Card className="glass-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-heading">RFC/ADR Process</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2 overflow-x-auto pb-2">
-              {kanbanColumns.map((colName, i) => {
-                const sc = getStatusConfig(colName);
-                const count = issues.filter((it) => {
-                  if (colName === "Feedback") return ["Feedback", "Community Feedback"].includes(it.status);
-                  if (colName === "Publication / Closeout") return ["Publication / Closeout", "Published"].includes(it.status);
-                  return it.status === colName;
-                }).length;
-                return (
-                  <div key={colName} className="flex items-center gap-2 flex-shrink-0">
-                    <div className="text-center px-3 py-2 rounded-lg bg-muted/30 min-w-[110px]">
-                      <span className="text-lg">{sc.emoji}</span>
-                      <p className="text-[10px] font-medium mt-1">{sc.label}</p>
-                      <p className="text-[9px] text-muted-foreground">{count} items</p>
-                    </div>
-                    {i < kanbanColumns.length - 1 && <span className="text-muted-foreground text-lg">→</span>}
-                  </div>
-                );
-              })}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-2">
-              Live data from{" "}
-              <a href="https://siemens.ghe.com/foundation/oses-standards/issues" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                oses-standards issues →
-              </a>{" "}
-              · Cached 10 min
-            </p>
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   );
