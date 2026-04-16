@@ -1,3 +1,4 @@
+import type { ElementType } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -41,7 +42,7 @@ type MetricCard = {
   label: string;
   value: string;
   trend: number;
-  icon: React.ElementType;
+  icon: ElementType;
   badgeLabel: "Live" | "Mock";
   badgeClassName: string;
   meta?: string;
