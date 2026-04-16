@@ -139,10 +139,10 @@ export function useOKRResolver() {
     const buckets = security.data?.ageBuckets;
     if (buckets) {
       const weights: Record<string, number> = {
-        "0-7": 3,
-        "7-30": 18,
-        "30-90": 60,
-        "90+": 120,
+        "0-7d": 3,
+        "7-30d": 18,
+        "30-90d": 60,
+        "90d+": 120,
       };
       let totalCount = 0;
       let weightedSum = 0;
