@@ -2,8 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { callJira } from "@/lib/jira";
 
 const CONFLUENCE_SPACES = [
-  { id: "5013504", key: "P0SC", name: "Pillar0-Security and Compliance" },
-  { id: "12746752", key: "P0CO", name: "Pillar0-Cloud Operations_DC" },
+  { id: "934117464", key: "OSES", name: "OSES" },
+  { id: "293311293", key: "OAAG", name: "OSES Architecture and Governance" },
+  { id: "474284995", key: "ORQGC", name: "OSES Release Quality Gates Checkpoint" },
+  { id: "357303681", key: "OIR", name: "OSES Iteration Review" },
 ] as const;
 
 interface ConfluencePageVersion {
