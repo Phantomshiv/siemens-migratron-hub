@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ShieldAlert, ShieldCheck, Bug, KeyRound, Package, TrendingUp,
+  ShieldAlert, ShieldCheck, Bug, KeyRound, Package, TrendingUp, CheckCircle2,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
@@ -22,6 +22,7 @@ import { SecurityOptOutPanel } from "@/components/cybersecurity/SecurityOptOutPa
 import { VulnDensityPanel } from "@/components/cybersecurity/VulnDensityPanel";
 import { AutomationSavingsPanel } from "@/components/cybersecurity/AutomationSavingsPanel";
 import { FalsePositivePanel } from "@/components/cybersecurity/FalsePositivePanel";
+import { RemediationRatePanel } from "@/components/cybersecurity/RemediationRatePanel";
 import { CyberSettingsProvider } from "@/contexts/CyberSettingsContext";
 import { CyberSettingsPanel } from "@/components/cybersecurity/CyberSettingsPanel";
 
@@ -35,7 +36,6 @@ const tooltipStyle = {
 const CybersecurityDashboard = () => {
   const { data: security, isLoading: securityLoading } = useGitHubSecurity("open");
 
-  // Derive posture scores client-side from riskScores (works with or without backend update)
   const postureScores: PostureScore[] = useMemo(() => {
     if (security?.postureScores) return security.postureScores;
     if (!security?.riskScores) return [];
@@ -51,7 +51,6 @@ const CybersecurityDashboard = () => {
     }).sort((a, b) => b.level - a.level || a.total - b.total);
   }, [security]);
 
-  // Derive security configs client-side from alertDetails
   const securityConfigs: SecurityConfigs | null = useMemo(() => {
     if (security?.securityConfigs) return security.securityConfigs;
     if (!security?.alertDetails || !security?.riskScores) return null;
@@ -65,10 +64,6 @@ const CybersecurityDashboard = () => {
     }
     for (const r of security.riskScores) allRepos.add(r.repo);
     const secretRepos = new Set<string>();
-    if (security.secretTypes && Object.keys(security.secretTypes).length > 0) {
-      // We know secrets exist but can't map to specific repos from alertDetails alone
-      // Use push protection data if available
-    }
     const total = Math.max(allRepos.size, 1);
     return {
       totalRepos: total,
@@ -78,11 +73,24 @@ const CybersecurityDashboard = () => {
     };
   }, [security]);
 
-  // Derive blocked repos from alertDetails push protection data
   const blockedByPushProtection: Record<string, number> | undefined = useMemo(() => {
     if (security?.blockedByPushProtection) return security.blockedByPushProtection;
     return undefined;
   }, [security]);
+
+  // Derived positive metrics
+  const totalDetected = security
+    ? (security.counts.codeScanning.open + security.counts.codeScanning.fixed) +
+      (security.counts.dependabot.open + security.counts.dependabot.fixed) +
+      (security.counts.secretScanning.open + security.counts.secretScanning.resolved)
+    : 0;
+  const totalFixed = security
+    ? security.counts.codeScanning.fixed + security.counts.dependabot.fixed + security.counts.secretScanning.resolved
+    : 0;
+  const remediationRate = totalDetected > 0 ? (totalFixed / totalDetected * 100) : 0;
+  const totalOpen = security
+    ? security.counts.codeScanning.open + security.counts.dependabot.open + security.counts.secretScanning.open
+    : 0;
 
   return (
     <CyberSettingsProvider>
@@ -98,53 +106,60 @@ const CybersecurityDashboard = () => {
           <CyberSettingsPanel />
         </div>
 
-        {/* KPI Cards Row */}
+        {/* Positive-framed KPI Cards Row */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="glass-card">
+          {/* Protected at Go-Live */}
+          <Card className="glass-card border-chart-1/20">
             <CardContent className="pt-6">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                <Bug className="h-3.5 w-3.5" /> Code Scanning
+                <ShieldCheck className="h-3.5 w-3.5 text-chart-1" /> Protected at Go-Live
               </div>
               {securityLoading ? <Skeleton className="h-8 w-20" /> : (
                 <>
-                  <p className="text-2xl font-bold font-heading text-destructive">{security?.counts.codeScanning.open ?? "—"}</p>
+                  <p className="text-2xl font-bold font-heading text-chart-1">100%</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">
-                    open alerts · {security?.counts.codeScanning.fixed ?? 0} fixed
+                    All OSES apps ship with default security controls
                   </p>
                 </>
               )}
             </CardContent>
           </Card>
+
+          {/* Issues Resolved */}
           <Card className="glass-card">
             <CardContent className="pt-6">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                <KeyRound className="h-3.5 w-3.5" /> Secret Scanning
+                <CheckCircle2 className="h-3.5 w-3.5 text-chart-1" /> Issues Resolved
               </div>
               {securityLoading ? <Skeleton className="h-8 w-20" /> : (
                 <>
-                  <p className="text-2xl font-bold font-heading text-chart-3">{security?.counts.secretScanning.open ?? "—"}</p>
+                  <p className="text-2xl font-bold font-heading text-chart-1">{totalFixed.toLocaleString()}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">
-                    open alerts · {security?.counts.secretScanning.resolved ?? 0} resolved
+                    of {totalDetected.toLocaleString()} detected · {remediationRate.toFixed(0)}% rate
                   </p>
                 </>
               )}
             </CardContent>
           </Card>
+
+          {/* Remaining Open (attention needed) */}
           <Card className="glass-card">
             <CardContent className="pt-6">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                <Package className="h-3.5 w-3.5" /> Dependabot
+                <Bug className="h-3.5 w-3.5" /> Attention Needed
               </div>
               {securityLoading ? <Skeleton className="h-8 w-20" /> : (
                 <>
-                  <p className="text-2xl font-bold font-heading text-chart-1">{security?.counts.dependabot.open ?? "—"}</p>
+                  <p className="text-2xl font-bold font-heading text-chart-3">{totalOpen.toLocaleString()}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">
-                    open alerts · {security?.counts.dependabot.fixed ?? 0} fixed
+                    {security?.counts.codeScanning.open ?? 0} code · {security?.counts.dependabot.open ?? 0} deps · {security?.counts.secretScanning.open ?? 0} secrets
                   </p>
                 </>
               )}
             </CardContent>
           </Card>
+
+          {/* Push Protection */}
           {securityLoading ? (
             <Card className="glass-card"><CardContent className="pt-6"><Skeleton className="h-20 w-full" /></CardContent></Card>
           ) : security?.pushProtection ? (
@@ -162,7 +177,6 @@ const CybersecurityDashboard = () => {
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Weekly Trend */}
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="text-sm font-heading flex items-center gap-2">
@@ -196,11 +210,9 @@ const CybersecurityDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Ecosystem Breakdown */}
           {!securityLoading && security?.ecosystems && Object.keys(security.ecosystems).length > 0 ? (
             <EcosystemPanel ecosystems={security.ecosystems} />
           ) : (
-            /* Severity Breakdown fallback */
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="text-sm font-heading flex items-center gap-2">
@@ -289,7 +301,6 @@ const CybersecurityDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Secret types */}
           {security?.secretTypes && Object.keys(security.secretTypes).length > 0 && (
             <Card className="glass-card">
               <CardHeader>
@@ -313,22 +324,24 @@ const CybersecurityDashboard = () => {
           )}
         </div>
 
-        {/* PDF KPIs: Vulnerability Density + Automation Savings + False Positive Rate */}
+        {/* KPI Panels: Vuln Density + Automation + False Positive + Remediation Rate */}
         {!securityLoading && security && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <VulnDensityPanel riskScores={security.riskScores || []} />
             <AutomationSavingsPanel
-              totalVulnsFound={
-                (security.counts.codeScanning.open + security.counts.codeScanning.fixed) +
-                (security.counts.dependabot.open + security.counts.dependabot.fixed)
-              }
-              totalFixed={security.counts.codeScanning.fixed + security.counts.dependabot.fixed + security.counts.secretScanning.resolved}
+              totalVulnsFound={totalDetected}
+              totalFixed={totalFixed}
               mttr={security.mttr || {}}
             />
             <FalsePositivePanel
-              totalOpen={security.counts.codeScanning.open + security.counts.dependabot.open + security.counts.secretScanning.open}
+              totalOpen={totalOpen}
               totalDismissed={0}
-              totalFixed={security.counts.codeScanning.fixed + security.counts.dependabot.fixed + security.counts.secretScanning.resolved}
+              totalFixed={totalFixed}
+            />
+            <RemediationRatePanel
+              totalDetected={totalDetected}
+              totalFixed={totalFixed}
+              mttr={security.mttr || {}}
             />
           </div>
         )}
