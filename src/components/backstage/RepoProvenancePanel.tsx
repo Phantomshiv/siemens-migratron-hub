@@ -227,7 +227,11 @@ export function RepoProvenancePanel() {
                             </div>
                             <div className="text-muted-foreground truncate">
                               {s.actor} · {new Date(s.createdAt).toLocaleDateString()}
-                              {s.userAgent ? ` · ${s.userAgent.slice(0, 60)}` : ""}
+                              {s.templateRepo ? ` · tpl: ${s.templateRepo}` : ""}
+                              {s.firstCommitAuthor && !s.templateRepo ? ` · 1st: ${s.firstCommitAuthor}` : ""}
+                              {!s.templateRepo && !s.firstCommitAuthor && s.userAgent
+                                ? ` · ${s.userAgent.slice(0, 60)}`
+                                : ""}
                             </div>
                           </div>
                         ))
