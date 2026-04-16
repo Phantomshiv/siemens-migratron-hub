@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { useGitHubSummary, useGitHubActivity, useGitHubMembersDetail } from "@/hooks/useGitHub";
 import { useGitHubCopilotSeats } from "@/hooks/useGitHubCopilotSeats";
 import { useGitHubAuditLog } from "@/hooks/useGitHubAuditLog";
+import { RepoProvenancePanel } from "@/components/backstage/RepoProvenancePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -490,6 +491,8 @@ const GitHubDashboard = () => {
           </Card>
         </div>
 
+
+        <RepoProvenancePanel />
 
         <div>
           <h2 className="text-lg font-heading font-bold mb-4 flex items-center gap-2">
