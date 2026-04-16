@@ -3,11 +3,14 @@ import { useMonthlySpend } from "@/hooks/useCloudability";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Mock data used as fallback when API is loading or errors
+// Accrual values reflect adjusted-amortized (post credits/refunds); raw amortized is slightly higher.
 const mockData = {
   cashThisMonth: 1421866.77,
   cashLastMonth: 1423188.75,
   accrualThisMonth: 1508483.59,
   accrualLastMonth: 1505230.50,
+  accrualRawThisMonth: 1547210.42,
+  accrualRawLastMonth: 1543890.10,
 };
 
 export function CloudSpendOverview() {
@@ -22,8 +25,12 @@ export function CloudSpendOverview() {
         cash = {
           cashLastMonth: parseFloat(result[0]?.unblended_cost || "0"),
           cashThisMonth: parseFloat(result[1]?.unblended_cost || "0"),
-          accrualLastMonth: parseFloat(result[0]?.total_amortized_cost || "0"),
-          accrualThisMonth: parseFloat(result[1]?.total_amortized_cost || "0"),
+          // Default to adjusted amortized (post credits/refunds/fees/tax)
+          accrualLastMonth: parseFloat(result[0]?.total_adjusted_amortized_cost || result[0]?.total_amortized_cost || "0"),
+          accrualThisMonth: parseFloat(result[1]?.total_adjusted_amortized_cost || result[1]?.total_amortized_cost || "0"),
+          // Keep raw amortized for delta tooltip
+          accrualRawLastMonth: parseFloat(result[0]?.total_amortized_cost || "0"),
+          accrualRawThisMonth: parseFloat(result[1]?.total_amortized_cost || "0"),
         };
       }
     } catch {
@@ -37,6 +44,10 @@ export function CloudSpendOverview() {
   const accrualChange = cash.accrualLastMonth > 0
     ? ((cash.accrualThisMonth - cash.accrualLastMonth) / cash.accrualLastMonth * 100)
     : 0;
+
+  // Adjustment = raw amortized − adjusted amortized (positive = credits/refunds applied)
+  const adjustmentThisMonth = cash.accrualRawThisMonth - cash.accrualThisMonth;
+  const adjustmentLastMonth = cash.accrualRawLastMonth - cash.accrualLastMonth;
 
   const fmt = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
