@@ -1295,6 +1295,9 @@ Deno.serve(async (req) => {
         | "Importer / GEI"
         | "Siemens Self-Service"
         | "From Template"
+        | "Imported (legacy)"
+        | "Transferred In"
+        | "Forked In"
         | "Bot-initialized"
         | "App / OAuth"
         | "Bot"
@@ -1312,7 +1315,6 @@ Deno.serve(async (req) => {
       const botCommitHints = /\[bot\]|terraform|atlantis|copybara|renovate|dependabot|github-actions|svc-|service-account|automation/i;
 
       // Match an actor (login, name, email) against the user-configured allowlist.
-      // Each entry is treated as a substring match (lowercased).
       function matchesAllowlist(...candidates: string[]): boolean {
         if (allowlist.length === 0) return false;
         const hay = candidates.filter(Boolean).join(" ").toLowerCase();
@@ -1321,6 +1323,12 @@ Deno.serve(async (req) => {
 
       function classifyFromAudit(e: AuditEvent): Bucket {
         const ua = e.user_agent || "";
+        // Action-type takes precedence — these unambiguously identify how the repo entered.
+        if (e.action === "repo.import") return "Imported (legacy)";
+        if (e.action === "repo.transfer" || e.action === "repo.transfer_start") return "Transferred In";
+        if (e.action === "repo.fork") return "Forked In";
+        if (e.action === "repo.create_using_template") return "From Template";
+
         // Allowlist takes precedence over UA — these are known internal tools
         // even when they call the API with a browser-like UA.
         if (matchesAllowlist(e.actor || "")) return "Siemens Self-Service";
