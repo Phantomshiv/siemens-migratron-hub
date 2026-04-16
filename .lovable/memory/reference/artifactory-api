@@ -1,0 +1,31 @@
+---
+name: Artifactory + Xray API
+description: JFrog Artifactory and Xray REST endpoints for Artifact Storage dashboard
+type: reference
+---
+
+# Artifactory + Xray
+
+Auth: Bearer scoped Access Token.
+- `ARTIFACTORY_BASE_URL` = full Artifactory base, e.g. `https://siemens.jfrog.io/artifactory`
+- `ARTIFACTORY_TOKEN` = scoped Access Token (needs `system:info/storage:r` + repo read)
+
+Xray endpoints are routed automatically: paths starting with `/xray/`
+go to `<host-root>/xray/...` (host root = base minus trailing `/artifactory`).
+
+## Artifactory endpoints
+- `GET /api/storageinfo` — totals, file-store, per-repo summary
+- `GET /api/repositories?type=local|remote|virtual|federated`
+- `GET /api/storage/{repoKey}` — per-repo detail
+- `GET /api/system/ping`, `/api/system/version`
+- `POST /api/search/aql` (text/plain body) — top largest, stale artifacts, etc.
+
+## Xray endpoints
+- `GET /xray/api/v1/system/ping`
+- `POST /xray/api/v1/violations`
+- `POST /xray/api/v1/summary/artifact` — vuln summary by path
+
+## Proxy
+`supabase/functions/artifactory/index.ts` — handles auth + Xray routing,
+supports text/plain for AQL.
+Client: `src/lib/artifactory.ts`. Hooks: `src/hooks/useArtifactory.ts`.
