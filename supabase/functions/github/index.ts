@@ -1225,10 +1225,17 @@ Deno.serve(async (req) => {
       const sinceTs = Date.now() - days * 24 * 60 * 60 * 1000;
       const sinceIso = new Date(sinceTs).toISOString().split("T")[0];
 
-      // Audit-log phrase filter: any action starting with "repo.create"
-      // (covers repo.create, repo.create_using_template, repo.transfer, etc.)
-      // We also fetch the broader window via created:>=YYYY-MM-DD
-      const phrase = encodeURIComponent(`action:repo.create created:>=${sinceIso}`);
+      // Audit-log phrase filter: any way a repo can enter the org.
+      // GHEC audit-log search doesn't support OR/parentheses across action: terms,
+      // so we issue one query per action and merge the results.
+      const actions = [
+        "repo.create",
+        "repo.create_using_template",
+        "repo.import",
+        "repo.transfer",
+        "repo.transfer_start",
+        "repo.fork",
+      ];
 
       type AuditEvent = {
         action: string;
@@ -1248,26 +1255,35 @@ Deno.serve(async (req) => {
       };
 
       const allEvents: AuditEvent[] = [];
-      let page = 1;
-      let hasMore = true;
-      const MAX_PAGES = 10; // up to 1000 repo.create events
-      while (hasMore && page <= MAX_PAGES) {
-        const apiUrl =
-          `${GHE_API_BASE}/api/v3/orgs/${org}/audit-log` +
-          `?phrase=${phrase}&per_page=100&page=${page}&include=all`;
-        const resp = await fetch(apiUrl, { headers: gheHeaders });
-        if (!resp.ok) {
-          const body = await resp.text();
-          console.error(`Audit log (provenance) error [${resp.status}]:`, body.slice(0, 400));
-          break;
+      const MAX_PAGES_PER_ACTION = 30; // up to 3000 events per action — repo.create can be very chatty
+
+      for (const act of actions) {
+        const phrase = encodeURIComponent(`action:${act} created:>=${sinceIso}`);
+        let page = 1;
+        let hasMore = true;
+        while (hasMore && page <= MAX_PAGES_PER_ACTION) {
+          const apiUrl =
+            `${GHE_API_BASE}/api/v3/orgs/${org}/audit-log` +
+            `?phrase=${phrase}&per_page=100&page=${page}&include=all`;
+          const resp = await fetch(apiUrl, { headers: gheHeaders });
+          if (!resp.ok) {
+            const body = await resp.text();
+            console.error(`Audit log [${act}] error [${resp.status}]:`, body.slice(0, 300));
+            break;
+          }
+          const data = (await resp.json()) as AuditEvent[];
+          if (!Array.isArray(data) || data.length === 0) { hasMore = false; break; }
+          const allOlder = data.every((e) => e.created_at < sinceTs);
+          allEvents.push(...data);
+          if (data.length < 100 || allOlder) hasMore = false;
+          page++;
         }
-        const data = (await resp.json()) as AuditEvent[];
-        if (!Array.isArray(data) || data.length === 0) { hasMore = false; break; }
-        // Stop if we've passed the time window
-        const allOlder = data.every((e) => e.created_at < sinceTs);
-        allEvents.push(...data);
-        if (data.length < 100 || allOlder) hasMore = false;
-        page++;
+      }
+
+      // Tally raw action breakdown for transparency in the UI
+      const actionBreakdown: Record<string, number> = {};
+      for (const e of allEvents) {
+        actionBreakdown[e.action] = (actionBreakdown[e.action] || 0) + 1;
       }
 
       // Classify each event into a provenance bucket from audit-log signals only.
@@ -1276,6 +1292,9 @@ Deno.serve(async (req) => {
         | "Importer / GEI"
         | "Siemens Self-Service"
         | "From Template"
+        | "Imported (legacy)"
+        | "Transferred In"
+        | "Forked In"
         | "Bot-initialized"
         | "App / OAuth"
         | "Bot"
@@ -1293,7 +1312,6 @@ Deno.serve(async (req) => {
       const botCommitHints = /\[bot\]|terraform|atlantis|copybara|renovate|dependabot|github-actions|svc-|service-account|automation/i;
 
       // Match an actor (login, name, email) against the user-configured allowlist.
-      // Each entry is treated as a substring match (lowercased).
       function matchesAllowlist(...candidates: string[]): boolean {
         if (allowlist.length === 0) return false;
         const hay = candidates.filter(Boolean).join(" ").toLowerCase();
@@ -1302,6 +1320,12 @@ Deno.serve(async (req) => {
 
       function classifyFromAudit(e: AuditEvent): Bucket {
         const ua = e.user_agent || "";
+        // Action-type takes precedence — these unambiguously identify how the repo entered.
+        if (e.action === "repo.import") return "Imported (legacy)";
+        if (e.action === "repo.transfer" || e.action === "repo.transfer_start") return "Transferred In";
+        if (e.action === "repo.fork") return "Forked In";
+        if (e.action === "repo.create_using_template") return "From Template";
+
         // Allowlist takes precedence over UA — these are known internal tools
         // even when they call the API with a browser-like UA.
         if (matchesAllowlist(e.actor || "")) return "Siemens Self-Service";
@@ -1442,6 +1466,9 @@ Deno.serve(async (req) => {
         "Importer / GEI": 0,
         "Siemens Self-Service": 0,
         "From Template": 0,
+        "Imported (legacy)": 0,
+        "Transferred In": 0,
+        "Forked In": 0,
         "Bot-initialized": 0,
         "App / OAuth": 0,
         "Bot": 0,
@@ -1489,6 +1516,9 @@ Deno.serve(async (req) => {
         buckets["Importer / GEI"] +
         buckets["Siemens Self-Service"] +
         buckets["From Template"] +
+        buckets["Imported (legacy)"] +
+        buckets["Transferred In"] +
+        buckets["Forked In"] +
         buckets["Bot-initialized"] +
         buckets["App / OAuth"] +
         buckets["Bot"] +
@@ -1496,11 +1526,41 @@ Deno.serve(async (req) => {
         buckets["GitHub CLI"];
       const manualTotal = buckets["Manual (UI)"];
 
+      // Coverage check — how many repos *currently exist* in the org vs how many we
+      // observed creation events for in the window. Uses the same paginated list
+      // count that the GitHub dashboard's "Total Repos" tile shows, so the numbers
+      // line up. Repos created before the window won't appear in the audit log.
+      let orgRepoTotal: number | null = null;
+      try {
+        // Match the summary endpoint: paginated /orgs/{org}/repos count
+        let count = 0;
+        let p = 1;
+        while (p <= 20) {
+          const r = await fetch(
+            `${GHE_BASE}/orgs/${org}/repos?per_page=100&page=${p}&type=all`,
+            { headers: gheHeaders },
+          );
+          if (!r.ok) break;
+          const arr = await r.json() as unknown[];
+          if (!Array.isArray(arr) || arr.length === 0) break;
+          count += arr.length;
+          if (arr.length < 100) break;
+          p++;
+        }
+        orgRepoTotal = count || null;
+      } catch {
+        // ignore
+      }
+      const preExistingRepos =
+        orgRepoTotal !== null && orgRepoTotal > total ? orgRepoTotal - total : 0;
+
       const result = {
         org,
         windowDays: days,
         totalRepoCreateEvents: allEvents.length,
         uniqueReposCreated: total,
+        orgRepoTotal,
+        preExistingRepos,
         toolingTotal,
         manualTotal,
         unknownTotal: buckets["Unknown"],
@@ -1508,6 +1568,9 @@ Deno.serve(async (req) => {
         manualPct: total > 0 ? (manualTotal / total) * 100 : 0,
         buckets: Object.entries(buckets)
           .map(([bucket, count]) => ({ bucket, count }))
+          .sort((a, b) => b.count - a.count),
+        actionBreakdown: Object.entries(actionBreakdown)
+          .map(([action, count]) => ({ action, count }))
           .sort((a, b) => b.count - a.count),
         samples: samples.sort((a, b) => b.createdAt - a.createdAt),
       };

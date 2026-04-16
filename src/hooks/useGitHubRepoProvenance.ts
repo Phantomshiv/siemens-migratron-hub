@@ -17,17 +17,25 @@ export interface ProvenanceSample {
   firstCommitAuthor?: string | null;
 }
 
+export interface ActionBreakdownEntry {
+  action: string;
+  count: number;
+}
+
 export interface RepoProvenanceData {
   org: string;
   windowDays: number;
   totalRepoCreateEvents: number;
   uniqueReposCreated: number;
+  orgRepoTotal: number | null;
+  preExistingRepos: number;
   toolingTotal: number;
   manualTotal: number;
   unknownTotal: number;
   toolingPct: number;
   manualPct: number;
   buckets: ProvenanceBucket[];
+  actionBreakdown: ActionBreakdownEntry[];
   samples: ProvenanceSample[];
 }
 

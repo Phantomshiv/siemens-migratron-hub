@@ -10,12 +10,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Info, GitBranch, Bot, Terminal, AppWindow, MousePointer2, HelpCircle, Copy, Cpu, Settings, Building2 } from "lucide-react";
+import { Info, GitBranch, Bot, Terminal, AppWindow, MousePointer2, HelpCircle, Copy, Cpu, Settings, Building2, ArrowRightLeft, GitFork, Download } from "lucide-react";
 
 const bucketIcon: Record<string, React.ComponentType<{ className?: string }>> = {
   "Importer / GEI": GitBranch,
   "Siemens Self-Service": Building2,
   "From Template": Copy,
+  "Imported (legacy)": Download,
+  "Transferred In": ArrowRightLeft,
+  "Forked In": GitFork,
   "Bot-initialized": Cpu,
   "App / OAuth": AppWindow,
   "Bot": Bot,
@@ -29,6 +32,9 @@ const bucketTone: Record<string, string> = {
   "Importer / GEI": "bg-success/15 text-success border-success/30",
   "Siemens Self-Service": "bg-success/15 text-success border-success/30",
   "From Template": "bg-success/15 text-success border-success/30",
+  "Imported (legacy)": "bg-success/15 text-success border-success/30",
+  "Transferred In": "bg-primary/15 text-primary border-primary/30",
+  "Forked In": "bg-primary/10 text-primary border-primary/20",
   "Bot-initialized": "bg-success/15 text-success border-success/30",
   "App / OAuth": "bg-primary/15 text-primary border-primary/30",
   "Bot": "bg-primary/10 text-primary border-primary/20",
@@ -64,11 +70,13 @@ export function RepoProvenancePanel() {
                   </TooltipTrigger>
                   <TooltipContent className="max-w-sm">
                     <p className="text-xs">
-                      Classifies <code>repo.create</code> events from the GHEC audit log using:
-                      (1) UA hints for importer / CLI / scripts, (2) OAuth app id &amp; <code>actor_is_bot</code>,
-                      (3) GraphQL <code>templateRepository</code> for repos forked from a template,
-                      (4) first-commit author for bot/IaC-initialized repos (terraform, atlantis, *[bot]).
-                      Manual = browser UI with no tooling signal.
+                      Audit-log actions tracked: <code>repo.create</code>, <code>create_using_template</code>,
+                      <code>import</code>, <code>transfer</code>, <code>fork</code>. Classified by
+                      (1) action type, (2) UA &amp; OAuth signals, (3) Siemens allowlist,
+                      (4) GraphQL <code>templateRepository</code>, (5) first-commit author.
+                      <br />
+                      Repos created <em>before</em> the time window won't appear here — see the
+                      "X of Y org repos" caption.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -76,6 +84,16 @@ export function RepoProvenancePanel() {
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
               How repos enter the org · last {days} days
+              {data && data.orgRepoTotal !== null && (
+                <>
+                  {" · "}
+                  <span className="text-foreground font-medium">{data.uniqueReposCreated}</span>
+                  <span> of {data.orgRepoTotal} org repos </span>
+                  {data.preExistingRepos > 0 && (
+                    <span>({data.preExistingRepos} pre-date window)</span>
+                  )}
+                </>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-1">
