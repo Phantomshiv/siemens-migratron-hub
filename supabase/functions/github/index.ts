@@ -1349,6 +1349,7 @@ Deno.serve(async (req) => {
         action: string;
         templateRepo?: string | null;
         firstCommitAuthor?: string | null;
+        scaffoldFiles?: string[] | null;
       };
       const repoRecords: RepoRecord[] = [];
       const seenRepos = new Set<string>();
