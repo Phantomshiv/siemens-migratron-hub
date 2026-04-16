@@ -28,10 +28,10 @@ function saveMessages(msgs: Msg[]) {
 }
 
 const SUGGESTIONS = [
-  "What's the current budget status?",
-  "How many clients are migrating?",
-  "What's the Copilot adoption rate?",
-  "Show me the roadmap progress",
+  "What's the current sprint progress?",
+  "List all open blockers with assignees",
+  "How many epics are in progress?",
+  "Show me the budget vs actuals",
 ];
 
 export function ChatWidget() {
