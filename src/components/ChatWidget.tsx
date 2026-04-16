@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import { buildDashboardContext } from "@/lib/dashboard-context";
 import { useGitHubSummary, useGitHubActivity } from "@/hooks/useGitHub";
-import { useActiveSprint, useBlockers } from "@/hooks/useJira";
+import { useActiveSprint, useBlockers, useEpics, useStatusDistribution, useRecentActivity } from "@/hooks/useJira";
 import { useCostByVendor } from "@/hooks/useCloudability";
 import { useGitHubSecurity } from "@/hooks/useGitHubSecurity";
 import { useBackstageSummary } from "@/hooks/useBackstage";

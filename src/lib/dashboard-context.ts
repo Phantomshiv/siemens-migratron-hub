@@ -15,6 +15,9 @@ export interface LiveApiData {
   githubActivity?: any;
   sprint?: any;
   blockers?: any;
+  epics?: any;
+  statusDistribution?: any;
+  recentActivity?: any;
   cloudVendor?: any;
   cloudMonthly?: any;
   security?: any;
