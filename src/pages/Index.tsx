@@ -306,6 +306,29 @@ const Index = () => {
 
   const loading = ghLoading || sprintLoading || cloudLoading;
 
+  // Build current metrics matching snapshot key_metrics structure
+  const currentMetrics = useMemo<Record<string, number>>(() => {
+    const m: Record<string, number> = {};
+    m.github_members = totalMembers;
+    m.github_repos = totalRepos;
+    m.github_teams = totalTeams;
+    m.copilot_total = copilotTotal;
+    m.copilot_active = copilotActive;
+    m.prs_open = prOpen;
+    m.prs_merged = prMerged;
+    m.security_total_open = secOpen;
+    m.sprint_total = sprintTotal;
+    m.sprint_done = sprintDone;
+    m.blockers = blockerCount;
+    m.cloud_spend_30d = totalCloudSpend;
+    m.backstage_entities = totalEntities;
+    m.clients_total = clientTotal;
+    m.clients_done = clientDone;
+    m.clients_repos = clientRepos;
+    m.clients_devs = clientDevs;
+    return m;
+  }, [totalMembers, totalRepos, totalTeams, copilotTotal, copilotActive, prOpen, prMerged, secOpen, sprintTotal, sprintDone, blockerCount, totalCloudSpend, totalEntities, clientTotal, clientDone, clientRepos, clientDevs]);
+
   // ── Section renderers ──
   const sectionProps = (id: string) => ({
     onMoveUp: () => moveSection(id, -1),
