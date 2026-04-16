@@ -1,0 +1,27 @@
+---
+name: SonarQube API
+description: Self-hosted SonarQube Server REST endpoints used by Code Quality dashboard
+type: reference
+---
+
+# SonarQube (self-hosted)
+
+Auth: HTTP Basic with user token as username, empty password.
+Base URL via `SONARQUBE_BASE_URL` secret. Token via `SONARQUBE_TOKEN`.
+
+## Endpoints used
+- `GET /api/projects/search` — project inventory
+- `GET /api/measures/component` — KPI metrics per project
+- `GET /api/qualitygates/project_status` — pass/fail
+- `GET /api/issues/search` — issue list + facets (severities, types, assignees)
+- `GET /api/measures/search_history` — trend charts
+- `GET /api/hotspots/search` — security hotspots
+
+## Default metric keys
+bugs, vulnerabilities, code_smells, security_hotspots, coverage,
+duplicated_lines_density, ncloc, sqale_index (debt minutes),
+reliability_rating, security_rating, sqale_rating, alert_status (QG)
+
+## Proxy
+`supabase/functions/sonarqube/index.ts` — generic endpoint forwarder.
+Client: `src/lib/sonarqube.ts`. Hooks: `src/hooks/useSonarQube.ts`.
