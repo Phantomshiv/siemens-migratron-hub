@@ -70,11 +70,13 @@ export function RepoProvenancePanel() {
                   </TooltipTrigger>
                   <TooltipContent className="max-w-sm">
                     <p className="text-xs">
-                      Classifies <code>repo.create</code> events from the GHEC audit log using:
-                      (1) UA hints for importer / CLI / scripts, (2) OAuth app id &amp; <code>actor_is_bot</code>,
-                      (3) GraphQL <code>templateRepository</code> for repos forked from a template,
-                      (4) first-commit author for bot/IaC-initialized repos (terraform, atlantis, *[bot]).
-                      Manual = browser UI with no tooling signal.
+                      Audit-log actions tracked: <code>repo.create</code>, <code>create_using_template</code>,
+                      <code>import</code>, <code>transfer</code>, <code>fork</code>. Classified by
+                      (1) action type, (2) UA &amp; OAuth signals, (3) Siemens allowlist,
+                      (4) GraphQL <code>templateRepository</code>, (5) first-commit author.
+                      <br />
+                      Repos created <em>before</em> the time window won't appear here — see the
+                      "X of Y org repos" caption.
                     </p>
                   </TooltipContent>
                 </Tooltip>
