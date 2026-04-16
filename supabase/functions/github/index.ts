@@ -1274,6 +1274,7 @@ Deno.serve(async (req) => {
       // Order matters — first match wins.
       type Bucket =
         | "Importer / GEI"
+        | "Siemens Self-Service"
         | "From Template"
         | "Bot-initialized"
         | "App / OAuth"
@@ -1291,8 +1292,19 @@ Deno.serve(async (req) => {
       // Catches Terraform, Atlantis, GitHub Actions, internal service accounts.
       const botCommitHints = /\[bot\]|terraform|atlantis|copybara|renovate|dependabot|github-actions|svc-|service-account|automation/i;
 
+      // Match an actor (login, name, email) against the user-configured allowlist.
+      // Each entry is treated as a substring match (lowercased).
+      function matchesAllowlist(...candidates: string[]): boolean {
+        if (allowlist.length === 0) return false;
+        const hay = candidates.filter(Boolean).join(" ").toLowerCase();
+        return allowlist.some((needle) => hay.includes(needle));
+      }
+
       function classifyFromAudit(e: AuditEvent): Bucket {
         const ua = e.user_agent || "";
+        // Allowlist takes precedence over UA — these are known internal tools
+        // even when they call the API with a browser-like UA.
+        if (matchesAllowlist(e.actor || "")) return "Siemens Self-Service";
         if (importerHints.test(ua)) return "Importer / GEI";
         if (e.oauth_application_id) return "App / OAuth";
         if (e.programmatic_access_type === "github_app") return "App / OAuth";
