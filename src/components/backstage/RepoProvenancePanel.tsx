@@ -6,10 +6,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Info, GitBranch, Bot, Terminal, AppWindow, MousePointer2, HelpCircle } from "lucide-react";
+import { Info, GitBranch, Bot, Terminal, AppWindow, MousePointer2, HelpCircle, Copy, Cpu } from "lucide-react";
 
 const bucketIcon: Record<string, React.ComponentType<{ className?: string }>> = {
   "Importer / GEI": GitBranch,
+  "From Template": Copy,
+  "Bot-initialized": Cpu,
   "App / OAuth": AppWindow,
   "Bot": Bot,
   "Script / CLI": Terminal,
@@ -20,6 +22,8 @@ const bucketIcon: Record<string, React.ComponentType<{ className?: string }>> = 
 
 const bucketTone: Record<string, string> = {
   "Importer / GEI": "bg-success/15 text-success border-success/30",
+  "From Template": "bg-success/15 text-success border-success/30",
+  "Bot-initialized": "bg-success/15 text-success border-success/30",
   "App / OAuth": "bg-primary/15 text-primary border-primary/30",
   "Bot": "bg-primary/10 text-primary border-primary/20",
   "Script / CLI": "bg-accent/15 text-accent-foreground border-accent/30",
