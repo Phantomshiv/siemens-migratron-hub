@@ -317,8 +317,13 @@ export function RepoProvenancePanel() {
                             <div className="text-muted-foreground truncate">
                               {s.actor} · {new Date(s.createdAt).toLocaleDateString()}
                               {s.templateRepo ? ` · tpl: ${s.templateRepo}` : ""}
-                              {s.firstCommitAuthor && !s.templateRepo ? ` · 1st: ${s.firstCommitAuthor}` : ""}
-                              {!s.templateRepo && !s.firstCommitAuthor && s.userAgent
+                              {s.scaffoldFiles && s.scaffoldFiles.length > 0
+                                ? ` · scaffold: ${s.scaffoldFiles.slice(0, 3).join(", ")}`
+                                : ""}
+                              {s.firstCommitAuthor && !s.templateRepo && !s.scaffoldFiles?.length
+                                ? ` · 1st: ${s.firstCommitAuthor}`
+                                : ""}
+                              {!s.templateRepo && !s.firstCommitAuthor && !s.scaffoldFiles?.length && s.userAgent
                                 ? ` · ${s.userAgent.slice(0, 60)}`
                                 : ""}
                             </div>

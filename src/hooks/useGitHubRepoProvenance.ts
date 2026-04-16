@@ -15,6 +15,7 @@ export interface ProvenanceSample {
   action: string;
   templateRepo?: string | null;
   firstCommitAuthor?: string | null;
+  scaffoldFiles?: string[] | null;
 }
 
 export interface ActionBreakdownEntry {
