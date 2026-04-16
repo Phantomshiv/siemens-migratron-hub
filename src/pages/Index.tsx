@@ -188,6 +188,7 @@ const Index = () => {
   const { data: bsSummary } = useBackstageSummary();
   const { data: roadmapQuarters } = useLiveRoadmap();
   const { data: projectsData } = useGitHubProjects();
+  const { data: latestSnapshot } = useLatestSnapshot();
 
   const moveSection = useCallback((id: string, dir: -1 | 1) => {
     setSectionOrder((prev) => {
