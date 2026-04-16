@@ -6,10 +6,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Info, GitBranch, Bot, Terminal, AppWindow, MousePointer2, HelpCircle } from "lucide-react";
+import { Info, GitBranch, Bot, Terminal, AppWindow, MousePointer2, HelpCircle, Copy, Cpu } from "lucide-react";
 
 const bucketIcon: Record<string, React.ComponentType<{ className?: string }>> = {
   "Importer / GEI": GitBranch,
+  "From Template": Copy,
+  "Bot-initialized": Cpu,
   "App / OAuth": AppWindow,
   "Bot": Bot,
   "Script / CLI": Terminal,
@@ -20,6 +22,8 @@ const bucketIcon: Record<string, React.ComponentType<{ className?: string }>> = 
 
 const bucketTone: Record<string, string> = {
   "Importer / GEI": "bg-success/15 text-success border-success/30",
+  "From Template": "bg-success/15 text-success border-success/30",
+  "Bot-initialized": "bg-success/15 text-success border-success/30",
   "App / OAuth": "bg-primary/15 text-primary border-primary/30",
   "Bot": "bg-primary/10 text-primary border-primary/20",
   "Script / CLI": "bg-accent/15 text-accent-foreground border-accent/30",
@@ -52,9 +56,11 @@ export function RepoProvenancePanel() {
                   </TooltipTrigger>
                   <TooltipContent className="max-w-sm">
                     <p className="text-xs">
-                      Buckets <code>repo.create</code> events from the GHEC audit log by actor signal:
-                      user-agent (importer / CLI / script), <code>actor_is_bot</code>, and OAuth app id.
-                      Manual = browser UI, Tooling = everything else (excl. Unknown).
+                      Classifies <code>repo.create</code> events from the GHEC audit log using:
+                      (1) UA hints for importer / CLI / scripts, (2) OAuth app id &amp; <code>actor_is_bot</code>,
+                      (3) GraphQL <code>templateRepository</code> for repos forked from a template,
+                      (4) first-commit author for bot/IaC-initialized repos (terraform, atlantis, *[bot]).
+                      Manual = browser UI with no tooling signal.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -221,7 +227,11 @@ export function RepoProvenancePanel() {
                             </div>
                             <div className="text-muted-foreground truncate">
                               {s.actor} · {new Date(s.createdAt).toLocaleDateString()}
-                              {s.userAgent ? ` · ${s.userAgent.slice(0, 60)}` : ""}
+                              {s.templateRepo ? ` · tpl: ${s.templateRepo}` : ""}
+                              {s.firstCommitAuthor && !s.templateRepo ? ` · 1st: ${s.firstCommitAuthor}` : ""}
+                              {!s.templateRepo && !s.firstCommitAuthor && s.userAgent
+                                ? ` · ${s.userAgent.slice(0, 60)}`
+                                : ""}
                             </div>
                           </div>
                         ))

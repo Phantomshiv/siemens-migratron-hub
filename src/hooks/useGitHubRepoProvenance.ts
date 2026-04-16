@@ -12,6 +12,8 @@ export interface ProvenanceSample {
   userAgent: string;
   createdAt: number;
   action: string;
+  templateRepo?: string | null;
+  firstCommitAuthor?: string | null;
 }
 
 export interface RepoProvenanceData {

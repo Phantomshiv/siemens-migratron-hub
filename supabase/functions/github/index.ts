@@ -1260,22 +1260,28 @@ Deno.serve(async (req) => {
         page++;
       }
 
-      // Classify each event into a provenance bucket
-      // Heuristics — order matters:
-      //   1. Known importer/migration UA strings           → "Importer / GEI"
-      //   2. OAuth application id present                 → "App / OAuth"
-      //   3. programmatic_access_type === "github_app"    → "App / OAuth"
-      //   4. actor_is_bot === true                        → "Bot"
-      //   5. UA contains "octokit" / "curl" / "PyGithub"  → "Script / CLI"
-      //   6. UA contains "gh CLI" / "GitHub CLI"          → "GitHub CLI"
-      //   7. fallback                                     → "Manual (UI)"
-      type Bucket = "Importer / GEI" | "App / OAuth" | "Bot" | "Script / CLI" | "GitHub CLI" | "Manual (UI)" | "Unknown";
+      // Classify each event into a provenance bucket from audit-log signals only.
+      // Order matters — first match wins.
+      type Bucket =
+        | "Importer / GEI"
+        | "From Template"
+        | "Bot-initialized"
+        | "App / OAuth"
+        | "Bot"
+        | "Script / CLI"
+        | "GitHub CLI"
+        | "Manual (UI)"
+        | "Unknown";
 
       const importerHints = /gh-gei|gei-|importer|migrat|valet|bbs-exporter|ado-migration/i;
       const cliHints = /^GitHub CLI|gh\/[\d.]+/i;
       const scriptHints = /octokit|PyGithub|curl|python-requests|httpie|node-fetch|axios|go-github/i;
 
-      function classify(e: AuditEvent): Bucket {
+      // Bot-author hints used when inspecting the FIRST commit of a repo.
+      // Catches Terraform, Atlantis, GitHub Actions, internal service accounts.
+      const botCommitHints = /\[bot\]|terraform|atlantis|copybara|renovate|dependabot|github-actions|svc-|service-account|automation/i;
+
+      function classifyFromAudit(e: AuditEvent): Bucket {
         const ua = e.user_agent || "";
         if (importerHints.test(ua)) return "Importer / GEI";
         if (e.oauth_application_id) return "App / OAuth";
@@ -1287,8 +1293,131 @@ Deno.serve(async (req) => {
         return "Unknown";
       }
 
+      // Stage 1 — pass over audit log, dedupe by repo, classify from UA signals.
+      type RepoRecord = {
+        repo: string;
+        actor: string;
+        bucket: Bucket;
+        userAgent: string;
+        createdAt: number;
+        action: string;
+        templateRepo?: string | null;
+        firstCommitAuthor?: string | null;
+      };
+      const repoRecords: RepoRecord[] = [];
+      const seenRepos = new Set<string>();
+      for (const e of allEvents) {
+        const repoName = e.repo || e.repository || "";
+        if (!repoName || seenRepos.has(repoName)) continue;
+        seenRepos.add(repoName);
+        repoRecords.push({
+          repo: repoName,
+          actor: e.actor || "unknown",
+          bucket: classifyFromAudit(e),
+          userAgent: e.user_agent || "",
+          createdAt: e.created_at,
+          action: e.action,
+        });
+      }
+
+      // Stage 2 — Template detection via batched GraphQL.
+      // Only inspect repos currently bucketed as "Manual (UI)" or "Unknown" — no point
+      // re-classifying ones we already know are tooling-driven.
+      const candidatesForEnrichment = repoRecords.filter(
+        (r) => r.bucket === "Manual (UI)" || r.bucket === "Unknown"
+      );
+
+      if (candidatesForEnrichment.length > 0) {
+        // Batch GraphQL — up to 50 repos per request to stay under node-limit.
+        const CHUNK = 50;
+        for (let i = 0; i < candidatesForEnrichment.length; i += CHUNK) {
+          const slice = candidatesForEnrichment.slice(i, i + CHUNK);
+          const aliases = slice
+            .map((r, idx) => {
+              const [owner, name] = r.repo.split("/");
+              if (!owner || !name) return "";
+              return `r${i + idx}: repository(owner: "${owner}", name: "${name}") { isTemplate templateRepository { nameWithOwner } }`;
+            })
+            .filter(Boolean)
+            .join("\n");
+          if (!aliases) continue;
+          const query = `{ ${aliases} }`;
+          try {
+            const resp = await fetch(`${GHE_BASE}/graphql`, {
+              method: "POST",
+              headers: { ...gheHeaders, "Content-Type": "application/json" },
+              body: JSON.stringify({ query }),
+            });
+            if (!resp.ok) {
+              console.warn(`Template GraphQL failed [${resp.status}]`);
+              continue;
+            }
+            const json = await resp.json() as { data?: Record<string, { templateRepository?: { nameWithOwner: string } | null } | null> };
+            const data = json.data || {};
+            for (const [alias, repoData] of Object.entries(data)) {
+              const idx = parseInt(alias.slice(1));
+              const tpl = repoData?.templateRepository?.nameWithOwner;
+              if (tpl && repoRecords[idx]) {
+                repoRecords[idx].templateRepo = tpl;
+                repoRecords[idx].bucket = "From Template";
+              }
+            }
+          } catch (err) {
+            console.warn("Template GraphQL error:", err);
+          }
+        }
+      }
+
+      // Stage 3 — First-commit author lookup for repos still classified as Manual/Unknown.
+      // One REST call per repo, parallelized in batches of 10. Cap at 100 repos.
+      const stillManual = repoRecords.filter(
+        (r) => r.bucket === "Manual (UI)" || r.bucket === "Unknown"
+      ).slice(0, 100);
+
+      type CommitAuthor = { commit?: { author?: { name?: string; email?: string } }; author?: { login?: string; type?: string } };
+      const fetchFirstCommit = async (record: RepoRecord) => {
+        try {
+          // Get the last page (= first commit) by inspecting Link header
+          const headResp = await fetch(
+            `${GHE_BASE}/repos/${record.repo}/commits?per_page=1`,
+            { headers: gheHeaders }
+          );
+          if (!headResp.ok) return;
+          const link = headResp.headers.get("link") || "";
+          const lastMatch = link.match(/<[^>]*[?&]page=(\d+)[^>]*>;\s*rel="last"/);
+          const lastPage = lastMatch ? lastMatch[1] : "1";
+          const firstResp = await fetch(
+            `${GHE_BASE}/repos/${record.repo}/commits?per_page=1&page=${lastPage}`,
+            { headers: gheHeaders }
+          );
+          if (!firstResp.ok) return;
+          const commits = await firstResp.json() as CommitAuthor[];
+          if (!Array.isArray(commits) || commits.length === 0) return;
+          const c = commits[0];
+          const authorName = c.commit?.author?.name || "";
+          const authorEmail = c.commit?.author?.email || "";
+          const authorLogin = c.author?.login || "";
+          const authorType = c.author?.type || "";
+          const signature = `${authorLogin} ${authorName} ${authorEmail} ${authorType}`;
+          record.firstCommitAuthor = authorLogin || authorName || null;
+          if (authorType === "Bot" || botCommitHints.test(signature)) {
+            record.bucket = "Bot-initialized";
+          }
+        } catch {
+          // Ignore individual lookup failures
+        }
+      };
+
+      const BATCH = 10;
+      for (let i = 0; i < stillManual.length; i += BATCH) {
+        await Promise.all(stillManual.slice(i, i + BATCH).map(fetchFirstCommit));
+      }
+
+      // Stage 4 — Tally, sample, build response.
       const buckets: Record<Bucket, number> = {
         "Importer / GEI": 0,
+        "From Template": 0,
+        "Bot-initialized": 0,
         "App / OAuth": 0,
         "Bot": 0,
         "Script / CLI": 0,
@@ -1304,30 +1433,28 @@ Deno.serve(async (req) => {
         userAgent: string;
         createdAt: number;
         action: string;
+        templateRepo?: string | null;
+        firstCommitAuthor?: string | null;
       }> = [];
 
-      // De-duplicate by repo (multiple repo.create events can fire for the same repo)
-      // Cap per bucket so small buckets (e.g. Importer / GEI) are never squeezed out
       const PER_BUCKET_CAP = 25;
       const perBucketCount: Record<string, number> = {};
-      const seenRepos = new Set<string>();
-      for (const e of allEvents) {
-        const repoName = e.repo || e.repository || "";
-        if (seenRepos.has(repoName)) continue;
-        seenRepos.add(repoName);
-
-        const bucket = classify(e);
-        buckets[bucket]++;
-        const used = perBucketCount[bucket] ?? 0;
+      // Sort by recency so samples are the most recent per bucket
+      repoRecords.sort((a, b) => b.createdAt - a.createdAt);
+      for (const r of repoRecords) {
+        buckets[r.bucket]++;
+        const used = perBucketCount[r.bucket] ?? 0;
         if (used < PER_BUCKET_CAP) {
-          perBucketCount[bucket] = used + 1;
+          perBucketCount[r.bucket] = used + 1;
           samples.push({
-            repo: repoName,
-            actor: e.actor || "unknown",
-            bucket,
-            userAgent: e.user_agent || "",
-            createdAt: e.created_at,
-            action: e.action,
+            repo: r.repo,
+            actor: r.actor,
+            bucket: r.bucket,
+            userAgent: r.userAgent,
+            createdAt: r.createdAt,
+            action: r.action,
+            templateRepo: r.templateRepo ?? null,
+            firstCommitAuthor: r.firstCommitAuthor ?? null,
           });
         }
       }
@@ -1335,6 +1462,8 @@ Deno.serve(async (req) => {
       const total = Object.values(buckets).reduce((a, b) => a + b, 0);
       const toolingTotal =
         buckets["Importer / GEI"] +
+        buckets["From Template"] +
+        buckets["Bot-initialized"] +
         buckets["App / OAuth"] +
         buckets["Bot"] +
         buckets["Script / CLI"] +
@@ -1357,7 +1486,8 @@ Deno.serve(async (req) => {
         samples: samples.sort((a, b) => b.createdAt - a.createdAt),
       };
 
-      await setCache(cacheKey, result, 30);
+      // Cache 60 min — enrichment is expensive
+      await setCache(cacheKey, result, 60);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
       });
