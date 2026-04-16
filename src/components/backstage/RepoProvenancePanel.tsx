@@ -10,12 +10,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Info, GitBranch, Bot, Terminal, AppWindow, MousePointer2, HelpCircle, Copy, Cpu, Settings, Building2 } from "lucide-react";
+import { Info, GitBranch, Bot, Terminal, AppWindow, MousePointer2, HelpCircle, Copy, Cpu, Settings, Building2, ArrowRightLeft, GitFork, Download } from "lucide-react";
 
 const bucketIcon: Record<string, React.ComponentType<{ className?: string }>> = {
   "Importer / GEI": GitBranch,
   "Siemens Self-Service": Building2,
   "From Template": Copy,
+  "Imported (legacy)": Download,
+  "Transferred In": ArrowRightLeft,
+  "Forked In": GitFork,
   "Bot-initialized": Cpu,
   "App / OAuth": AppWindow,
   "Bot": Bot,
@@ -29,6 +32,9 @@ const bucketTone: Record<string, string> = {
   "Importer / GEI": "bg-success/15 text-success border-success/30",
   "Siemens Self-Service": "bg-success/15 text-success border-success/30",
   "From Template": "bg-success/15 text-success border-success/30",
+  "Imported (legacy)": "bg-success/15 text-success border-success/30",
+  "Transferred In": "bg-primary/15 text-primary border-primary/30",
+  "Forked In": "bg-primary/10 text-primary border-primary/20",
   "Bot-initialized": "bg-success/15 text-success border-success/30",
   "App / OAuth": "bg-primary/15 text-primary border-primary/30",
   "Bot": "bg-primary/10 text-primary border-primary/20",
