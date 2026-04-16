@@ -20,21 +20,28 @@ export function DailyCostTrendChart() {
   const { data, isLoading, isError } = useDailyCostTrend();
 
   // Parse real data or use mock
-  let chartData = mockData;
+  let chartData: any[] = mockData;
+  let totalAdjustment = 0;
   if (data && !isError) {
     try {
       const result = (data as any)?.results;
       if (Array.isArray(result) && result.length > 0) {
-        // Group by date, split by vendor
-        const byDate: Record<string, { aws: number; azure: number; other: number }> = {};
+        // Group by date, split by vendor — adjusted amortized is the headline series
+        const byDate: Record<string, { aws: number; azure: number; awsRaw: number; azureRaw: number }> = {};
         for (const row of result) {
           const date = row.date;
-          if (!byDate[date]) byDate[date] = { aws: 0, azure: 0, other: 0 };
-          const cost = parseFloat(row.unblended_cost || "0");
+          if (!byDate[date]) byDate[date] = { aws: 0, azure: 0, awsRaw: 0, azureRaw: 0 };
+          const adjusted = parseFloat(row.total_adjusted_amortized_cost || row.total_amortized_cost || "0");
+          const raw = parseFloat(row.total_amortized_cost || "0");
+          totalAdjustment += raw - adjusted;
           const vendor = (row.vendor || "").toLowerCase();
-          if (vendor.includes("amazon") || vendor.includes("aws")) byDate[date].aws += cost;
-          else if (vendor.includes("azure") || vendor.includes("microsoft")) byDate[date].azure += cost;
-          else byDate[date].other += cost;
+          if (vendor.includes("amazon") || vendor.includes("aws")) {
+            byDate[date].aws += adjusted;
+            byDate[date].awsRaw += raw;
+          } else if (vendor.includes("azure") || vendor.includes("microsoft")) {
+            byDate[date].azure += adjusted;
+            byDate[date].azureRaw += raw;
+          }
         }
         const entries = Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b));
         if (entries.length > 5) {
@@ -42,6 +49,8 @@ export function DailyCostTrendChart() {
             date: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
             aws: vals.aws,
             azure: vals.azure,
+            awsRaw: vals.awsRaw,
+            azureRaw: vals.azureRaw,
           }));
         }
       }
@@ -50,12 +59,16 @@ export function DailyCostTrendChart() {
     }
   }
 
+  const fmt = (n: number) => `$${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+
   return (
     <div className="glass-card p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-heading font-bold text-sm">Daily Usage Costs Trend by Vendor</h3>
-          <p className="text-[10px] text-muted-foreground">Last 60 days</p>
+          <p className="text-[10px] text-muted-foreground">
+            Last 60 days · Adjusted amortized {totalAdjustment > 0 && <span className="text-success">(−{fmt(totalAdjustment)} adjustment applied)</span>}
+          </p>
         </div>
       </div>
       {isLoading ? (
@@ -84,7 +97,19 @@ export function DailyCostTrendChart() {
                   borderRadius: "8px",
                   fontSize: "11px",
                 }}
-                formatter={(value: number) => [`$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`, undefined]}
+                formatter={(value: number, name: string, item: any) => {
+                  const formatted = fmt(value);
+                  const payload = item?.payload || {};
+                  const rawKey = name === "AWS" ? "awsRaw" : name === "Azure" ? "azureRaw" : null;
+                  if (rawKey && payload[rawKey] != null) {
+                    const raw = payload[rawKey];
+                    const delta = raw - value;
+                    if (Math.abs(delta) > 0.01) {
+                      return [`${formatted}  (raw: ${fmt(raw)} · adj −${fmt(delta)})`, name];
+                    }
+                  }
+                  return [formatted, name];
+                }}
               />
               <Legend wrapperStyle={{ fontSize: "10px" }} />
               <Area type="monotone" dataKey="aws" stroke="hsl(215, 80%, 60%)" fill="url(#awsGrad)" strokeWidth={2} name="AWS" />

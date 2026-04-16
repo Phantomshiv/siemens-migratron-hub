@@ -71,11 +71,12 @@ export function CloudSpendOverview() {
         change={cashChange}
       />
       <SpendCard
-        title="Monthly Estimated Spend - Accrual"
-        subtitle="This Month & Last Month"
+        title="Monthly Estimated Spend - Adjusted Accrual"
+        subtitle="Amortized after credits, refunds, fees & tax"
         current={cash.accrualThisMonth}
         previous={cash.accrualLastMonth}
         change={accrualChange}
+        adjustment={{ thisMonth: adjustmentThisMonth, lastMonth: adjustmentLastMonth, raw: cash.accrualRawThisMonth }}
       />
       <div className="glass-card p-5 flex flex-col justify-center">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Cloud Accounts</p>
@@ -86,18 +87,23 @@ export function CloudSpendOverview() {
   );
 }
 
-function SpendCard({ title, subtitle, current, previous, change }: {
+function SpendCard({ title, subtitle, current, previous, change, adjustment }: {
   title: string;
   subtitle: string;
   current: number;
   previous: number;
   change: number;
+  adjustment?: { thisMonth: number; lastMonth: number; raw: number };
 }) {
   const isUp = change >= 0;
   const fmt = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  const tooltip = adjustment
+    ? `Raw amortized: ${fmt(adjustment.raw)}\nAdjustment (credits/refunds/fees/tax): −${fmt(adjustment.thisMonth)}\nLast month adjustment: −${fmt(adjustment.lastMonth)}`
+    : undefined;
+
   return (
-    <div className="glass-card p-5">
+    <div className="glass-card p-5" title={tooltip}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
@@ -116,6 +122,11 @@ function SpendCard({ title, subtitle, current, previous, change }: {
           </span>
         </div>
         <p className="text-sm text-muted-foreground mt-0.5">{fmt(previous)}</p>
+        {adjustment && adjustment.thisMonth !== 0 && (
+          <p className="text-[10px] text-muted-foreground mt-1.5 border-t border-border/50 pt-1.5">
+            Adj. <span className="text-success font-mono">−{fmt(adjustment.thisMonth)}</span> vs raw amortized
+          </p>
+        )}
       </div>
     </div>
   );
