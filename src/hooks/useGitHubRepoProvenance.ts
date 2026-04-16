@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useRepoProvenanceSettings } from "@/contexts/RepoProvenanceSettingsContext";
 
 export interface ProvenanceBucket {
   bucket: string;
@@ -30,8 +31,14 @@ export interface RepoProvenanceData {
   samples: ProvenanceSample[];
 }
 
-async function fetchProvenance(org = "open", days = 180): Promise<RepoProvenanceData> {
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/github?action=repo-provenance&org=${org}&days=${days}`;
+async function fetchProvenance(org: string, days: number, allowlist: string[]): Promise<RepoProvenanceData> {
+  const params = new URLSearchParams({
+    action: "repo-provenance",
+    org,
+    days: String(days),
+  });
+  if (allowlist.length) params.set("allowlist", allowlist.join(","));
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/github?${params.toString()}`;
   const resp = await fetch(url, {
     headers: {
       apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
@@ -46,9 +53,11 @@ async function fetchProvenance(org = "open", days = 180): Promise<RepoProvenance
 }
 
 export function useGitHubRepoProvenance(org = "open", days = 180) {
+  const { parsedAccounts } = useRepoProvenanceSettings();
+  const allowlistKey = parsedAccounts.slice().sort().join(",");
   return useQuery<RepoProvenanceData>({
-    queryKey: ["github-repo-provenance", org, days],
-    queryFn: () => fetchProvenance(org, days),
+    queryKey: ["github-repo-provenance", org, days, allowlistKey],
+    queryFn: () => fetchProvenance(org, days, parsedAccounts),
     staleTime: 30 * 60 * 1000,
     retry: 1,
   });

@@ -1202,7 +1202,17 @@ Deno.serve(async (req) => {
     // how many repos were created via tooling vs manually.
     if (action === "repo-provenance") {
       const days = Math.min(365, Math.max(1, parseInt(url.searchParams.get("days") || "180")));
-      const cacheKey = `github:repo-provenance:${org}:${days}`;
+      const allowlistRaw = url.searchParams.get("allowlist") || "";
+      const allowlist = Array.from(
+        new Set(
+          allowlistRaw
+            .split(/[,\s;]+/)
+            .map((s) => s.trim().toLowerCase())
+            .filter(Boolean),
+        ),
+      );
+      const allowlistKey = allowlist.length ? `:${allowlist.slice().sort().join(",")}` : "";
+      const cacheKey = `github:repo-provenance:${org}:${days}${allowlistKey}`;
       if (!noCache) {
         const cached = await getCache(cacheKey);
         if (cached) {
@@ -1264,6 +1274,7 @@ Deno.serve(async (req) => {
       // Order matters — first match wins.
       type Bucket =
         | "Importer / GEI"
+        | "Siemens Self-Service"
         | "From Template"
         | "Bot-initialized"
         | "App / OAuth"
@@ -1281,8 +1292,19 @@ Deno.serve(async (req) => {
       // Catches Terraform, Atlantis, GitHub Actions, internal service accounts.
       const botCommitHints = /\[bot\]|terraform|atlantis|copybara|renovate|dependabot|github-actions|svc-|service-account|automation/i;
 
+      // Match an actor (login, name, email) against the user-configured allowlist.
+      // Each entry is treated as a substring match (lowercased).
+      function matchesAllowlist(...candidates: string[]): boolean {
+        if (allowlist.length === 0) return false;
+        const hay = candidates.filter(Boolean).join(" ").toLowerCase();
+        return allowlist.some((needle) => hay.includes(needle));
+      }
+
       function classifyFromAudit(e: AuditEvent): Bucket {
         const ua = e.user_agent || "";
+        // Allowlist takes precedence over UA — these are known internal tools
+        // even when they call the API with a browser-like UA.
+        if (matchesAllowlist(e.actor || "")) return "Siemens Self-Service";
         if (importerHints.test(ua)) return "Importer / GEI";
         if (e.oauth_application_id) return "App / OAuth";
         if (e.programmatic_access_type === "github_app") return "App / OAuth";
@@ -1400,7 +1422,9 @@ Deno.serve(async (req) => {
           const authorType = c.author?.type || "";
           const signature = `${authorLogin} ${authorName} ${authorEmail} ${authorType}`;
           record.firstCommitAuthor = authorLogin || authorName || null;
-          if (authorType === "Bot" || botCommitHints.test(signature)) {
+          if (matchesAllowlist(authorLogin, authorName, authorEmail)) {
+            record.bucket = "Siemens Self-Service";
+          } else if (authorType === "Bot" || botCommitHints.test(signature)) {
             record.bucket = "Bot-initialized";
           }
         } catch {
@@ -1416,6 +1440,7 @@ Deno.serve(async (req) => {
       // Stage 4 — Tally, sample, build response.
       const buckets: Record<Bucket, number> = {
         "Importer / GEI": 0,
+        "Siemens Self-Service": 0,
         "From Template": 0,
         "Bot-initialized": 0,
         "App / OAuth": 0,
@@ -1462,6 +1487,7 @@ Deno.serve(async (req) => {
       const total = Object.values(buckets).reduce((a, b) => a + b, 0);
       const toolingTotal =
         buckets["Importer / GEI"] +
+        buckets["Siemens Self-Service"] +
         buckets["From Template"] +
         buckets["Bot-initialized"] +
         buckets["App / OAuth"] +

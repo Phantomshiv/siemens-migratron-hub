@@ -1,15 +1,20 @@
 import { useState } from "react";
 import { useGitHubRepoProvenance } from "@/hooks/useGitHubRepoProvenance";
+import { useRepoProvenanceSettings } from "@/contexts/RepoProvenanceSettingsContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Info, GitBranch, Bot, Terminal, AppWindow, MousePointer2, HelpCircle, Copy, Cpu } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Info, GitBranch, Bot, Terminal, AppWindow, MousePointer2, HelpCircle, Copy, Cpu, Settings, Building2 } from "lucide-react";
 
 const bucketIcon: Record<string, React.ComponentType<{ className?: string }>> = {
   "Importer / GEI": GitBranch,
+  "Siemens Self-Service": Building2,
   "From Template": Copy,
   "Bot-initialized": Cpu,
   "App / OAuth": AppWindow,
@@ -22,6 +27,7 @@ const bucketIcon: Record<string, React.ComponentType<{ className?: string }>> = 
 
 const bucketTone: Record<string, string> = {
   "Importer / GEI": "bg-success/15 text-success border-success/30",
+  "Siemens Self-Service": "bg-success/15 text-success border-success/30",
   "From Template": "bg-success/15 text-success border-success/30",
   "Bot-initialized": "bg-success/15 text-success border-success/30",
   "App / OAuth": "bg-primary/15 text-primary border-primary/30",
@@ -35,6 +41,8 @@ const bucketTone: Record<string, string> = {
 export function RepoProvenancePanel() {
   const [days, setDays] = useState(180);
   const [activeBucket, setActiveBucket] = useState<string | null>(null);
+  const { settings, setSettings, resetDefaults, parsedAccounts } = useRepoProvenanceSettings();
+  const [draftAllowlist, setDraftAllowlist] = useState(settings.serviceAccountAllowlist);
   const { data, isLoading, error } = useGitHubRepoProvenance("open", days);
 
   const total = data?.uniqueReposCreated ?? 0;
@@ -70,7 +78,7 @@ export function RepoProvenancePanel() {
               How repos enter the org · last {days} days
             </p>
           </div>
-          <div className="flex gap-1">
+          <div className="flex items-center gap-1">
             {[30, 90, 180, 365].map((d) => (
               <Button
                 key={d}
@@ -82,6 +90,69 @@ export function RepoProvenancePanel() {
                 {d}d
               </Button>
             ))}
+            <Popover
+              onOpenChange={(open) => {
+                if (open) setDraftAllowlist(settings.serviceAccountAllowlist);
+              }}
+            >
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 w-6 p-0 ml-1 relative"
+                  title="Service-account allowlist"
+                >
+                  <Settings className="h-3 w-3" />
+                  {parsedAccounts.length > 0 && (
+                    <span className="absolute -top-1 -right-1 h-3 min-w-[12px] px-0.5 rounded-full bg-success text-[8px] text-success-foreground font-bold flex items-center justify-center leading-none">
+                      {parsedAccounts.length}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 space-y-3">
+                <div>
+                  <Label className="text-xs font-semibold flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5" />
+                    Siemens Self-Service Allowlist
+                  </Label>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    GitHub logins or substring hints that identify internal tooling
+                    (e.g. <code>cast-ai-bot</code>, <code>oses-portal-svc</code>).
+                    Repos created by these accounts — or whose first commit matches —
+                    will be bucketed as <strong>Siemens Self-Service</strong>.
+                  </p>
+                </div>
+                <Textarea
+                  value={draftAllowlist}
+                  onChange={(e) => setDraftAllowlist(e.target.value)}
+                  placeholder="cast-ai-bot, oses-portal-svc, repo-factory"
+                  className="text-xs font-mono h-24"
+                />
+                <div className="flex items-center justify-between gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-[10px] h-7"
+                    onClick={() => {
+                      resetDefaults();
+                      setDraftAllowlist("");
+                    }}
+                  >
+                    Clear
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="text-[10px] h-7"
+                    onClick={() =>
+                      setSettings({ ...settings, serviceAccountAllowlist: draftAllowlist })
+                    }
+                  >
+                    Save &amp; reclassify
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       </CardHeader>
