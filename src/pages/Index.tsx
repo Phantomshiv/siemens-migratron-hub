@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactNode } from "react";
+import { useState, useCallback, useMemo, type ReactNode } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { KPICard } from "@/components/KPICard";
 import { useLiveRoadmap } from "@/hooks/useRoadmapJira";
@@ -8,6 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { useGitHubSummary, useGitHubActivity } from "@/hooks/useGitHub";
 import { useActiveSprint, useBlockers } from "@/hooks/useJira";
 import { useCostByVendor, useMonthlySpend } from "@/hooks/useCloudability";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowUpRight, ArrowDownRight, Minus, Camera } from "lucide-react";
 import { useGitHubSecurity } from "@/hooks/useGitHubSecurity";
 import { useBackstageSummary } from "@/hooks/useBackstage";
 import { getOrgStats } from "@/lib/people-data";
