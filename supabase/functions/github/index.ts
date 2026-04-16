@@ -1255,7 +1255,7 @@ Deno.serve(async (req) => {
       };
 
       const allEvents: AuditEvent[] = [];
-      const MAX_PAGES_PER_ACTION = 10; // up to 1000 events per action type
+      const MAX_PAGES_PER_ACTION = 30; // up to 3000 events per action — repo.create can be very chatty
 
       for (const act of actions) {
         const phrase = encodeURIComponent(`action:${act} created:>=${sinceIso}`);
