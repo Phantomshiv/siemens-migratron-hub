@@ -56,9 +56,11 @@ export function RepoProvenancePanel() {
                   </TooltipTrigger>
                   <TooltipContent className="max-w-sm">
                     <p className="text-xs">
-                      Buckets <code>repo.create</code> events from the GHEC audit log by actor signal:
-                      user-agent (importer / CLI / script), <code>actor_is_bot</code>, and OAuth app id.
-                      Manual = browser UI, Tooling = everything else (excl. Unknown).
+                      Classifies <code>repo.create</code> events from the GHEC audit log using:
+                      (1) UA hints for importer / CLI / scripts, (2) OAuth app id &amp; <code>actor_is_bot</code>,
+                      (3) GraphQL <code>templateRepository</code> for repos forked from a template,
+                      (4) first-commit author for bot/IaC-initialized repos (terraform, atlantis, *[bot]).
+                      Manual = browser UI with no tooling signal.
                     </p>
                   </TooltipContent>
                 </Tooltip>
