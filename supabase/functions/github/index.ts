@@ -1469,6 +1469,9 @@ Deno.serve(async (req) => {
         "Importer / GEI": 0,
         "Siemens Self-Service": 0,
         "From Template": 0,
+        "Imported (legacy)": 0,
+        "Transferred In": 0,
+        "Forked In": 0,
         "Bot-initialized": 0,
         "App / OAuth": 0,
         "Bot": 0,
@@ -1516,6 +1519,9 @@ Deno.serve(async (req) => {
         buckets["Importer / GEI"] +
         buckets["Siemens Self-Service"] +
         buckets["From Template"] +
+        buckets["Imported (legacy)"] +
+        buckets["Transferred In"] +
+        buckets["Forked In"] +
         buckets["Bot-initialized"] +
         buckets["App / OAuth"] +
         buckets["Bot"] +
@@ -1523,11 +1529,34 @@ Deno.serve(async (req) => {
         buckets["GitHub CLI"];
       const manualTotal = buckets["Manual (UI)"];
 
+      // Coverage check — how many repos exist in the org vs how many we accounted for.
+      // Pre-existing repos (created before the audit window) won't appear in the log.
+      let orgRepoTotal: number | null = null;
+      try {
+        const orgResp = await fetch(`${GHE_BASE}/orgs/${org}`, { headers: gheHeaders });
+        if (orgResp.ok) {
+          const orgData = await orgResp.json() as {
+            public_repos?: number;
+            total_private_repos?: number;
+            owned_private_repos?: number;
+          };
+          orgRepoTotal =
+            (orgData.public_repos ?? 0) +
+            (orgData.total_private_repos ?? orgData.owned_private_repos ?? 0);
+        }
+      } catch {
+        // ignore
+      }
+      const preExistingRepos =
+        orgRepoTotal !== null && orgRepoTotal > total ? orgRepoTotal - total : 0;
+
       const result = {
         org,
         windowDays: days,
         totalRepoCreateEvents: allEvents.length,
         uniqueReposCreated: total,
+        orgRepoTotal,
+        preExistingRepos,
         toolingTotal,
         manualTotal,
         unknownTotal: buckets["Unknown"],
@@ -1535,6 +1564,9 @@ Deno.serve(async (req) => {
         manualPct: total > 0 ? (manualTotal / total) * 100 : 0,
         buckets: Object.entries(buckets)
           .map(([bucket, count]) => ({ bucket, count }))
+          .sort((a, b) => b.count - a.count),
+        actionBreakdown: Object.entries(actionBreakdown)
+          .map(([action, count]) => ({ action, count }))
           .sort((a, b) => b.count - a.count),
         samples: samples.sort((a, b) => b.createdAt - a.createdAt),
       };
