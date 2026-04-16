@@ -30,6 +30,7 @@ const bucketTone: Record<string, string> = {
 
 export function RepoProvenancePanel() {
   const [days, setDays] = useState(180);
+  const [activeBucket, setActiveBucket] = useState<string | null>(null);
   const { data, isLoading, error } = useGitHubRepoProvenance("open", days);
 
   const total = data?.uniqueReposCreated ?? 0;
