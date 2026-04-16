@@ -1225,10 +1225,24 @@ Deno.serve(async (req) => {
       const sinceTs = Date.now() - days * 24 * 60 * 60 * 1000;
       const sinceIso = new Date(sinceTs).toISOString().split("T")[0];
 
-      // Audit-log phrase filter: any action starting with "repo.create"
-      // (covers repo.create, repo.create_using_template, repo.transfer, etc.)
-      // We also fetch the broader window via created:>=YYYY-MM-DD
-      const phrase = encodeURIComponent(`action:repo.create created:>=${sinceIso}`);
+      // Audit-log phrase filter: any way a repo can enter the org.
+      // GHEC requires explicit action names — wildcards don't work.
+      //   repo.create                        → user clicked "New repo" / API POST /orgs/{org}/repos
+      //   repo.create_using_template         → created from a template
+      //   repo.import                        → classic GitHub Importer
+      //   repo.transfer / repo.transfer_start → transferred in from another owner
+      //   repo.fork                          → fork landed in this org
+      const actions = [
+        "repo.create",
+        "repo.create_using_template",
+        "repo.import",
+        "repo.transfer",
+        "repo.transfer_start",
+        "repo.fork",
+      ];
+      const phrase = encodeURIComponent(
+        `(${actions.map((a) => `action:${a}`).join(" OR ")}) created:>=${sinceIso}`
+      );
 
       type AuditEvent = {
         action: string;
@@ -1250,7 +1264,7 @@ Deno.serve(async (req) => {
       const allEvents: AuditEvent[] = [];
       let page = 1;
       let hasMore = true;
-      const MAX_PAGES = 10; // up to 1000 repo.create events
+      const MAX_PAGES = 20; // up to 2000 events to be safe across multiple action types
       while (hasMore && page <= MAX_PAGES) {
         const apiUrl =
           `${GHE_API_BASE}/api/v3/orgs/${org}/audit-log` +
@@ -1263,11 +1277,16 @@ Deno.serve(async (req) => {
         }
         const data = (await resp.json()) as AuditEvent[];
         if (!Array.isArray(data) || data.length === 0) { hasMore = false; break; }
-        // Stop if we've passed the time window
         const allOlder = data.every((e) => e.created_at < sinceTs);
         allEvents.push(...data);
         if (data.length < 100 || allOlder) hasMore = false;
         page++;
+      }
+
+      // Tally raw action breakdown for transparency in the UI
+      const actionBreakdown: Record<string, number> = {};
+      for (const e of allEvents) {
+        actionBreakdown[e.action] = (actionBreakdown[e.action] || 0) + 1;
       }
 
       // Classify each event into a provenance bucket from audit-log signals only.
