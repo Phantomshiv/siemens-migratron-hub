@@ -1197,6 +1197,167 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Repo provenance: query audit log for repo.create events in the last N days
+    // and bucket by actor type (User / Bot / App / Importer) to estimate
+    // how many repos were created via tooling vs manually.
+    if (action === "repo-provenance") {
+      const days = Math.min(365, Math.max(1, parseInt(url.searchParams.get("days") || "180")));
+      const cacheKey = `github:repo-provenance:${org}:${days}`;
+      if (!noCache) {
+        const cached = await getCache(cacheKey);
+        if (cached) {
+          return new Response(JSON.stringify(cached), {
+            headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "HIT" },
+          });
+        }
+      }
+
+      const sinceTs = Date.now() - days * 24 * 60 * 60 * 1000;
+      const sinceIso = new Date(sinceTs).toISOString().split("T")[0];
+
+      // Audit-log phrase filter: any action starting with "repo.create"
+      // (covers repo.create, repo.create_using_template, repo.transfer, etc.)
+      // We also fetch the broader window via created:>=YYYY-MM-DD
+      const phrase = encodeURIComponent(`action:repo.create created:>=${sinceIso}`);
+
+      type AuditEvent = {
+        action: string;
+        actor?: string;
+        actor_id?: number;
+        actor_is_bot?: boolean;
+        user_agent?: string;
+        created_at: number;
+        repo?: string;
+        repository?: string;
+        org?: string;
+        operation_type?: string;
+        programmatic_access_type?: string;
+        token_id?: number;
+        oauth_application_id?: number;
+        actor_location?: { country_code?: string };
+      };
+
+      const allEvents: AuditEvent[] = [];
+      let page = 1;
+      let hasMore = true;
+      const MAX_PAGES = 10; // up to 1000 repo.create events
+      while (hasMore && page <= MAX_PAGES) {
+        const apiUrl =
+          `${GHE_API_BASE}/api/v3/orgs/${org}/audit-log` +
+          `?phrase=${phrase}&per_page=100&page=${page}&include=all`;
+        const resp = await fetch(apiUrl, { headers: gheHeaders });
+        if (!resp.ok) {
+          const body = await resp.text();
+          console.error(`Audit log (provenance) error [${resp.status}]:`, body.slice(0, 400));
+          break;
+        }
+        const data = (await resp.json()) as AuditEvent[];
+        if (!Array.isArray(data) || data.length === 0) { hasMore = false; break; }
+        // Stop if we've passed the time window
+        const allOlder = data.every((e) => e.created_at < sinceTs);
+        allEvents.push(...data);
+        if (data.length < 100 || allOlder) hasMore = false;
+        page++;
+      }
+
+      // Classify each event into a provenance bucket
+      // Heuristics — order matters:
+      //   1. Known importer/migration UA strings           → "Importer / GEI"
+      //   2. OAuth application id present                 → "App / OAuth"
+      //   3. programmatic_access_type === "github_app"    → "App / OAuth"
+      //   4. actor_is_bot === true                        → "Bot"
+      //   5. UA contains "octokit" / "curl" / "PyGithub"  → "Script / CLI"
+      //   6. UA contains "gh CLI" / "GitHub CLI"          → "GitHub CLI"
+      //   7. fallback                                     → "Manual (UI)"
+      type Bucket = "Importer / GEI" | "App / OAuth" | "Bot" | "Script / CLI" | "GitHub CLI" | "Manual (UI)" | "Unknown";
+
+      const importerHints = /gh-gei|gei-|importer|migrat|valet|bbs-exporter|ado-migration/i;
+      const cliHints = /^GitHub CLI|gh\/[\d.]+/i;
+      const scriptHints = /octokit|PyGithub|curl|python-requests|httpie|node-fetch|axios|go-github/i;
+
+      function classify(e: AuditEvent): Bucket {
+        const ua = e.user_agent || "";
+        if (importerHints.test(ua)) return "Importer / GEI";
+        if (e.oauth_application_id) return "App / OAuth";
+        if (e.programmatic_access_type === "github_app") return "App / OAuth";
+        if (e.actor_is_bot) return "Bot";
+        if (cliHints.test(ua)) return "GitHub CLI";
+        if (scriptHints.test(ua)) return "Script / CLI";
+        if (ua) return "Manual (UI)";
+        return "Unknown";
+      }
+
+      const buckets: Record<Bucket, number> = {
+        "Importer / GEI": 0,
+        "App / OAuth": 0,
+        "Bot": 0,
+        "Script / CLI": 0,
+        "GitHub CLI": 0,
+        "Manual (UI)": 0,
+        "Unknown": 0,
+      };
+
+      const samples: Array<{
+        repo: string;
+        actor: string;
+        bucket: Bucket;
+        userAgent: string;
+        createdAt: number;
+        action: string;
+      }> = [];
+
+      // De-duplicate by repo (multiple repo.create events can fire for the same repo)
+      const seenRepos = new Set<string>();
+      for (const e of allEvents) {
+        const repoName = e.repo || e.repository || "";
+        if (seenRepos.has(repoName)) continue;
+        seenRepos.add(repoName);
+
+        const bucket = classify(e);
+        buckets[bucket]++;
+        if (samples.length < 50) {
+          samples.push({
+            repo: repoName,
+            actor: e.actor || "unknown",
+            bucket,
+            userAgent: e.user_agent || "",
+            createdAt: e.created_at,
+            action: e.action,
+          });
+        }
+      }
+
+      const total = Object.values(buckets).reduce((a, b) => a + b, 0);
+      const toolingTotal =
+        buckets["Importer / GEI"] +
+        buckets["App / OAuth"] +
+        buckets["Bot"] +
+        buckets["Script / CLI"] +
+        buckets["GitHub CLI"];
+      const manualTotal = buckets["Manual (UI)"];
+
+      const result = {
+        org,
+        windowDays: days,
+        totalRepoCreateEvents: allEvents.length,
+        uniqueReposCreated: total,
+        toolingTotal,
+        manualTotal,
+        unknownTotal: buckets["Unknown"],
+        toolingPct: total > 0 ? (toolingTotal / total) * 100 : 0,
+        manualPct: total > 0 ? (manualTotal / total) * 100 : 0,
+        buckets: Object.entries(buckets)
+          .map(([bucket, count]) => ({ bucket, count }))
+          .sort((a, b) => b.count - a.count),
+        samples: samples.sort((a, b) => b.createdAt - a.createdAt),
+      };
+
+      await setCache(cacheKey, result, 30);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
+      });
+    }
+
     // Repo issues: fetch all issues from a specific repo with labels, assignees, body
     if (action === "repo-issues") {
       const repo = url.searchParams.get("repo") || "foundation/oses-standards";
