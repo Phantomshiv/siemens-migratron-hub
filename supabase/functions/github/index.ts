@@ -1415,12 +1415,21 @@ Deno.serve(async (req) => {
       }
 
       // Stage 3 — First-commit author lookup for repos still classified as Manual/Unknown.
+      // Also captures the first-commit SHA so Stage 3.5 can inspect its file tree.
       // One REST call per repo, parallelized in batches of 10. Cap at 100 repos.
       const stillManual = repoRecords.filter(
         (r) => r.bucket === "Manual (UI)" || r.bucket === "Unknown"
       ).slice(0, 100);
 
-      type CommitAuthor = { commit?: { author?: { name?: string; email?: string } }; author?: { login?: string; type?: string } };
+      // Track first-commit SHAs separately so we can fetch the file tree in Stage 3.5
+      // without re-running the pagination dance.
+      const firstCommitShaByRepo: Record<string, string> = {};
+
+      type CommitAuthor = {
+        sha?: string;
+        commit?: { author?: { name?: string; email?: string }; message?: string };
+        author?: { login?: string; type?: string };
+      };
       const fetchFirstCommit = async (record: RepoRecord) => {
         try {
           // Get the last page (= first commit) by inspecting Link header
@@ -1446,6 +1455,7 @@ Deno.serve(async (req) => {
           const authorType = c.author?.type || "";
           const signature = `${authorLogin} ${authorName} ${authorEmail} ${authorType}`;
           record.firstCommitAuthor = authorLogin || authorName || null;
+          if (c.sha) firstCommitShaByRepo[record.repo] = c.sha;
           if (matchesAllowlist(authorLogin, authorName, authorEmail)) {
             record.bucket = "Siemens Self-Service";
           } else if (authorType === "Bot" || botCommitHints.test(signature)) {
@@ -1459,6 +1469,84 @@ Deno.serve(async (req) => {
       const BATCH = 10;
       for (let i = 0; i < stillManual.length; i += BATCH) {
         await Promise.all(stillManual.slice(i, i + BATCH).map(fetchFirstCommit));
+      }
+
+      // Stage 3.5 — Scaffold-files detection. For repos still bucketed as
+      // Manual/Unknown after author check, inspect the file tree of the FIRST commit
+      // (not HEAD — we want the original scaffolded layout, before humans add code).
+      // If it contains CI/IaC/scaffolder markers, bucket as "Bot-initialized" since
+      // such a layout cannot realistically be hand-typed in the GitHub UI.
+      //
+      // Markers (path or filename, case-insensitive substring on tree paths):
+      //   .github/workflows/   → CI scaffolded (Actions cookbook)
+      //   terraform/, *.tf      → Terraform module scaffolded
+      //   pulumi/, Pulumi.yaml  → Pulumi scaffolded
+      //   backstage.yaml,
+      //   catalog-info.yaml     → Backstage scaffolder
+      //   helm/, Chart.yaml     → Helm chart scaffolded
+      //   .devcontainer/        → Codespaces scaffolded
+      //   cookiecutter.json,
+      //   copier.yml            → Cookiecutter / Copier templates
+      const scaffoldMarkers: Array<{ pattern: RegExp; label: string }> = [
+        { pattern: /^\.github\/workflows\//i, label: ".github/workflows" },
+        { pattern: /(^|\/)terraform\//i, label: "terraform/" },
+        { pattern: /\.tf$/i, label: "*.tf" },
+        { pattern: /(^|\/)pulumi\.ya?ml$/i, label: "Pulumi.yaml" },
+        { pattern: /(^|\/)backstage\.ya?ml$/i, label: "backstage.yaml" },
+        { pattern: /(^|\/)catalog-info\.ya?ml$/i, label: "catalog-info.yaml" },
+        { pattern: /(^|\/)chart\.ya?ml$/i, label: "Chart.yaml" },
+        { pattern: /(^|\/)\.devcontainer\//i, label: ".devcontainer/" },
+        { pattern: /(^|\/)cookiecutter\.json$/i, label: "cookiecutter.json" },
+        { pattern: /(^|\/)copier\.ya?ml$/i, label: "copier.yml" },
+        { pattern: /(^|\/)skaffold\.ya?ml$/i, label: "skaffold.yaml" },
+      ];
+
+      const scaffoldCandidates = repoRecords.filter(
+        (r) =>
+          (r.bucket === "Manual (UI)" || r.bucket === "Unknown") &&
+          firstCommitShaByRepo[r.repo],
+      );
+
+      type GitTreeResp = { tree?: Array<{ path?: string; type?: string }>; truncated?: boolean };
+      const fetchScaffoldTree = async (record: RepoRecord) => {
+        const sha = firstCommitShaByRepo[record.repo];
+        if (!sha) return;
+        try {
+          // Fetch the commit to get its root tree SHA
+          const commitResp = await fetch(
+            `${GHE_BASE}/repos/${record.repo}/git/commits/${sha}`,
+            { headers: gheHeaders },
+          );
+          if (!commitResp.ok) return;
+          const commitJson = await commitResp.json() as { tree?: { sha?: string } };
+          const treeSha = commitJson.tree?.sha;
+          if (!treeSha) return;
+          // Recursive tree listing — capped by GitHub at ~100k entries; fine for first commits
+          const treeResp = await fetch(
+            `${GHE_BASE}/repos/${record.repo}/git/trees/${treeSha}?recursive=1`,
+            { headers: gheHeaders },
+          );
+          if (!treeResp.ok) return;
+          const treeJson = await treeResp.json() as GitTreeResp;
+          const paths = (treeJson.tree || [])
+            .map((t) => t.path || "")
+            .filter(Boolean);
+          if (paths.length === 0) return;
+          const matched: string[] = [];
+          for (const { pattern, label } of scaffoldMarkers) {
+            if (paths.some((p) => pattern.test(p))) matched.push(label);
+          }
+          if (matched.length > 0) {
+            record.scaffoldFiles = matched;
+            record.bucket = "Bot-initialized";
+          }
+        } catch {
+          // Ignore individual lookup failures
+        }
+      };
+
+      for (let i = 0; i < scaffoldCandidates.length; i += BATCH) {
+        await Promise.all(scaffoldCandidates.slice(i, i + BATCH).map(fetchScaffoldTree));
       }
 
       // Stage 4 — Tally, sample, build response.
