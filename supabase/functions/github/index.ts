@@ -1576,6 +1576,7 @@ Deno.serve(async (req) => {
         action: string;
         templateRepo?: string | null;
         firstCommitAuthor?: string | null;
+        scaffoldFiles?: string[] | null;
       }> = [];
 
       const PER_BUCKET_CAP = 25;
@@ -1596,6 +1597,7 @@ Deno.serve(async (req) => {
             action: r.action,
             templateRepo: r.templateRepo ?? null,
             firstCommitAuthor: r.firstCommitAuthor ?? null,
+            scaffoldFiles: r.scaffoldFiles ?? null,
           });
         }
       }
