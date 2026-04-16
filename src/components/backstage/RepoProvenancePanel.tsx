@@ -1,15 +1,20 @@
 import { useState } from "react";
 import { useGitHubRepoProvenance } from "@/hooks/useGitHubRepoProvenance";
+import { useRepoProvenanceSettings } from "@/contexts/RepoProvenanceSettingsContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Info, GitBranch, Bot, Terminal, AppWindow, MousePointer2, HelpCircle, Copy, Cpu } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Info, GitBranch, Bot, Terminal, AppWindow, MousePointer2, HelpCircle, Copy, Cpu, Settings, Building2 } from "lucide-react";
 
 const bucketIcon: Record<string, React.ComponentType<{ className?: string }>> = {
   "Importer / GEI": GitBranch,
+  "Siemens Self-Service": Building2,
   "From Template": Copy,
   "Bot-initialized": Cpu,
   "App / OAuth": AppWindow,
@@ -22,6 +27,7 @@ const bucketIcon: Record<string, React.ComponentType<{ className?: string }>> = 
 
 const bucketTone: Record<string, string> = {
   "Importer / GEI": "bg-success/15 text-success border-success/30",
+  "Siemens Self-Service": "bg-success/15 text-success border-success/30",
   "From Template": "bg-success/15 text-success border-success/30",
   "Bot-initialized": "bg-success/15 text-success border-success/30",
   "App / OAuth": "bg-primary/15 text-primary border-primary/30",
@@ -35,6 +41,8 @@ const bucketTone: Record<string, string> = {
 export function RepoProvenancePanel() {
   const [days, setDays] = useState(180);
   const [activeBucket, setActiveBucket] = useState<string | null>(null);
+  const { settings, setSettings, resetDefaults, parsedAccounts } = useRepoProvenanceSettings();
+  const [draftAllowlist, setDraftAllowlist] = useState(settings.serviceAccountAllowlist);
   const { data, isLoading, error } = useGitHubRepoProvenance("open", days);
 
   const total = data?.uniqueReposCreated ?? 0;
