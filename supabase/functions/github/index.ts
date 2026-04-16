@@ -1422,7 +1422,9 @@ Deno.serve(async (req) => {
           const authorType = c.author?.type || "";
           const signature = `${authorLogin} ${authorName} ${authorEmail} ${authorType}`;
           record.firstCommitAuthor = authorLogin || authorName || null;
-          if (authorType === "Bot" || botCommitHints.test(signature)) {
+          if (matchesAllowlist(authorLogin, authorName, authorEmail)) {
+            record.bucket = "Siemens Self-Service";
+          } else if (authorType === "Bot" || botCommitHints.test(signature)) {
             record.bucket = "Bot-initialized";
           }
         } catch {
