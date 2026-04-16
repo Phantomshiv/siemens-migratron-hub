@@ -18,6 +18,7 @@ import {
   Users,
   ShieldAlert,
   Sparkles,
+  Target,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -37,6 +38,7 @@ import {
 
 const mainItems = [
   { title: "Overview", url: "/", icon: LayoutDashboard },
+  { title: "OKRs", url: "/okrs", icon: Target },
   { title: "Cloud Usage", url: "/metrics", icon: BarChart3 },
   { title: "Jira", url: "/jira", icon: SquareKanban },
   { title: "Capabilities", url: "/capabilities", icon: Layers },
