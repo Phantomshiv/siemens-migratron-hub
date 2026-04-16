@@ -1440,6 +1440,7 @@ Deno.serve(async (req) => {
       // Stage 4 — Tally, sample, build response.
       const buckets: Record<Bucket, number> = {
         "Importer / GEI": 0,
+        "Siemens Self-Service": 0,
         "From Template": 0,
         "Bot-initialized": 0,
         "App / OAuth": 0,
@@ -1486,6 +1487,7 @@ Deno.serve(async (req) => {
       const total = Object.values(buckets).reduce((a, b) => a + b, 0);
       const toolingTotal =
         buckets["Importer / GEI"] +
+        buckets["Siemens Self-Service"] +
         buckets["From Template"] +
         buckets["Bot-initialized"] +
         buckets["App / OAuth"] +
