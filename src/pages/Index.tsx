@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactNode } from "react";
+import { useState, useCallback, useMemo, type ReactNode } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { KPICard } from "@/components/KPICard";
 import { useLiveRoadmap } from "@/hooks/useRoadmapJira";
@@ -8,6 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { useGitHubSummary, useGitHubActivity } from "@/hooks/useGitHub";
 import { useActiveSprint, useBlockers } from "@/hooks/useJira";
 import { useCostByVendor, useMonthlySpend } from "@/hooks/useCloudability";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowUpRight, ArrowDownRight, Minus, Camera } from "lucide-react";
 import { useGitHubSecurity } from "@/hooks/useGitHubSecurity";
 import { useBackstageSummary } from "@/hooks/useBackstage";
 import { getOrgStats } from "@/lib/people-data";
@@ -60,6 +62,90 @@ function SectionHeader({ icon: Icon, title, subtitle, href, linkText, onMoveUp, 
   );
 }
 
+/* ─── Snapshot progress hook ─── */
+const SNAP_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/weekly-snapshot`;
+const snapHeaders = { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` };
+
+function useLatestSnapshot() {
+  return useQuery<{ key_metrics: Record<string, number>; title: string; week_start: string; cadence: string } | null>({
+    queryKey: ["latest-snapshot"],
+    queryFn: async () => {
+      const r = await fetch(SNAP_URL, { method: "POST", headers: snapHeaders, body: JSON.stringify({ action: "list" }) });
+      if (!r.ok) return null;
+      const all = await r.json();
+      const ready = all.filter((s: any) => s.status === "ready" && s.key_metrics);
+      return ready.length > 0 ? ready[0] : null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+const DELTA_METRICS: { key: string; label: string; fmt?: "usd" }[] = [
+  { key: "github_members", label: "Members" },
+  { key: "github_repos", label: "Repos" },
+  { key: "copilot_active", label: "Copilot Active" },
+  { key: "prs_merged", label: "PRs Merged" },
+  { key: "security_total_open", label: "Security Alerts" },
+  { key: "sprint_done", label: "Sprint Done" },
+  { key: "blockers", label: "Blockers" },
+  { key: "backstage_entities", label: "Backstage" },
+  { key: "clients_done", label: "Clients Done" },
+  { key: "clients_repos", label: "Client Repos" },
+  { key: "cloud_spend_30d", label: "Cloud Spend", fmt: "usd" },
+];
+
+function SnapshotProgressBanner({ currentMetrics, snapshot }: {
+  currentMetrics: Record<string, number>;
+  snapshot: { key_metrics: Record<string, number>; title: string; week_start: string; cadence: string };
+}) {
+  const deltas = DELTA_METRICS
+    .filter(m => currentMetrics[m.key] !== undefined && snapshot.key_metrics[m.key] !== undefined)
+    .map(m => {
+      const curr = currentMetrics[m.key];
+      const prev = snapshot.key_metrics[m.key];
+      const diff = curr - prev;
+      return { ...m, curr, prev, diff };
+    })
+    .filter(d => d.diff !== 0);
+
+  if (deltas.length === 0) return null;
+
+  const fmtVal = (v: number, fmt?: string) => {
+    if (fmt === "usd") {
+      if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+      if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
+      return `$${v.toFixed(0)}`;
+    }
+    return v.toLocaleString();
+  };
+
+  return (
+    <Card className="border-primary/20 bg-primary/5">
+      <CardContent className="p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Camera className="h-3.5 w-3.5 text-primary" />
+          <span className="text-xs font-medium">Progress since last snapshot</span>
+          <Badge variant="outline" className="text-[9px] ml-auto">{snapshot.title}</Badge>
+          <a href="/snapshots" className="text-[9px] text-primary hover:underline ml-1">View all →</a>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {deltas.map(d => {
+            // For metrics where lower is better (blockers, security alerts), flip the color
+            const lowerIsBetter = d.key === "blockers" || d.key === "security_total_open" || d.key === "cloud_spend_30d";
+            const isGood = lowerIsBetter ? d.diff < 0 : d.diff > 0;
+            return (
+              <span key={d.key} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${isGood ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"}`}>
+                {d.diff > 0 ? <ArrowUpRight className="h-2.5 w-2.5" /> : <ArrowDownRight className="h-2.5 w-2.5" />}
+                {d.label}: {d.diff > 0 ? "+" : ""}{fmtVal(d.diff, d.fmt)}
+              </span>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 /* ─── Section order persistence ─── */
 const STORAGE_KEY = "oses-overview-section-order";
 const DEFAULT_ORDER = ["budget", "github", "delivery", "architecture", "people", "security", "risks", "backstage", "clients", "comms"];
@@ -102,6 +188,7 @@ const Index = () => {
   const { data: bsSummary } = useBackstageSummary();
   const { data: roadmapQuarters } = useLiveRoadmap();
   const { data: projectsData } = useGitHubProjects();
+  const { data: latestSnapshot } = useLatestSnapshot();
 
   const moveSection = useCallback((id: string, dir: -1 | 1) => {
     setSectionOrder((prev) => {
@@ -218,6 +305,29 @@ const Index = () => {
   };
 
   const loading = ghLoading || sprintLoading || cloudLoading;
+
+  // Build current metrics matching snapshot key_metrics structure
+  const currentMetrics = useMemo<Record<string, number>>(() => {
+    const m: Record<string, number> = {};
+    m.github_members = totalMembers;
+    m.github_repos = totalRepos;
+    m.github_teams = totalTeams;
+    m.copilot_total = copilotTotal;
+    m.copilot_active = copilotActive;
+    m.prs_open = prOpen;
+    m.prs_merged = prMerged;
+    m.security_total_open = secOpen;
+    m.sprint_total = sprintTotal;
+    m.sprint_done = sprintDone;
+    m.blockers = blockerCount;
+    m.cloud_spend_30d = totalCloudSpend;
+    m.backstage_entities = totalEntities;
+    m.clients_total = clientTotal;
+    m.clients_done = clientDone;
+    m.clients_repos = clientRepos;
+    m.clients_devs = clientDevs;
+    return m;
+  }, [totalMembers, totalRepos, totalTeams, copilotTotal, copilotActive, prOpen, prMerged, secOpen, sprintTotal, sprintDone, blockerCount, totalCloudSpend, totalEntities, clientTotal, clientDone, clientRepos, clientDevs]);
 
   // ── Section renderers ──
   const sectionProps = (id: string) => ({
@@ -644,6 +754,11 @@ const Index = () => {
             <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
           </div>
         </div>
+
+        {/* Snapshot progress banner */}
+        {latestSnapshot && !loading && (
+          <SnapshotProgressBanner currentMetrics={currentMetrics} snapshot={latestSnapshot} />
+        )}
 
         {loading && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
