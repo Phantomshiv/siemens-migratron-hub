@@ -20,6 +20,7 @@ import {
   Sparkles,
   Target,
   Siren,
+  Package,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -53,6 +54,7 @@ const mainItems = [
   { title: "Budget", url: "/budget", icon: Wallet },
   { title: "Cybersecurity", url: "/cybersecurity", icon: ShieldAlert },
   { title: "SRE & Incidents", url: "/sre", icon: Siren },
+  { title: "Artifactory", url: "/artifactory", icon: Package },
   { title: "Architecture", url: "/architecture", icon: FileText },
   { title: "People", url: "/people", icon: Users },
   { title: "Snapshot AI", url: "/snapshots", icon: Sparkles },
