@@ -63,14 +63,17 @@ const SREIncidents = () => {
     const isLive = (w: DDWidget) => {
       const t = w.definition?.type;
       if (t === "note") return Boolean(w.definition?.content?.trim?.());
+      if (t === "sunburst" || t === "pie_chart") {
+        return Boolean(w.definition?.requests?.[0]?.queries?.length);
+      }
       if (t !== "query_value") return false;
       const title = w.definition?.title;
       if (!title || !String(title).trim()) return false;
       return true;
     };
 
-    // Hide groups whose title references non-live content
-    const HIDDEN_GROUPS = /false\s*alert/i;
+    // Hide groups whose title is purely cosmetic / non-rendered
+    const HIDDEN_GROUPS = /^$/;
 
     const topWidgets: DDWidget[] = [];
     const groups: { title: string; widgets: DDWidget[] }[] = [];
