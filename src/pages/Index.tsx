@@ -25,6 +25,7 @@ import {
   BookOpen, Rocket, Shield, Wallet, Layers, CloudCog, Building2,
   FileText, CheckCircle2, TrendingUp, Server, ChevronUp, ChevronDown, GripVertical,
   Megaphone, MessageSquare, Newspaper, GraduationCap, ChevronRight,
+  Activity, Package, ShieldCheck, Bug, Database, Siren,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
