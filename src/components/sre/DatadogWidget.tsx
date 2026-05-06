@@ -4,6 +4,7 @@ import { ExternalLink, AlertCircle, Activity, ListTree, Table as TableIcon, BarC
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { runDatadogScalar, type DDWidget } from "@/hooks/useDatadogDashboard";
+import { DatadogSunburstWidget } from "./DatadogSunburstWidget";
 
 const DD_DASH_URL = "https://pillar0-siemens.datadoghq.com/dashboard/t46-7h2-sb3/sre-incident-command";
 
@@ -231,6 +232,7 @@ function PlaceholderWidget({ widget }: { widget: DDWidget }) {
 export function DatadogWidgetView(props: Props) {
   const type: string = props.widget.definition?.type;
   if (type === "query_value") return <QueryValueWidget {...props} />;
+  if (type === "sunburst" || type === "pie_chart") return <DatadogSunburstWidget {...props} />;
   if (type === "note") return <NoteWidget widget={props.widget} />;
   return <PlaceholderWidget widget={props.widget} />;
 }
