@@ -303,6 +303,56 @@ const Index = () => {
   const totalReleased = roadmapQuarters.reduce((s, q) => s + q.released, 0);
   const roadmapPct = totalRoadmapItems > 0 ? Math.round((totalReleased / totalRoadmapItems) * 100) : 0;
 
+  // ── Incidents (Datadog SRE dashboard widget counts as a proxy) ──
+  const ddWidgets = ddDash?.widgets ?? [];
+  const ddWidgetCount = ddWidgets.length;
+  const ddIncidentWidgets = ddWidgets.filter((w: any) => {
+    const t = (w.definition?.title || "").toLowerCase();
+    return t.includes("incident") || t.includes("mttr") || t.includes("sev");
+  }).length;
+  const ddNoteWidgets = ddWidgets.filter((w: any) => w.definition?.type === "note").length;
+
+  // ── Artifactory ──
+  const binCount = parseInt(artStorage?.binariesSummary?.binariesCount?.replace(/,/g, "") || "0") || 0;
+  const binSize = artStorage?.binariesSummary?.binariesSize || "—";
+  const artUsed = artStorage?.fileStoreSummary?.usedSpace || "—";
+  const artFree = artStorage?.fileStoreSummary?.freeSpace || "—";
+  const repoCount = artRepos?.length ?? 0;
+  const localRepos = (artRepos ?? []).filter((r) => r.type === "LOCAL").length;
+  const remoteRepos = (artRepos ?? []).filter((r) => r.type === "REMOTE").length;
+  const virtualRepos = (artRepos ?? []).filter((r) => r.type === "VIRTUAL").length;
+  const topRepoBySpace = [...(artStorage?.repositoriesSummaryList ?? [])]
+    .sort((a, b) => (b.usedSpaceInBytes || 0) - (a.usedSpaceInBytes || 0))
+    .slice(0, 5);
+
+  // ── SonarQube ──
+  const sonarProjects = sonarPortfolio?.projects ?? [];
+  const sonarMeasures = sonarPortfolio?.measures ?? [];
+  const sumMetric = (key: string) =>
+    sonarMeasures.reduce((s, m) => {
+      const v = parseFloat(m.component.measures.find((x: any) => x.metric === key)?.value || "0");
+      return s + (Number.isFinite(v) ? v : 0);
+    }, 0);
+  const avgMetric = (key: string) => {
+    const vals = sonarMeasures
+      .map((m) => parseFloat(m.component.measures.find((x: any) => x.metric === key)?.value || ""))
+      .filter((v) => Number.isFinite(v));
+    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  };
+  const sqBugs = sumMetric("bugs");
+  const sqVulns = sumMetric("vulnerabilities");
+  const sqSmells = sumMetric("code_smells");
+  const sqHotspots = sumMetric("security_hotspots");
+  const sqCoverage = avgMetric("coverage");
+  const sqDup = avgMetric("duplicated_lines_density");
+  const sqNcloc = sumMetric("ncloc");
+  const sqDebtMin = sumMetric("sqale_index");
+  const sqDebtDays = Math.round(sqDebtMin / 60 / 8);
+  const sqGatePassed = sonarMeasures.filter((m) =>
+    m.component.measures.find((x: any) => x.metric === "alert_status")?.value === "OK"
+  ).length;
+  const sqGatePct = sonarMeasures.length > 0 ? Math.round((sqGatePassed / sonarMeasures.length) * 100) : 0;
+
   const fmt = (v: number) => {
     if (v >= 1_000_000) return `€${(v / 1_000_000).toFixed(1)}M`;
     if (v >= 1_000) return `€${(v / 1_000).toFixed(0)}K`;
