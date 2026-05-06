@@ -33,7 +33,7 @@ function widgetTitle(w: DDWidget) {
   return "Breakdown";
 }
 
-export function DatadogSunburstWidget({ widget, fromTs, toTs }: Props) {
+export function DatadogSunburstWidget({ widget, fromTs, toTs, templateVars }: Props) {
   const [rows, setRows] = useState<{ label: string; value: number }[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,39 +43,12 @@ export function DatadogSunburstWidget({ widget, fromTs, toTs }: Props) {
     setLoading(true);
     setError(null);
 
-    const reqs = widget.definition?.requests ?? [];
-    const r = reqs[0];
-    if (!r) {
+    const payload = buildScalarPayload(widget, templateVars ?? {}, fromTs, toTs);
+    if (!payload) {
       setError("No request defined");
       setLoading(false);
       return;
     }
-
-    const queries = (r.queries ?? []).map((q: any) => {
-      const out: any = {
-        data_source: q.data_source,
-        name: q.name,
-        compute: q.compute,
-        // Preserve group_by — this is what makes it a categorical breakdown
-        group_by: q.group_by ?? [],
-        search: { query: q.search?.query ?? "" },
-      };
-      if (q.indexes) out.indexes = q.indexes;
-      if (q.metric) out.metric = q.metric;
-      if (q.query) out.query = q.query;
-      if (q.aggregator) out.aggregator = q.aggregator;
-      return out;
-    });
-    const formulas = (r.formulas ?? [{ formula: queries[0]?.name ?? "query1" }]).map(
-      (f: any) => ({ formula: f.formula })
-    );
-
-    const payload = {
-      data: {
-        attributes: { formulas, queries, from: fromTs, to: toTs },
-        type: "scalar_request",
-      },
-    };
 
     runDatadogScalar(payload)
       .then((res: any) => {
@@ -106,7 +79,7 @@ export function DatadogSunburstWidget({ widget, fromTs, toTs }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [widget, fromTs, toTs]);
+  }, [widget, fromTs, toTs, templateVars]);
 
   const total = useMemo(
     () => (rows ?? []).reduce((s, d) => s + d.value, 0),
