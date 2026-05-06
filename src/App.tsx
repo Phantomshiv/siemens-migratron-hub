@@ -21,6 +21,7 @@ import CybersecurityDashboard from "./pages/CybersecurityDashboard.tsx";
 import ArchitectureDashboard from "./pages/ArchitectureDashboard.tsx";
 import SnapshotAI from "./pages/SnapshotAI.tsx";
 import OKRsDashboard from "./pages/OKRs.tsx";
+import SREIncidents from "./pages/SREIncidents.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { RepoProvenanceSettingsProvider } from "./contexts/RepoProvenanceSettingsContext";
 
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/architecture" element={<ArchitectureDashboard />} />
             <Route path="/snapshots" element={<SnapshotAI />} />
             <Route path="/okrs" element={<OKRsDashboard />} />
+            <Route path="/sre" element={<SREIncidents />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
