@@ -15,6 +15,13 @@ export interface DDWidget {
   definition: any;
 }
 
+export interface DDTemplateVar {
+  name: string;
+  default?: string;
+  prefix?: string;
+  available_values?: string[];
+}
+
 export interface DDDashboard {
   id: string;
   title: string;
@@ -23,6 +30,7 @@ export interface DDDashboard {
   modified_at: string;
   author_name?: string;
   widgets: DDWidget[];
+  template_variables?: DDTemplateVar[];
 }
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
