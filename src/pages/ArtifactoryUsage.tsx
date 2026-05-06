@@ -16,11 +16,13 @@ function GroupSection({
   widgets,
   fromTs,
   toTs,
+  templateVars,
 }: {
   title: string;
   widgets: DDWidget[];
   fromTs: number;
   toTs: number;
+  templateVars: Record<string, string>;
 }) {
   return (
     <section className="space-y-3">
@@ -40,7 +42,7 @@ function GroupSection({
               className="col-span-12"
               style={{ gridColumn: `span ${colSpan} / span ${colSpan}` }}
             >
-              <DatadogWidgetView widget={w} fromTs={fromTs} toTs={toTs} />
+              <DatadogWidgetView widget={w} fromTs={fromTs} toTs={toTs} templateVars={templateVars} />
             </div>
           );
         })}
