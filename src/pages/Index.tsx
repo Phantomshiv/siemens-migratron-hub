@@ -12,6 +12,9 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, ArrowDownRight, Minus, Camera } from "lucide-react";
 import { useGitHubSecurity } from "@/hooks/useGitHubSecurity";
 import { useBackstageSummary } from "@/hooks/useBackstage";
+import { useDatadogDashboard } from "@/hooks/useDatadogDashboard";
+import { useArtifactoryStorage, useArtifactoryRepos } from "@/hooks/useArtifactory";
+import { useSonarPortfolio } from "@/hooks/useSonarQube";
 import { getOrgStats } from "@/lib/people-data";
 import { budgetSummary, fteTotals, byModule } from "@/lib/budget-data";
 import { releases, domains } from "@/lib/oses-data";
@@ -22,6 +25,7 @@ import {
   BookOpen, Rocket, Shield, Wallet, Layers, CloudCog, Building2,
   FileText, CheckCircle2, TrendingUp, Server, ChevronUp, ChevronDown, GripVertical,
   Megaphone, MessageSquare, Newspaper, GraduationCap, ChevronRight,
+  Activity, Package, ShieldCheck, Bug, Database, Siren,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -148,7 +152,7 @@ function SnapshotProgressBanner({ currentMetrics, snapshot }: {
 
 /* ─── Section order persistence ─── */
 const STORAGE_KEY = "oses-overview-section-order";
-const DEFAULT_ORDER = ["budget", "github", "delivery", "architecture", "people", "security", "risks", "backstage", "clients", "comms"];
+const DEFAULT_ORDER = ["budget", "github", "delivery", "incidents", "artifactory", "codequality", "architecture", "people", "security", "risks", "backstage", "clients", "comms"];
 
 function loadOrder(): string[] {
   try {
@@ -189,6 +193,12 @@ const Index = () => {
   const { data: roadmapQuarters } = useLiveRoadmap();
   const { data: projectsData } = useGitHubProjects();
   const { data: latestSnapshot } = useLatestSnapshot();
+
+  // ── New: Incidents (Datadog SRE), Artifactory, SonarQube ──
+  const { data: ddDash } = useDatadogDashboard("t46-7h2-sb3");
+  const { data: artStorage } = useArtifactoryStorage();
+  const { data: artRepos } = useArtifactoryRepos();
+  const { data: sonarPortfolio } = useSonarPortfolio();
 
   const moveSection = useCallback((id: string, dir: -1 | 1) => {
     setSectionOrder((prev) => {
@@ -292,6 +302,56 @@ const Index = () => {
   const totalRoadmapItems = roadmapQuarters.reduce((s, q) => s + q.totalItems, 0);
   const totalReleased = roadmapQuarters.reduce((s, q) => s + q.released, 0);
   const roadmapPct = totalRoadmapItems > 0 ? Math.round((totalReleased / totalRoadmapItems) * 100) : 0;
+
+  // ── Incidents (Datadog SRE dashboard widget counts as a proxy) ──
+  const ddWidgets = ddDash?.widgets ?? [];
+  const ddWidgetCount = ddWidgets.length;
+  const ddIncidentWidgets = ddWidgets.filter((w: any) => {
+    const t = (w.definition?.title || "").toLowerCase();
+    return t.includes("incident") || t.includes("mttr") || t.includes("sev");
+  }).length;
+  const ddNoteWidgets = ddWidgets.filter((w: any) => w.definition?.type === "note").length;
+
+  // ── Artifactory ──
+  const binCount = parseInt(artStorage?.binariesSummary?.binariesCount?.replace(/,/g, "") || "0") || 0;
+  const binSize = artStorage?.binariesSummary?.binariesSize || "—";
+  const artUsed = artStorage?.fileStoreSummary?.usedSpace || "—";
+  const artFree = artStorage?.fileStoreSummary?.freeSpace || "—";
+  const repoCount = artRepos?.length ?? 0;
+  const localRepos = (artRepos ?? []).filter((r) => r.type === "LOCAL").length;
+  const remoteRepos = (artRepos ?? []).filter((r) => r.type === "REMOTE").length;
+  const virtualRepos = (artRepos ?? []).filter((r) => r.type === "VIRTUAL").length;
+  const topRepoBySpace = [...(artStorage?.repositoriesSummaryList ?? [])]
+    .sort((a, b) => (b.usedSpaceInBytes || 0) - (a.usedSpaceInBytes || 0))
+    .slice(0, 5);
+
+  // ── SonarQube ──
+  const sonarProjects = sonarPortfolio?.projects ?? [];
+  const sonarMeasures = sonarPortfolio?.measures ?? [];
+  const sumMetric = (key: string) =>
+    sonarMeasures.reduce((s, m) => {
+      const v = parseFloat(m.component.measures.find((x: any) => x.metric === key)?.value || "0");
+      return s + (Number.isFinite(v) ? v : 0);
+    }, 0);
+  const avgMetric = (key: string) => {
+    const vals = sonarMeasures
+      .map((m) => parseFloat(m.component.measures.find((x: any) => x.metric === key)?.value || ""))
+      .filter((v) => Number.isFinite(v));
+    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  };
+  const sqBugs = sumMetric("bugs");
+  const sqVulns = sumMetric("vulnerabilities");
+  const sqSmells = sumMetric("code_smells");
+  const sqHotspots = sumMetric("security_hotspots");
+  const sqCoverage = avgMetric("coverage");
+  const sqDup = avgMetric("duplicated_lines_density");
+  const sqNcloc = sumMetric("ncloc");
+  const sqDebtMin = sumMetric("sqale_index");
+  const sqDebtDays = Math.round(sqDebtMin / 60 / 8);
+  const sqGatePassed = sonarMeasures.filter((m) =>
+    m.component.measures.find((x: any) => x.metric === "alert_status")?.value === "OK"
+  ).length;
+  const sqGatePct = sonarMeasures.length > 0 ? Math.round((sqGatePassed / sonarMeasures.length) * 100) : 0;
 
   const fmt = (v: number) => {
     if (v >= 1_000_000) return `€${(v / 1_000_000).toFixed(1)}M`;
@@ -731,6 +791,137 @@ const Index = () => {
             ))}
             <p className="text-[9px] text-muted-foreground">3 active · 3 onboarding/evaluating</p>
           </div>
+        </div>
+      )
+    ),
+
+    /* ── Incidents (SRE / Datadog) ── */
+    incidents: (
+      S("incidents", Siren, "Incidents & SRE", "Live ops health from Datadog SRE command", "/sre-incidents",
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <KPICard title="SRE Widgets" value={ddWidgetCount} icon={Activity}
+            subtitle="tracked KPIs" href="/sre-incidents" changeType="neutral"
+            details={[
+              { label: "Total widgets", value: ddWidgetCount, changeType: "neutral" },
+              { label: "Incident-related", value: ddIncidentWidgets, changeType: ddIncidentWidgets > 0 ? "negative" : "positive" },
+              { label: "Notes/Sections", value: ddNoteWidgets, changeType: "neutral" },
+              { label: "Dashboard", value: ddDash?.title ?? "—", changeType: "neutral" },
+            ]} detailTitle="Datadog SRE Dashboard"
+          />
+          <KPICard title="Incident KPIs" value={ddIncidentWidgets} icon={Siren}
+            changeType={ddIncidentWidgets > 0 ? "negative" : "positive"}
+            change={ddIncidentWidgets > 0 ? "active tracking" : "none"}
+            subtitle="MTTR / SEV / counts" href="/sre-incidents"
+          />
+          <KPICard title="Dashboard" value={ddDash ? "Live" : "—"} icon={Activity}
+            changeType={ddDash ? "positive" : "neutral"}
+            change={ddDash ? "Datadog connected" : "Loading…"}
+            subtitle="data source" href="/sre-incidents"
+          />
+          <KPICard title="Last Updated" value={ddDash?.modified_at ? new Date(ddDash.modified_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "—"}
+            icon={CheckCircle2} subtitle="dashboard sync" href="/sre-incidents" changeType="neutral"
+          />
+        </div>
+      )
+    ),
+
+    /* ── Artifact Management (Artifactory) ── */
+    artifactory: (
+      S("artifactory", Package, "Artifact Management", "Artifactory storage, repos & usage", "/artifactory",
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <KPICard title="Binaries" value={binCount.toLocaleString()} icon={Database}
+              subtitle={binSize} href="/artifactory" changeType="neutral"
+              details={[
+                { label: "Binaries Count", value: binCount.toLocaleString(), changeType: "neutral" },
+                { label: "Binaries Size", value: binSize, changeType: "neutral" },
+                { label: "Artifacts", value: artStorage?.binariesSummary?.artifactsCount ?? "—", changeType: "neutral" },
+                { label: "Optimization", value: artStorage?.binariesSummary?.optimization ?? "—", changeType: "positive" },
+              ]} detailTitle="Artifactory Binaries"
+            />
+            <KPICard title="Storage Used" value={artUsed} icon={CloudCog}
+              subtitle={`${artFree} free`} href="/artifactory" changeType="neutral"
+              details={[
+                { label: "Used", value: artUsed, changeType: "neutral" },
+                { label: "Free", value: artFree, changeType: "positive" },
+                { label: "Total", value: artStorage?.fileStoreSummary?.totalSpace ?? "—", changeType: "neutral" },
+                { label: "Type", value: artStorage?.fileStoreSummary?.storageType ?? "—", changeType: "neutral" },
+              ]} detailTitle="File Store"
+            />
+            <KPICard title="Repositories" value={repoCount} icon={Layers}
+              subtitle={`${localRepos} local · ${remoteRepos} remote`} href="/artifactory" changeType="neutral"
+              details={[
+                { label: "Total", value: repoCount, changeType: "neutral" },
+                { label: "Local", value: localRepos, changeType: "neutral" },
+                { label: "Remote", value: remoteRepos, changeType: "neutral" },
+                { label: "Virtual", value: virtualRepos, changeType: "neutral" },
+              ]} detailTitle="Repository Mix"
+            />
+            <KPICard title="Top Repo" value={topRepoBySpace[0]?.repoKey?.slice(0, 14) ?? "—"} icon={Server}
+              change={topRepoBySpace[0]?.usedSpace} changeType="neutral"
+              subtitle="largest by space" href="/artifactory"
+            />
+          </div>
+          {topRepoBySpace.length > 0 && (
+            <div className="p-3 rounded-lg bg-muted/30 space-y-1.5 mt-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground font-medium">Top Repositories by Space</span>
+                <a href="/artifactory" className="text-[9px] text-primary hover:underline">View all →</a>
+              </div>
+              {topRepoBySpace.map((r) => (
+                <div key={r.repoKey} className="flex items-center gap-2">
+                  <span className="text-[10px] font-medium truncate flex-1">{r.repoKey}</span>
+                  <Badge className="text-[8px] h-3.5 px-1 flex-shrink-0 bg-secondary text-secondary-foreground">{r.packageType}</Badge>
+                  <span className="text-[9px] text-muted-foreground flex-shrink-0 w-16 text-right">{r.usedSpace}</span>
+                  <span className="text-[9px] text-primary flex-shrink-0 w-10 text-right">{r.percentage}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )
+    ),
+
+    /* ── Code Quality (SonarQube) ── */
+    codequality: (
+      S("codequality", ShieldCheck, "Code Quality", "SonarQube portfolio: bugs, debt & coverage", "/sonarqube",
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <KPICard title="Quality Gate" value={`${sqGatePct}%`} icon={CheckCircle2}
+            change={`${sqGatePassed}/${sonarMeasures.length} passing`}
+            changeType={sqGatePct >= 80 ? "positive" : sqGatePct >= 50 ? "neutral" : "negative"}
+            subtitle="projects passing" href="/sonarqube"
+            details={[
+              { label: "Passing", value: sqGatePassed, changeType: "positive" },
+              { label: "Failing", value: sonarMeasures.length - sqGatePassed, changeType: "negative" },
+              { label: "Total Projects", value: sonarProjects.length, changeType: "neutral" },
+            ]} detailTitle="Quality Gate Status"
+          />
+          <KPICard title="Bugs" value={sqBugs.toLocaleString()} icon={Bug}
+            changeType={sqBugs > 100 ? "negative" : sqBugs > 0 ? "neutral" : "positive"}
+            subtitle="across portfolio" href="/sonarqube"
+          />
+          <KPICard title="Vulnerabilities" value={sqVulns.toLocaleString()} icon={Shield}
+            changeType={sqVulns > 0 ? "negative" : "positive"}
+            subtitle="open" href="/sonarqube"
+          />
+          <KPICard title="Code Smells" value={sqSmells.toLocaleString()} icon={FileText}
+            changeType="neutral" subtitle="maintainability" href="/sonarqube"
+          />
+          <KPICard title="Coverage" value={`${sqCoverage.toFixed(1)}%`} icon={CheckCircle2}
+            changeType={sqCoverage >= 70 ? "positive" : sqCoverage >= 40 ? "neutral" : "negative"}
+            subtitle="avg test coverage" href="/sonarqube"
+            details={[
+              { label: "Avg Coverage", value: `${sqCoverage.toFixed(1)}%`, changeType: "neutral" },
+              { label: "Avg Duplication", value: `${sqDup.toFixed(1)}%`, changeType: sqDup > 5 ? "negative" : "positive" },
+              { label: "Total LOC", value: sqNcloc.toLocaleString(), changeType: "neutral" },
+              { label: "Hotspots", value: sqHotspots.toLocaleString(), changeType: sqHotspots > 0 ? "negative" : "positive" },
+            ]} detailTitle="Quality Metrics"
+          />
+          <KPICard title="Tech Debt" value={sqDebtDays > 0 ? `${sqDebtDays}d` : "—"} icon={TrendingUp}
+            changeType={sqDebtDays > 100 ? "negative" : "neutral"}
+            subtitle="estimated effort" href="/sonarqube"
+            change={`${sonarProjects.length} projects`}
+          />
         </div>
       )
     ),
