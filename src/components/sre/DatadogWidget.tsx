@@ -76,8 +76,13 @@ function QueryValueWidget({ widget, fromTs, toTs }: Props) {
     runDatadogScalar(payload)
       .then((res: any) => {
         if (cancelled) return;
-        const v = res?.data?.attributes?.columns?.[0]?.values?.[0];
-        setValue(typeof v === "number" ? v : v == null ? null : Number(v));
+        const cols = res?.data?.attributes?.columns ?? [];
+        // Find the first numeric column (skip group/string columns)
+        const numCol = cols.find((c: any) => c?.type === "number") ?? cols[cols.length - 1];
+        const raw = numCol?.values?.[0];
+        const v = Array.isArray(raw) ? raw[0] : raw;
+        const n = typeof v === "number" ? v : v == null || v === "N/A" ? null : Number(v);
+        setValue(n !== null && Number.isFinite(n) ? n : null);
         setLoading(false);
       })
       .catch((e: Error) => {
