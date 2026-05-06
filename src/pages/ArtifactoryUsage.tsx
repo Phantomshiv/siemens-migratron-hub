@@ -200,7 +200,7 @@ const ArtifactoryUsage = () => {
                     key={w.id}
                     style={{ gridColumn: `span ${colSpan} / span ${colSpan}` }}
                   >
-                    <DatadogWidgetView widget={w} fromTs={fromTs} toTs={toTs} />
+                    <DatadogWidgetView widget={w} fromTs={fromTs} toTs={toTs} templateVars={templateVars} />
                   </div>
                 );
               })}
@@ -215,6 +215,7 @@ const ArtifactoryUsage = () => {
             widgets={g.widgets}
             fromTs={fromTs}
             toTs={toTs}
+            templateVars={templateVars}
           />
         ))}
       </div>
