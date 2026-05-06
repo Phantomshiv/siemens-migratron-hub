@@ -22,6 +22,7 @@ import ArchitectureDashboard from "./pages/ArchitectureDashboard.tsx";
 import SnapshotAI from "./pages/SnapshotAI.tsx";
 import OKRsDashboard from "./pages/OKRs.tsx";
 import SREIncidents from "./pages/SREIncidents.tsx";
+import ArtifactoryUsage from "./pages/ArtifactoryUsage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { RepoProvenanceSettingsProvider } from "./contexts/RepoProvenanceSettingsContext";
 
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/snapshots" element={<SnapshotAI />} />
             <Route path="/okrs" element={<OKRsDashboard />} />
             <Route path="/sre" element={<SREIncidents />} />
+            <Route path="/artifactory" element={<ArtifactoryUsage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
