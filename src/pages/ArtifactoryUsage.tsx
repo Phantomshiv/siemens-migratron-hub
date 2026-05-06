@@ -60,6 +60,14 @@ const ArtifactoryUsage = () => {
     return { fromTs: now - 30 * 24 * 60 * 60 * 1000, toTs: now };
   }, []);
 
+  const templateVars = useMemo<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    for (const tv of data?.template_variables ?? []) {
+      if (tv?.name) out[tv.name] = tv.default ?? "*";
+    }
+    return out;
+  }, [data]);
+
   const { topWidgets, groups } = useMemo(() => {
     const isLive = (w: DDWidget) => {
       const t = w.definition?.type;
