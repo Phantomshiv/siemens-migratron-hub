@@ -16,11 +16,13 @@ function GroupSection({
   widgets,
   fromTs,
   toTs,
+  templateVars,
 }: {
   title: string;
   widgets: DDWidget[];
   fromTs: number;
   toTs: number;
+  templateVars: Record<string, string>;
 }) {
   return (
     <section className="space-y-3">
@@ -40,7 +42,7 @@ function GroupSection({
               className="col-span-12"
               style={{ gridColumn: `span ${colSpan} / span ${colSpan}` }}
             >
-              <DatadogWidgetView widget={w} fromTs={fromTs} toTs={toTs} />
+              <DatadogWidgetView widget={w} fromTs={fromTs} toTs={toTs} templateVars={templateVars} />
             </div>
           );
         })}
@@ -57,6 +59,14 @@ const ArtifactoryUsage = () => {
     const now = Date.now();
     return { fromTs: now - 30 * 24 * 60 * 60 * 1000, toTs: now };
   }, []);
+
+  const templateVars = useMemo<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    for (const tv of data?.template_variables ?? []) {
+      if (tv?.name) out[tv.name] = tv.default ?? "*";
+    }
+    return out;
+  }, [data]);
 
   const { topWidgets, groups } = useMemo(() => {
     const isLive = (w: DDWidget) => {
@@ -190,7 +200,7 @@ const ArtifactoryUsage = () => {
                     key={w.id}
                     style={{ gridColumn: `span ${colSpan} / span ${colSpan}` }}
                   >
-                    <DatadogWidgetView widget={w} fromTs={fromTs} toTs={toTs} />
+                    <DatadogWidgetView widget={w} fromTs={fromTs} toTs={toTs} templateVars={templateVars} />
                   </div>
                 );
               })}
@@ -205,6 +215,7 @@ const ArtifactoryUsage = () => {
             widgets={g.widgets}
             fromTs={fromTs}
             toTs={toTs}
+            templateVars={templateVars}
           />
         ))}
       </div>

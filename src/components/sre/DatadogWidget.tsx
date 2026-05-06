@@ -4,6 +4,7 @@ import { ExternalLink, AlertCircle, Activity, ListTree, Table as TableIcon, BarC
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { runDatadogScalar, type DDWidget } from "@/hooks/useDatadogDashboard";
+import { buildScalarPayload, type TemplateVars } from "@/lib/datadog-query";
 import { DatadogSunburstWidget } from "./DatadogSunburstWidget";
 import { DatadogTableWidget } from "./DatadogTableWidget";
 import { DatadogTimeseriesWidget } from "./DatadogTimeseriesWidget";
@@ -15,6 +16,7 @@ type Props = {
   widget: DDWidget;
   fromTs: number;
   toTs: number;
+  templateVars?: TemplateVars;
 };
 
 const TypeIcon: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -35,7 +37,7 @@ function widgetTitle(w: DDWidget) {
 }
 
 /** Render a query_value widget by running its formula via the scalar v2 API. */
-function QueryValueWidget({ widget, fromTs, toTs }: Props) {
+function QueryValueWidget({ widget, fromTs, toTs, templateVars }: Props) {
   const [value, setValue] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,49 +47,17 @@ function QueryValueWidget({ widget, fromTs, toTs }: Props) {
     setLoading(true);
     setError(null);
 
-    const reqs = widget.definition?.requests ?? [];
-    const r = reqs[0];
-    if (!r) {
+    const payload = buildScalarPayload(widget, templateVars ?? {}, fromTs, toTs);
+    if (!payload) {
       setError("No request defined");
       setLoading(false);
       return;
     }
 
-    const queries = (r.queries ?? []).map((q: any) => {
-      const out: any = {
-        data_source: q.data_source,
-        name: q.name,
-        compute: q.compute,
-        group_by: q.group_by ?? [],
-        search: { query: q.search?.query ?? "" },
-      };
-      if (q.indexes) out.indexes = q.indexes;
-      if (q.metric) out.metric = q.metric;
-      if (q.query) out.query = q.query;
-      if (q.aggregator) out.aggregator = q.aggregator;
-      return out;
-    });
-    const formulas = (r.formulas ?? [{ formula: queries[0]?.name ?? "query1" }]).map(
-      (f: any) => ({ formula: f.formula })
-    );
-
-    const payload = {
-      data: {
-        attributes: {
-          formulas,
-          queries,
-          from: fromTs,
-          to: toTs,
-        },
-        type: "scalar_request",
-      },
-    };
-
     runDatadogScalar(payload)
       .then((res: any) => {
         if (cancelled) return;
         const cols = res?.data?.attributes?.columns ?? [];
-        // Find the first numeric column (skip group/string columns)
         const numCol = cols.find((c: any) => c?.type === "number") ?? cols[cols.length - 1];
         const raw = numCol?.values?.[0];
         const v = Array.isArray(raw) ? raw[0] : raw;
@@ -104,7 +74,7 @@ function QueryValueWidget({ widget, fromTs, toTs }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [widget, fromTs, toTs]);
+  }, [widget, fromTs, toTs, templateVars]);
 
   const precision: number = widget.definition?.precision ?? 0;
   const formatted =

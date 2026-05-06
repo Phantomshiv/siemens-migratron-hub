@@ -15,8 +15,9 @@ import {
   YAxis,
 } from "recharts";
 import { runDatadogTimeseries, type DDWidget } from "@/hooks/useDatadogDashboard";
+import { buildTimeseriesPayload, type TemplateVars } from "@/lib/datadog-query";
 
-type Props = { widget: DDWidget; fromTs: number; toTs: number };
+type Props = { widget: DDWidget; fromTs: number; toTs: number; templateVars?: TemplateVars };
 
 const COLORS = [
   "hsl(var(--primary))",
@@ -35,7 +36,7 @@ function widgetTitle(w: DDWidget) {
   return "Trend";
 }
 
-export function DatadogTimeseriesWidget({ widget, fromTs, toTs }: Props) {
+export function DatadogTimeseriesWidget({ widget, fromTs, toTs, templateVars }: Props) {
   const [series, setSeries] = useState<{ name: string; values: number[] }[] | null>(null);
   const [times, setTimes] = useState<number[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,47 +54,12 @@ export function DatadogTimeseriesWidget({ widget, fromTs, toTs }: Props) {
     setLoading(true);
     setError(null);
 
-    const reqs = widget.definition?.requests ?? [];
-    const r = reqs[0];
-    if (!r) {
+    const payload = buildTimeseriesPayload(widget, templateVars ?? {}, fromTs, toTs);
+    if (!payload) {
       setError("No request defined");
       setLoading(false);
       return;
     }
-
-    const queries = (r.queries ?? []).map((q: any) => {
-      const out: any = {
-        data_source: q.data_source,
-        name: q.name,
-        group_by: q.group_by ?? [],
-        search: { query: q.search?.query ?? "" },
-      };
-      if (q.compute) out.compute = q.compute;
-      if (q.indexes) out.indexes = q.indexes;
-      if (q.metric) out.metric = q.metric;
-      if (q.query) out.query = q.query;
-      if (q.aggregator) out.aggregator = q.aggregator;
-      return out;
-    });
-    const formulas = (r.formulas ?? [{ formula: queries[0]?.name ?? "query1" }]).map(
-      (f: any) => ({ formula: f.formula, alias: f.alias })
-    );
-
-    // ~80 buckets across the window
-    const intervalMs = Math.max(60_000, Math.floor((toTs - fromTs) / 80));
-
-    const payload = {
-      data: {
-        attributes: {
-          formulas,
-          queries,
-          from: fromTs,
-          to: toTs,
-          interval: intervalMs,
-        },
-        type: "timeseries_request",
-      },
-    };
 
     runDatadogTimeseries(payload)
       .then((res: any) => {
@@ -121,7 +87,7 @@ export function DatadogTimeseriesWidget({ widget, fromTs, toTs }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [widget, fromTs, toTs]);
+  }, [widget, fromTs, toTs, templateVars]);
 
   const chartData = useMemo(() => {
     if (!times || !series) return [];

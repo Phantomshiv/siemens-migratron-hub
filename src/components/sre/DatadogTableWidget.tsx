@@ -3,8 +3,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { runDatadogScalar, type DDWidget } from "@/hooks/useDatadogDashboard";
+import { buildScalarPayload, type TemplateVars } from "@/lib/datadog-query";
 
-type Props = { widget: DDWidget; fromTs: number; toTs: number };
+type Props = { widget: DDWidget; fromTs: number; toTs: number; templateVars?: TemplateVars };
 
 function widgetTitle(w: DDWidget) {
   const t = w.definition?.title;
@@ -12,7 +13,7 @@ function widgetTitle(w: DDWidget) {
   return "Table";
 }
 
-export function DatadogTableWidget({ widget, fromTs, toTs }: Props) {
+export function DatadogTableWidget({ widget, fromTs, toTs, templateVars }: Props) {
   const [cols, setCols] = useState<{ name: string; values: any[] }[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,38 +23,12 @@ export function DatadogTableWidget({ widget, fromTs, toTs }: Props) {
     setLoading(true);
     setError(null);
 
-    const reqs = widget.definition?.requests ?? [];
-    const r = reqs[0];
-    if (!r) {
+    const payload = buildScalarPayload(widget, templateVars ?? {}, fromTs, toTs);
+    if (!payload) {
       setError("No request defined");
       setLoading(false);
       return;
     }
-
-    const queries = (r.queries ?? []).map((q: any) => {
-      const out: any = {
-        data_source: q.data_source,
-        name: q.name,
-        compute: q.compute,
-        group_by: q.group_by ?? [],
-        search: { query: q.search?.query ?? "" },
-      };
-      if (q.indexes) out.indexes = q.indexes;
-      if (q.metric) out.metric = q.metric;
-      if (q.query) out.query = q.query;
-      if (q.aggregator) out.aggregator = q.aggregator;
-      return out;
-    });
-    const formulas = (r.formulas ?? [{ formula: queries[0]?.name ?? "query1" }]).map(
-      (f: any) => ({ formula: f.formula, limit: f.limit, alias: f.alias })
-    );
-
-    const payload = {
-      data: {
-        attributes: { formulas, queries, from: fromTs, to: toTs },
-        type: "scalar_request",
-      },
-    };
 
     runDatadogScalar(payload)
       .then((res: any) => {
@@ -75,7 +50,7 @@ export function DatadogTableWidget({ widget, fromTs, toTs }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [widget, fromTs, toTs]);
+  }, [widget, fromTs, toTs, templateVars]);
 
   const rowCount = cols?.[0]?.values?.length ?? 0;
 
