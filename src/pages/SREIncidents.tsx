@@ -59,15 +59,29 @@ const SREIncidents = () => {
   }, []);
 
   const { topWidgets, groups } = useMemo(() => {
+    // Only keep widgets we can render live (query_value + note with content).
+    const isLive = (w: DDWidget) => {
+      const t = w.definition?.type;
+      if (t === "note") return Boolean(w.definition?.content?.trim?.());
+      if (t !== "query_value") return false;
+      const title = w.definition?.title;
+      if (!title || !String(title).trim()) return false;
+      return true;
+    };
+
+    // Hide groups whose title references non-live content
+    const HIDDEN_GROUPS = /false\s*alert/i;
+
     const topWidgets: DDWidget[] = [];
     const groups: { title: string; widgets: DDWidget[] }[] = [];
     for (const w of data?.widgets ?? []) {
       if (w.definition?.type === "group") {
-        groups.push({
-          title: w.definition.title || "Group",
-          widgets: w.definition.widgets ?? [],
-        });
-      } else {
+        const title = w.definition.title || "Group";
+        if (HIDDEN_GROUPS.test(title)) continue;
+        const live = (w.definition.widgets ?? []).filter(isLive);
+        if (live.length === 0) continue;
+        groups.push({ title, widgets: live });
+      } else if (isLive(w)) {
         topWidgets.push(w);
       }
     }
