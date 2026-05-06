@@ -135,6 +135,38 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Action: timeseries query (v2) — used for timeseries / bar / area widgets
+    // backed by incident_analytics, rum, logs, ci_pipelines, etc.
+    if (action === "timeseries") {
+      const body = await req.json().catch(() => null);
+      if (!body) {
+        return new Response(JSON.stringify({ error: "Missing JSON body" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const resp = await fetch(`${DD_BASE}/api/v2/query/timeseries`, {
+        method: "POST",
+        headers: ddHeaders,
+        body: JSON.stringify(body),
+      });
+
+      if (!resp.ok) {
+        const text = await resp.text();
+        console.error(`Datadog timeseries API error [${resp.status}]:`, text);
+        return new Response(JSON.stringify({ error: `Datadog API error: ${resp.status}`, details: text }), {
+          status: resp.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const data = await resp.json();
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Action: list metrics
     if (action === "metrics") {
       const from = url.searchParams.get("from") || String(Math.floor(Date.now() / 1000) - 3600);
