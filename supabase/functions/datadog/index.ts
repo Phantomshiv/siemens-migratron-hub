@@ -3,7 +3,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DD_BASE = "https://api.datadoghq.com";
+// Datadog site is org-specific. Defaults to US1 but can be overridden via DATADOG_SITE secret.
+// Common values: datadoghq.com (US1), us3.datadoghq.com, us5.datadoghq.com,
+// datadoghq.eu (EU1), ap1.datadoghq.com, ddog-gov.com.
+const DD_SITE = Deno.env.get("DATADOG_SITE") || "datadoghq.com";
+const DD_BASE = `https://api.${DD_SITE}`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
