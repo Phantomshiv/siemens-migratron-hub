@@ -66,3 +66,21 @@ export async function runDatadogScalar(payload: unknown) {
   if (!res.ok) throw new Error(`scalar query failed: ${res.status}`);
   return res.json();
 }
+
+/** Run a v2 timeseries query (used for timeseries / bar / area widgets). */
+export async function runDatadogTimeseries(payload: unknown) {
+  const { data: session } = await supabase.auth.getSession();
+  const token =
+    session.session?.access_token ??
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const res = await fetch(`${FN_BASE}?action=timeseries`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`timeseries query failed: ${res.status}`);
+  return res.json();
+}

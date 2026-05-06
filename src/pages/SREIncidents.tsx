@@ -63,7 +63,8 @@ const SREIncidents = () => {
     const isLive = (w: DDWidget) => {
       const t = w.definition?.type;
       if (t === "note") return Boolean(w.definition?.content?.trim?.());
-      if (t === "sunburst" || t === "pie_chart") {
+      if (t === "sunburst" || t === "pie_chart" || t === "query_table" ||
+          t === "timeseries" || t === "toplist") {
         return Boolean(w.definition?.requests?.[0]?.queries?.length);
       }
       if (t !== "query_value") return false;
@@ -72,7 +73,7 @@ const SREIncidents = () => {
       return true;
     };
 
-    // Hide groups whose title is purely cosmetic / non-rendered
+    // No groups are hidden — render everything Datadog returns
     const HIDDEN_GROUPS = /^$/;
 
     const topWidgets: DDWidget[] = [];
