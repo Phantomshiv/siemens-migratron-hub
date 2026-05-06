@@ -920,7 +920,7 @@ const Index = () => {
           <KPICard title="Tech Debt" value={sqDebtDays > 0 ? `${sqDebtDays}d` : "—"} icon={TrendingUp}
             changeType={sqDebtDays > 100 ? "negative" : "neutral"}
             subtitle="estimated effort" href="/sonarqube"
-            change={`${sqProjectsCount(sonarProjects.length)}`}
+            change={`${sonarProjects.length} projects`}
           />
         </div>
       )
