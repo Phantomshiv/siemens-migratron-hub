@@ -21,6 +21,7 @@ import {
   Target,
   Siren,
   Package,
+  ShieldCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -55,6 +56,7 @@ const mainItems = [
   { title: "Cybersecurity", url: "/cybersecurity", icon: ShieldAlert },
   { title: "SRE & Incidents", url: "/sre", icon: Siren },
   { title: "Artifactory", url: "/artifactory", icon: Package },
+  { title: "SonarQube", url: "/sonarqube", icon: ShieldCheck },
   { title: "Architecture", url: "/architecture", icon: FileText },
   { title: "People", url: "/people", icon: Users },
   { title: "Snapshot AI", url: "/snapshots", icon: Sparkles },
