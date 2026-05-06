@@ -3,8 +3,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { runDatadogScalar, type DDWidget } from "@/hooks/useDatadogDashboard";
+import { buildScalarPayload, type TemplateVars } from "@/lib/datadog-query";
 
-type Props = { widget: DDWidget; fromTs: number; toTs: number };
+type Props = { widget: DDWidget; fromTs: number; toTs: number; templateVars?: TemplateVars };
 
 function widgetTitle(w: DDWidget) {
   const t = w.definition?.title;
@@ -12,7 +13,7 @@ function widgetTitle(w: DDWidget) {
   return "Table";
 }
 
-export function DatadogTableWidget({ widget, fromTs, toTs }: Props) {
+export function DatadogTableWidget({ widget, fromTs, toTs, templateVars }: Props) {
   const [cols, setCols] = useState<{ name: string; values: any[] }[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
