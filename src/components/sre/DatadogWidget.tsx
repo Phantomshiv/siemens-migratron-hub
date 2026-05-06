@@ -49,14 +49,20 @@ function QueryValueWidget({ widget, fromTs, toTs }: Props) {
       return;
     }
 
-    const queries = (r.queries ?? []).map((q: any) => ({
-      data_source: q.data_source,
-      name: q.name,
-      indexes: q.indexes,
-      compute: q.compute,
-      group_by: q.group_by ?? [],
-      search: q.search ?? { query: "" },
-    }));
+    const queries = (r.queries ?? []).map((q: any) => {
+      const out: any = {
+        data_source: q.data_source,
+        name: q.name,
+        compute: q.compute,
+        group_by: q.group_by ?? [],
+        search: { query: q.search?.query ?? "" },
+      };
+      if (q.indexes) out.indexes = q.indexes;
+      if (q.metric) out.metric = q.metric;
+      if (q.query) out.query = q.query;
+      if (q.aggregator) out.aggregator = q.aggregator;
+      return out;
+    });
     const formulas = (r.formulas ?? [{ formula: queries[0]?.name ?? "query1" }]).map(
       (f: any) => ({ formula: f.formula })
     );
