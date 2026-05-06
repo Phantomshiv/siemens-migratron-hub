@@ -87,7 +87,7 @@ export function DatadogTimeseriesWidget({ widget, fromTs, toTs, templateVars }: 
     return () => {
       cancelled = true;
     };
-  }, [widget, fromTs, toTs]);
+  }, [widget, fromTs, toTs, templateVars]);
 
   const chartData = useMemo(() => {
     if (!times || !series) return [];
