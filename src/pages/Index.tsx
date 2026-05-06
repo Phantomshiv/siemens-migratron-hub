@@ -152,7 +152,7 @@ function SnapshotProgressBanner({ currentMetrics, snapshot }: {
 
 /* ─── Section order persistence ─── */
 const STORAGE_KEY = "oses-overview-section-order";
-const DEFAULT_ORDER = ["budget", "github", "delivery", "architecture", "people", "security", "risks", "backstage", "clients", "comms"];
+const DEFAULT_ORDER = ["budget", "github", "delivery", "incidents", "artifactory", "codequality", "architecture", "people", "security", "risks", "backstage", "clients", "comms"];
 
 function loadOrder(): string[] {
   try {
