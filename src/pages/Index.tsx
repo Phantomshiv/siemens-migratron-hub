@@ -194,6 +194,12 @@ const Index = () => {
   const { data: projectsData } = useGitHubProjects();
   const { data: latestSnapshot } = useLatestSnapshot();
 
+  // ── New: Incidents (Datadog SRE), Artifactory, SonarQube ──
+  const { data: ddDash } = useDatadogDashboard("t46-7h2-sb3");
+  const { data: artStorage } = useArtifactoryStorage();
+  const { data: artRepos } = useArtifactoryRepos();
+  const { data: sonarPortfolio } = useSonarPortfolio();
+
   const moveSection = useCallback((id: string, dir: -1 | 1) => {
     setSectionOrder((prev) => {
       const idx = prev.indexOf(id);
