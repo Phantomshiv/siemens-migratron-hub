@@ -4,11 +4,13 @@ import { AlertCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { runDatadogScalar, type DDWidget } from "@/hooks/useDatadogDashboard";
+import { buildScalarPayload, type TemplateVars } from "@/lib/datadog-query";
 
 type Props = {
   widget: DDWidget;
   fromTs: number;
   toTs: number;
+  templateVars?: TemplateVars;
 };
 
 // Teal/navy aligned palette — uses the same hue family as the rest of the dashboard
