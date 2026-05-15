@@ -1,8 +1,88 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { useGitHubSummary, useGitHubActivity, useGitHubMembersDetail } from "@/hooks/useGitHub";
+import { useGitHubSummary, useGitHubActivity, useGitHubMembersDetail, type GHESummary, type GHEActivity, type GHEMembersDetail } from "@/hooks/useGitHub";
 import { useGitHubCopilotSeats } from "@/hooks/useGitHubCopilotSeats";
 import { useGitHubAuditLog } from "@/hooks/useGitHubAuditLog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type OrgKey = "open" | "foundation" | "portfolio" | "all";
+const ORGS: Exclude<OrgKey, "all">[] = ["open", "foundation", "portfolio"];
+
+function mergeSummary(parts: (GHESummary | undefined)[]): GHESummary | undefined {
+  const valid = parts.filter((p): p is GHESummary => !!p);
+  if (valid.length === 0) return undefined;
+  const open = valid.find((p) => p.org?.login === "open") ?? valid[0];
+  return {
+    org: open.org,
+    repos: valid.flatMap((p) => p.repos ?? []),
+    reposTotalCount: valid.reduce((s, p) => s + (p.reposTotalCount ?? 0), 0),
+    members: (() => {
+      const seen = new Set<number>();
+      const out: GHESummary["members"] = [];
+      valid.flatMap((p) => p.members ?? []).forEach((m) => {
+        if (!seen.has(m.id)) { seen.add(m.id); out.push(m); }
+      });
+      return out;
+    })(),
+    membersTotalCount: valid.reduce((s, p) => s + (p.membersTotalCount ?? 0), 0),
+    teams: valid.flatMap((p) => p.teams ?? []),
+    teamsTotalCount: valid.reduce((s, p) => s + (p.teamsTotalCount ?? 0), 0),
+    billingActions: open.billingActions,
+    billingStorage: open.billingStorage,
+    copilot: open.copilot,
+  };
+}
+
+function mergeActivity(parts: (GHEActivity | undefined)[]): GHEActivity | undefined {
+  const valid = parts.filter((p): p is GHEActivity => !!p);
+  if (valid.length === 0) return undefined;
+  const weeklyMap = new Map<number, number>();
+  valid.flatMap((p) => p.weeklyCommits ?? []).forEach((w) => {
+    weeklyMap.set(w.week, (weeklyMap.get(w.week) ?? 0) + w.total);
+  });
+  const prWeeklyMap = new Map<string, { opened: number; merged: number; closed: number }>();
+  valid.flatMap((p) => p.prWeeklyData ?? []).forEach((w) => {
+    const cur = prWeeklyMap.get(w.week) ?? { opened: 0, merged: 0, closed: 0 };
+    cur.opened += w.opened; cur.merged += w.merged; cur.closed += w.closed;
+    prWeeklyMap.set(w.week, cur);
+  });
+  const contribMap = new Map<string, { login: string; avatar_url: string; commits: number; additions: number; deletions: number }>();
+  valid.flatMap((p) => p.topContributors ?? []).forEach((c) => {
+    const cur = contribMap.get(c.login);
+    if (cur) { cur.commits += c.commits; cur.additions += c.additions; cur.deletions += c.deletions; }
+    else contribMap.set(c.login, { ...c });
+  });
+  return {
+    weeklyCommits: [...weeklyMap.entries()].sort((a, b) => a[0] - b[0]).map(([week, total]) => ({ week, total })),
+    prStats: valid.reduce((s, p) => ({
+      open: s.open + (p.prStats?.open ?? 0),
+      closed: s.closed + (p.prStats?.closed ?? 0),
+      merged: s.merged + (p.prStats?.merged ?? 0),
+    }), { open: 0, closed: 0, merged: 0 }),
+    prWeeklyData: [...prWeeklyMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([week, v]) => ({ week, ...v })),
+    topContributors: [...contribMap.values()].sort((a, b) => b.commits - a.commits).slice(0, 25),
+    reposAnalyzed: valid.reduce((s, p) => s + (p.reposAnalyzed ?? 0), 0),
+  };
+}
+
+function mergeMembersDetail(parts: (GHEMembersDetail | undefined)[]): GHEMembersDetail | undefined {
+  const valid = parts.filter((p): p is GHEMembersDetail => !!p);
+  if (valid.length === 0) return undefined;
+  const memberMap = new Map<string, GHEMembersDetail["members"][number]>();
+  valid.flatMap((p) => p.members ?? []).forEach((m) => {
+    if (!memberMap.has(m.login)) memberMap.set(m.login, m);
+  });
+  const deptMap = new Map<string, number>();
+  [...memberMap.values()].forEach((m) => {
+    const d = m.department || "Unknown";
+    deptMap.set(d, (deptMap.get(d) ?? 0) + 1);
+  });
+  return {
+    totalMembers: memberMap.size,
+    departments: [...deptMap.entries()].sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count })),
+    members: [...memberMap.values()],
+  };
+}
 import { RepoProvenancePanel } from "@/components/backstage/RepoProvenancePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -81,9 +161,50 @@ function StatCard({ icon: Icon, label, value, sub }: { icon: React.ElementType; 
 }
 
 const GitHubDashboard = () => {
-  const { data, isLoading, error } = useGitHubSummary("open");
-  const { data: activity, isLoading: activityLoading } = useGitHubActivity("open");
-  const { data: membersDetail, isLoading: membersLoading } = useGitHubMembersDetail("open");
+  const [selectedOrg, setSelectedOrg] = useState<OrgKey>("open");
+
+  // Always fetch all 3 orgs so switching is instant and "all" can merge.
+  const sumOpen = useGitHubSummary("open");
+  const sumFoundation = useGitHubSummary("foundation");
+  const sumPortfolio = useGitHubSummary("portfolio");
+  const actOpen = useGitHubActivity("open");
+  const actFoundation = useGitHubActivity("foundation");
+  const actPortfolio = useGitHubActivity("portfolio");
+  const memOpen = useGitHubMembersDetail("open");
+  const memFoundation = useGitHubMembersDetail("foundation");
+  const memPortfolio = useGitHubMembersDetail("portfolio");
+
+  const summaryByOrg = { open: sumOpen, foundation: sumFoundation, portfolio: sumPortfolio };
+  const activityByOrg = { open: actOpen, foundation: actFoundation, portfolio: actPortfolio };
+  const membersByOrg = { open: memOpen, foundation: memFoundation, portfolio: memPortfolio };
+
+  const data = useMemo(() => selectedOrg === "all"
+    ? mergeSummary(ORGS.map((o) => summaryByOrg[o].data))
+    : summaryByOrg[selectedOrg].data,
+    [selectedOrg, sumOpen.data, sumFoundation.data, sumPortfolio.data]);
+  const activity = useMemo(() => selectedOrg === "all"
+    ? mergeActivity(ORGS.map((o) => activityByOrg[o].data))
+    : activityByOrg[selectedOrg].data,
+    [selectedOrg, actOpen.data, actFoundation.data, actPortfolio.data]);
+  const membersDetail = useMemo(() => selectedOrg === "all"
+    ? mergeMembersDetail(ORGS.map((o) => membersByOrg[o].data))
+    : membersByOrg[selectedOrg].data,
+    [selectedOrg, memOpen.data, memFoundation.data, memPortfolio.data]);
+
+  const isLoading = selectedOrg === "all"
+    ? ORGS.some((o) => summaryByOrg[o].isLoading)
+    : summaryByOrg[selectedOrg].isLoading;
+  const activityLoading = selectedOrg === "all"
+    ? ORGS.some((o) => activityByOrg[o].isLoading)
+    : activityByOrg[selectedOrg].isLoading;
+  const membersLoading = selectedOrg === "all"
+    ? ORGS.some((o) => membersByOrg[o].isLoading)
+    : membersByOrg[selectedOrg].isLoading;
+  const error = selectedOrg === "all"
+    ? (sumOpen.error ?? sumFoundation.error ?? sumPortfolio.error)
+    : summaryByOrg[selectedOrg].error;
+
+  // Copilot + Audit always come from "open" (enterprise billing org)
   const { data: copilotSeatsDetail, isLoading: copilotSeatsLoading } = useGitHubCopilotSeats("open");
   const [copilotSearch, setCopilotSearch] = useState("");
   const [copilotFilter, setCopilotFilter] = useState<"all" | "active" | "inactive" | "never">("all");
@@ -156,11 +277,27 @@ const GitHubDashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-heading font-bold">GitHub Enterprise</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Organization: <span className="text-primary font-medium">open</span> · siemens.ghe.com
-          </p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-heading font-bold">GitHub Enterprise</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Organization: <span className="text-primary font-medium">{selectedOrg === "all" ? "All (combined)" : selectedOrg}</span> · siemens.ghe.com
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Org</span>
+            <Select value={selectedOrg} onValueChange={(v) => setSelectedOrg(v as OrgKey)}>
+              <SelectTrigger className="h-9 w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All (combined)</SelectItem>
+                <SelectItem value="open">open</SelectItem>
+                <SelectItem value="foundation">foundation</SelectItem>
+                <SelectItem value="portfolio">portfolio</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {error && (
