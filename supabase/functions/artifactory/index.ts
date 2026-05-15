@@ -5,6 +5,38 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const emptyStorageSummary = {
+  binariesSummary: {
+    binariesCount: "0",
+    binariesSize: "—",
+    artifactsSize: "—",
+    optimization: "—",
+    itemsCount: "0",
+    artifactsCount: "0",
+  },
+  fileStoreSummary: {
+    storageType: "unavailable",
+    storageDirectory: "—",
+    totalSpace: "—",
+    usedSpace: "—",
+    freeSpace: "—",
+  },
+  repositoriesSummaryList: [],
+  unavailable: true,
+  unavailableReason: "Artifactory host is not reachable from Lovable Cloud",
+};
+
+function fallbackForEndpoint(path: string) {
+  if (path === "/api/storageinfo") return emptyStorageSummary;
+  if (path === "/api/repositories") return [];
+  return null;
+}
+
+function isConnectivityError(message: string) {
+  const lower = message.toLowerCase();
+  return lower.includes("dns error") || lower.includes("failed to lookup") || lower.includes("connect") || lower.includes("name or service not known");
+}
+
 /**
  * Artifactory + Xray proxy.
  *
@@ -86,7 +118,28 @@ serve(async (req) => {
 
     console.log(`Artifactory API: ${method} ${url.toString()}`);
 
-    const response = await fetch(url.toString(), fetchOptions);
+    let response: Response;
+    try {
+      response = await fetch(url.toString(), fetchOptions);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown Artifactory connectivity error";
+      console.error("Artifactory connectivity error:", message);
+
+      const fallback = isConnectivityError(message) ? fallbackForEndpoint(path) : null;
+      if (fallback !== null) {
+        return new Response(JSON.stringify(fallback), {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "X-Artifactory-Degraded": "true",
+          },
+        });
+      }
+
+      throw error;
+    }
+
     const data = await response.text();
 
     if (!response.ok) {
