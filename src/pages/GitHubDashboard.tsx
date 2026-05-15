@@ -12,19 +12,24 @@ function mergeSummary(parts: (GHESummary | undefined)[]): GHESummary | undefined
   const valid = parts.filter((p): p is GHESummary => !!p);
   if (valid.length === 0) return undefined;
   const open = valid.find((p) => p.org?.login === "open") ?? valid[0];
+  const dedupedMembers = (() => {
+    const seen = new Set<number>();
+    const out: GHESummary["members"] = [];
+    valid.flatMap((p) => p.members ?? []).forEach((m) => {
+      if (!seen.has(m.id)) { seen.add(m.id); out.push(m); }
+    });
+    return out;
+  })();
+  // Members overlap across orgs (same person can belong to multiple orgs).
+  // Use the larger of the deduped sample size or the max single-org total as a
+  // best-effort unique count, since we may not have fetched every member page.
+  const maxSingleOrgTotal = Math.max(...valid.map((p) => p.membersTotalCount ?? 0));
   return {
     org: open.org,
     repos: valid.flatMap((p) => p.repos ?? []),
     reposTotalCount: valid.reduce((s, p) => s + (p.reposTotalCount ?? 0), 0),
-    members: (() => {
-      const seen = new Set<number>();
-      const out: GHESummary["members"] = [];
-      valid.flatMap((p) => p.members ?? []).forEach((m) => {
-        if (!seen.has(m.id)) { seen.add(m.id); out.push(m); }
-      });
-      return out;
-    })(),
-    membersTotalCount: valid.reduce((s, p) => s + (p.membersTotalCount ?? 0), 0),
+    members: dedupedMembers,
+    membersTotalCount: Math.max(dedupedMembers.length, maxSingleOrgTotal),
     teams: valid.flatMap((p) => p.teams ?? []),
     teamsTotalCount: valid.reduce((s, p) => s + (p.teamsTotalCount ?? 0), 0),
     billingActions: open.billingActions,
