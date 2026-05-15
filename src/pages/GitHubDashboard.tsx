@@ -161,9 +161,50 @@ function StatCard({ icon: Icon, label, value, sub }: { icon: React.ElementType; 
 }
 
 const GitHubDashboard = () => {
-  const { data, isLoading, error } = useGitHubSummary("open");
-  const { data: activity, isLoading: activityLoading } = useGitHubActivity("open");
-  const { data: membersDetail, isLoading: membersLoading } = useGitHubMembersDetail("open");
+  const [selectedOrg, setSelectedOrg] = useState<OrgKey>("open");
+
+  // Always fetch all 3 orgs so switching is instant and "all" can merge.
+  const sumOpen = useGitHubSummary("open");
+  const sumFoundation = useGitHubSummary("foundation");
+  const sumPortfolio = useGitHubSummary("portfolio");
+  const actOpen = useGitHubActivity("open");
+  const actFoundation = useGitHubActivity("foundation");
+  const actPortfolio = useGitHubActivity("portfolio");
+  const memOpen = useGitHubMembersDetail("open");
+  const memFoundation = useGitHubMembersDetail("foundation");
+  const memPortfolio = useGitHubMembersDetail("portfolio");
+
+  const summaryByOrg = { open: sumOpen, foundation: sumFoundation, portfolio: sumPortfolio };
+  const activityByOrg = { open: actOpen, foundation: actFoundation, portfolio: actPortfolio };
+  const membersByOrg = { open: memOpen, foundation: memFoundation, portfolio: memPortfolio };
+
+  const data = useMemo(() => selectedOrg === "all"
+    ? mergeSummary(ORGS.map((o) => summaryByOrg[o].data))
+    : summaryByOrg[selectedOrg].data,
+    [selectedOrg, sumOpen.data, sumFoundation.data, sumPortfolio.data]);
+  const activity = useMemo(() => selectedOrg === "all"
+    ? mergeActivity(ORGS.map((o) => activityByOrg[o].data))
+    : activityByOrg[selectedOrg].data,
+    [selectedOrg, actOpen.data, actFoundation.data, actPortfolio.data]);
+  const membersDetail = useMemo(() => selectedOrg === "all"
+    ? mergeMembersDetail(ORGS.map((o) => membersByOrg[o].data))
+    : membersByOrg[selectedOrg].data,
+    [selectedOrg, memOpen.data, memFoundation.data, memPortfolio.data]);
+
+  const isLoading = selectedOrg === "all"
+    ? ORGS.some((o) => summaryByOrg[o].isLoading)
+    : summaryByOrg[selectedOrg].isLoading;
+  const activityLoading = selectedOrg === "all"
+    ? ORGS.some((o) => activityByOrg[o].isLoading)
+    : activityByOrg[selectedOrg].isLoading;
+  const membersLoading = selectedOrg === "all"
+    ? ORGS.some((o) => membersByOrg[o].isLoading)
+    : membersByOrg[selectedOrg].isLoading;
+  const error = selectedOrg === "all"
+    ? (sumOpen.error ?? sumFoundation.error ?? sumPortfolio.error)
+    : summaryByOrg[selectedOrg].error;
+
+  // Copilot + Audit always come from "open" (enterprise billing org)
   const { data: copilotSeatsDetail, isLoading: copilotSeatsLoading } = useGitHubCopilotSeats("open");
   const [copilotSearch, setCopilotSearch] = useState("");
   const [copilotFilter, setCopilotFilter] = useState<"all" | "active" | "inactive" | "never">("all");
