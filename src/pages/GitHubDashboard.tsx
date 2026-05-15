@@ -277,11 +277,27 @@ const GitHubDashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-heading font-bold">GitHub Enterprise</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Organization: <span className="text-primary font-medium">open</span> · siemens.ghe.com
-          </p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-heading font-bold">GitHub Enterprise</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Organization: <span className="text-primary font-medium">{selectedOrg === "all" ? "All (combined)" : selectedOrg}</span> · siemens.ghe.com
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Org</span>
+            <Select value={selectedOrg} onValueChange={(v) => setSelectedOrg(v as OrgKey)}>
+              <SelectTrigger className="h-9 w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All (combined)</SelectItem>
+                <SelectItem value="open">open</SelectItem>
+                <SelectItem value="foundation">foundation</SelectItem>
+                <SelectItem value="portfolio">portfolio</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {error && (
