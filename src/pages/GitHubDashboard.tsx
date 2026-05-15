@@ -1,8 +1,88 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { useGitHubSummary, useGitHubActivity, useGitHubMembersDetail } from "@/hooks/useGitHub";
+import { useGitHubSummary, useGitHubActivity, useGitHubMembersDetail, type GHESummary, type GHEActivity, type GHEMembersDetail } from "@/hooks/useGitHub";
 import { useGitHubCopilotSeats } from "@/hooks/useGitHubCopilotSeats";
 import { useGitHubAuditLog } from "@/hooks/useGitHubAuditLog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type OrgKey = "open" | "foundation" | "portfolio" | "all";
+const ORGS: Exclude<OrgKey, "all">[] = ["open", "foundation", "portfolio"];
+
+function mergeSummary(parts: (GHESummary | undefined)[]): GHESummary | undefined {
+  const valid = parts.filter((p): p is GHESummary => !!p);
+  if (valid.length === 0) return undefined;
+  const open = valid.find((p) => p.org?.login === "open") ?? valid[0];
+  return {
+    org: open.org,
+    repos: valid.flatMap((p) => p.repos ?? []),
+    reposTotalCount: valid.reduce((s, p) => s + (p.reposTotalCount ?? 0), 0),
+    members: (() => {
+      const seen = new Set<number>();
+      const out: GHESummary["members"] = [];
+      valid.flatMap((p) => p.members ?? []).forEach((m) => {
+        if (!seen.has(m.id)) { seen.add(m.id); out.push(m); }
+      });
+      return out;
+    })(),
+    membersTotalCount: valid.reduce((s, p) => s + (p.membersTotalCount ?? 0), 0),
+    teams: valid.flatMap((p) => p.teams ?? []),
+    teamsTotalCount: valid.reduce((s, p) => s + (p.teamsTotalCount ?? 0), 0),
+    billingActions: open.billingActions,
+    billingStorage: open.billingStorage,
+    copilot: open.copilot,
+  };
+}
+
+function mergeActivity(parts: (GHEActivity | undefined)[]): GHEActivity | undefined {
+  const valid = parts.filter((p): p is GHEActivity => !!p);
+  if (valid.length === 0) return undefined;
+  const weeklyMap = new Map<number, number>();
+  valid.flatMap((p) => p.weeklyCommits ?? []).forEach((w) => {
+    weeklyMap.set(w.week, (weeklyMap.get(w.week) ?? 0) + w.total);
+  });
+  const prWeeklyMap = new Map<string, { opened: number; merged: number; closed: number }>();
+  valid.flatMap((p) => p.prWeeklyData ?? []).forEach((w) => {
+    const cur = prWeeklyMap.get(w.week) ?? { opened: 0, merged: 0, closed: 0 };
+    cur.opened += w.opened; cur.merged += w.merged; cur.closed += w.closed;
+    prWeeklyMap.set(w.week, cur);
+  });
+  const contribMap = new Map<string, { login: string; avatar_url: string; commits: number; additions: number; deletions: number }>();
+  valid.flatMap((p) => p.topContributors ?? []).forEach((c) => {
+    const cur = contribMap.get(c.login);
+    if (cur) { cur.commits += c.commits; cur.additions += c.additions; cur.deletions += c.deletions; }
+    else contribMap.set(c.login, { ...c });
+  });
+  return {
+    weeklyCommits: [...weeklyMap.entries()].sort((a, b) => a[0] - b[0]).map(([week, total]) => ({ week, total })),
+    prStats: valid.reduce((s, p) => ({
+      open: s.open + (p.prStats?.open ?? 0),
+      closed: s.closed + (p.prStats?.closed ?? 0),
+      merged: s.merged + (p.prStats?.merged ?? 0),
+    }), { open: 0, closed: 0, merged: 0 }),
+    prWeeklyData: [...prWeeklyMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([week, v]) => ({ week, ...v })),
+    topContributors: [...contribMap.values()].sort((a, b) => b.commits - a.commits).slice(0, 25),
+    reposAnalyzed: valid.reduce((s, p) => s + (p.reposAnalyzed ?? 0), 0),
+  };
+}
+
+function mergeMembersDetail(parts: (GHEMembersDetail | undefined)[]): GHEMembersDetail | undefined {
+  const valid = parts.filter((p): p is GHEMembersDetail => !!p);
+  if (valid.length === 0) return undefined;
+  const memberMap = new Map<string, GHEMembersDetail["members"][number]>();
+  valid.flatMap((p) => p.members ?? []).forEach((m) => {
+    if (!memberMap.has(m.login)) memberMap.set(m.login, m);
+  });
+  const deptMap = new Map<string, number>();
+  [...memberMap.values()].forEach((m) => {
+    const d = m.department || "Unknown";
+    deptMap.set(d, (deptMap.get(d) ?? 0) + 1);
+  });
+  return {
+    totalMembers: memberMap.size,
+    departments: [...deptMap.entries()].sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count })),
+    members: [...memberMap.values()],
+  };
+}
 import { RepoProvenancePanel } from "@/components/backstage/RepoProvenancePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
