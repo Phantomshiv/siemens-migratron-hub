@@ -29,7 +29,6 @@ interface SonarUser {
 async function fetchSonarUsers(): Promise<PlatformUsersResult> {
   const users: PlatformUser[] = [];
   let page = 1;
-  // SonarQube caps pageSize at 500; we hard-cap pages for safety.
   while (page <= 20) {
     const data = await callSonarQube<{
       users: SonarUser[];
@@ -62,55 +61,80 @@ export function useSonarQubeUsers() {
 }
 
 // ---------------------------------------------------------------------------
-// Artifactory — JFrog Access API v2 returns users with last_login_in_millis.
-// Cursor-paginated.
+// Artifactory — the Siemens JFrog host is not reachable from Lovable Cloud
+// (DNS for artifacts.industrysoftware.automation.siemens.com fails inside
+// the edge runtime). We still attempt the live JFrog Projects API, but fall
+// back to a static snapshot of the "Top Business Units by Users" widget so
+// the page renders the project-keyed breakdown that operators expect.
 // ---------------------------------------------------------------------------
-interface AccessUser {
-  username: string;
-  email?: string;
-  realm?: string;
-  status?: string;            // "enabled" | "disabled" | etc.
-  last_login_in_millis?: number;
+
+/** Snapshot of JFrog Projects user counts, captured from the Artifactory
+ *  Insights dashboard. Update periodically as the source of truth. */
+export const ARTIFACTORY_PROJECT_SNAPSHOT: Array<{ name: string; count: number }> = [
+  { name: "plm", count: 436 },
+  { name: "readers", count: 159 },
+  { name: "mdsp", count: 150 },
+  { name: "sim", count: 83 },
+  { name: "eda", count: 71 },
+  { name: "cps", count: 60 },
+  { name: "local", count: 36 },
+  { name: "cds", count: 34 },
+];
+
+export const ARTIFACTORY_SNAPSHOT_CAPTURED_AT = "2026-05-18";
+
+export interface ArtifactoryUsage {
+  /** True when the live API was unreachable and the static snapshot was used. */
+  fromSnapshot: boolean;
+  totalUsers: number;
+  byProject: Array<{ name: string; count: number }>;
+  capturedAt?: string;
 }
 
-async function fetchArtifactoryUsers(): Promise<PlatformUsersResult> {
-  const users: PlatformUser[] = [];
-  let cursor: string | undefined;
-  let pages = 0;
-  while (pages < 50) {
-    const params: Record<string, string | number> = { limit: 1000 };
-    if (cursor) params.cursor = cursor;
-    const data = await callArtifactory<{ users: AccessUser[]; cursor?: string }>({
-      endpoint: "/access/api/v2/users",
-      params,
+async function fetchArtifactoryUsage(): Promise<ArtifactoryUsage> {
+  try {
+    // JFrog Projects API: enumerate projects then count users per project.
+    const projects = await callArtifactory<Array<{ project_key: string; display_name?: string }>>({
+      endpoint: "/access/api/v1/projects",
     });
-    const batch = data?.users ?? [];
-    for (const u of batch) {
-      if (u.status && u.status.toLowerCase() !== "enabled") continue;
-      users.push({
-        login: (u.username || "").toLowerCase(),
-        email: u.email,
-        lastActive: u.last_login_in_millis,
-      });
+    const byProject: Array<{ name: string; count: number }> = [];
+    for (const p of projects ?? []) {
+      try {
+        const users = await callArtifactory<{ members?: unknown[] } | unknown[]>({
+          endpoint: `/access/api/v1/projects/${p.project_key}/users`,
+        });
+        const count = Array.isArray(users) ? users.length : (users as any)?.members?.length ?? 0;
+        byProject.push({ name: p.display_name || p.project_key, count });
+      } catch { /* skip project on error */ }
     }
-    cursor = data?.cursor;
-    pages++;
-    if (!cursor || batch.length === 0) break;
+    if (byProject.length === 0) throw new Error("No projects returned");
+    byProject.sort((a, b) => b.count - a.count);
+    return {
+      fromSnapshot: false,
+      byProject,
+      totalUsers: byProject.reduce((s, d) => s + d.count, 0),
+    };
+  } catch {
+    return {
+      fromSnapshot: true,
+      byProject: ARTIFACTORY_PROJECT_SNAPSHOT,
+      totalUsers: ARTIFACTORY_PROJECT_SNAPSHOT.reduce((s, d) => s + d.count, 0),
+      capturedAt: ARTIFACTORY_SNAPSHOT_CAPTURED_AT,
+    };
   }
-  return { users, totalUsers: users.length };
 }
 
-export function useArtifactoryUsers() {
+export function useArtifactoryUsage() {
   return useQuery({
-    queryKey: ["artifactory-users"],
-    queryFn: fetchArtifactoryUsers,
+    queryKey: ["artifactory-usage"],
+    queryFn: fetchArtifactoryUsage,
     staleTime: 15 * 60 * 1000,
-    retry: 1,
+    retry: 0,
   });
 }
 
 // ---------------------------------------------------------------------------
-// Helpers for derived data (BU breakdown + trend) reused by the page.
+// Helpers for derived data reused by the Capability Growth page.
 // ---------------------------------------------------------------------------
 
 /** Resolve a platform user → HR department by matching login or email-local-part
@@ -125,7 +149,6 @@ export function buildDeptLookup(members: Array<{ login: string; email?: string; 
   return (u: PlatformUser): string => {
     if (u.login && byLogin.has(u.login)) return byLogin.get(u.login)!;
     if (u.email && byEmail.has(u.email.toLowerCase())) return byEmail.get(u.email.toLowerCase())!;
-    // try email local-part as a login fallback (common at Siemens)
     if (u.email) {
       const local = u.email.split("@")[0]?.toLowerCase();
       if (local && byLogin.has(local)) return byLogin.get(local)!;
@@ -161,9 +184,7 @@ export function buildLastActiveTrend(
   const actives = users.map((u) => u.lastActive ?? 0).filter((t) => t > 0);
   actives.sort((a, b) => a - b);
 
-  // For each day, count users whose lastActive falls in (dayEnd - win, dayEnd]
   const countInWindow = (rangeStart: number, rangeEnd: number) => {
-    // binary search would be faster but n is small enough here
     let n = 0;
     for (const t of actives) {
       if (t > rangeStart && t <= rangeEnd) n++;
@@ -173,13 +194,14 @@ export function buildLastActiveTrend(
 
   for (let i = 0; i < days; i++) {
     const dayEnd = now - (days - 1 - i) * 86400000;
-    const value = countInWindow(dayEnd - win, dayEnd);
     series.push({
       date: new Date(dayEnd).toISOString().slice(0, 10),
-      value,
+      value: countInWindow(dayEnd - win, dayEnd),
     });
   }
-  const current = countInWindow(now - win, now);
-  const previous = countInWindow(now - 2 * win, now - win);
-  return { series, current, previous };
+  return {
+    series,
+    current: countInWindow(now - win, now),
+    previous: countInWindow(now - 2 * win, now - win),
+  };
 }
