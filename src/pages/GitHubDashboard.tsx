@@ -793,25 +793,38 @@ const GitHubDashboard = () => {
               <CardTitle className="text-sm font-heading flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-primary" /> Members by Department
               </CardTitle>
-              {membersDetail && (
-                <p className="text-[10px] text-muted-foreground">
-                  {membersDetail.totalMembers} members across {membersDetail.departments.length} departments
-                </p>
-              )}
+              {membersDetail && (() => {
+                const divs = new Set(membersDetail.departments.map(d => (d.name || "Unknown").split(/\s+/)[0] || "Unknown"));
+                return (
+                  <p className="text-[10px] text-muted-foreground">
+                    {membersDetail.totalMembers} members across {divs.size} divisions
+                  </p>
+                );
+              })()}
             </CardHeader>
             <CardContent>
               {membersLoading ? (
                 <Skeleton className="h-[350px] w-full" />
-              ) : membersDetail?.departments && membersDetail.departments.length > 0 ? (
-                <ResponsiveContainer width="100%" height={350}>
-                  <BarChart data={membersDetail.departments.slice(0, 15)} layout="vertical" margin={{ left: 60 }}>
-                    <XAxis type="number" stroke="hsl(215, 15%, 55%)" fontSize={11} />
-                    <YAxis type="category" dataKey="name" stroke="hsl(215, 15%, 55%)" fontSize={11} width={55} />
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="count" fill="hsl(174, 100%, 40%)" radius={[0, 4, 4, 0]} name="Members" />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
+              ) : membersDetail?.departments && membersDetail.departments.length > 0 ? (() => {
+                const divCounts: Record<string, number> = {};
+                for (const d of membersDetail.departments) {
+                  const top = (d.name || "Unknown").split(/\s+/)[0] || "Unknown";
+                  divCounts[top] = (divCounts[top] || 0) + d.count;
+                }
+                const barData = Object.entries(divCounts)
+                  .map(([name, count]) => ({ name, count }))
+                  .sort((a, b) => b.count - a.count);
+                return (
+                  <ResponsiveContainer width="100%" height={350}>
+                    <BarChart data={barData} layout="vertical" margin={{ left: 60 }}>
+                      <XAxis type="number" stroke="hsl(215, 15%, 55%)" fontSize={11} />
+                      <YAxis type="category" dataKey="name" stroke="hsl(215, 15%, 55%)" fontSize={11} width={55} />
+                      <Tooltip contentStyle={tooltipStyle} />
+                      <Bar dataKey="count" fill="hsl(174, 100%, 40%)" radius={[0, 4, 4, 0]} name="Members" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                );
+              })() : (
                 <p className="text-xs text-muted-foreground">No department data available</p>
               )}
             </CardContent>
