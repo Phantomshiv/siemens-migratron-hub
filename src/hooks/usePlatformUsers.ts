@@ -99,6 +99,11 @@ export const ARTIFACTORY_PROJECT_SNAPSHOT: Array<{ name: string; count: number }
   { name: "cds", count: 34 },
 ];
 
+/** Total users reported by the JFrog Artifactory "Total Users" tile.
+ *  This is larger than the sum of ARTIFACTORY_PROJECT_SNAPSHOT because many
+ *  users are not assigned to a top-N business-unit project. */
+export const ARTIFACTORY_TOTAL_USERS_SNAPSHOT = 4956;
+
 export const ARTIFACTORY_SNAPSHOT_CAPTURED_AT = "2026-05-18";
 
 export interface ArtifactoryUsage {
