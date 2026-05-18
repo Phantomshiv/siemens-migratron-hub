@@ -3,10 +3,17 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Github, BookOpen, TrendingUp, Users } from "lucide-react";
+import { Github, BookOpen, TrendingUp, Users, ShieldCheck, Package } from "lucide-react";
 import { useGitHubMembersDetail, type GHEMembersDetail } from "@/hooks/useGitHub";
 import { useBackstageUsersByBU } from "@/hooks/useBackstageUsers";
 import { useBackstageUsersTrend, useGitHubMembersTrend, type TrendPoint } from "@/hooks/useDeveloperTrends";
+import {
+  useSonarQubeUsers,
+  useArtifactoryUsers,
+  buildDeptLookup,
+  aggregateUsersByDept,
+  buildLastActiveTrend,
+} from "@/hooks/usePlatformUsers";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from "recharts";
 
 const BU_COLORS = [
@@ -203,6 +210,34 @@ export default function CapabilityGrowth() {
   const githubTrend = useGitHubMembersTrend(30, perOrgMembers);
   const backstageTrend = useBackstageUsersTrend(30);
 
+  // SonarQube + Artifactory: total users + last-active trend; departments
+  // resolved by joining against the GHE member roster (login / email).
+  const sonar = useSonarQubeUsers();
+  const artifactory = useArtifactoryUsers();
+
+  const resolveDept = useMemo(
+    () => buildDeptLookup(github?.members ?? []),
+    [github?.members]
+  );
+
+  const sonarBU = useMemo(
+    () => aggregateTopLevel(aggregateUsersByDept(sonar.data?.users ?? [], resolveDept)),
+    [sonar.data, resolveDept]
+  );
+  const sonarTrend = useMemo(
+    () => buildLastActiveTrend(sonar.data?.users ?? [], 30),
+    [sonar.data]
+  );
+
+  const artifactoryBU = useMemo(
+    () => aggregateTopLevel(aggregateUsersByDept(artifactory.data?.users ?? [], resolveDept)),
+    [artifactory.data, resolveDept]
+  );
+  const artifactoryTrend = useMemo(
+    () => buildLastActiveTrend(artifactory.data?.users ?? [], 30),
+    [artifactory.data]
+  );
+
   const capabilities = [
     {
       key: "github",
@@ -233,6 +268,36 @@ export default function CapabilityGrowth() {
       trendLoading: backstageTrend.isLoading,
       trendCurrent: backstageTrend.data?.current,
       trendPrevious: backstageTrend.data?.previous,
+    },
+    {
+      key: "sonarqube",
+      name: "SonarQube",
+      icon: ShieldCheck,
+      description: "Code quality, security & coverage",
+      developers: sonar.data?.totalUsers,
+      developersLabel: "Active users · SonarQube account",
+      buData: sonarBU,
+      loading: sonar.isLoading,
+      source: "SonarQube API · users/search · BU joined via GHE roster",
+      trend: sonarTrend.series,
+      trendLoading: sonar.isLoading,
+      trendCurrent: sonarTrend.current,
+      trendPrevious: sonarTrend.previous,
+    },
+    {
+      key: "artifactory",
+      name: "JFrog Artifactory",
+      icon: Package,
+      description: "Binary repository · build artifacts",
+      developers: artifactory.data?.totalUsers,
+      developersLabel: "Enabled users · JFrog Access",
+      buData: artifactoryBU,
+      loading: artifactory.isLoading,
+      source: "JFrog Access API · /access/api/v2/users · BU joined via GHE roster",
+      trend: artifactoryTrend.series,
+      trendLoading: artifactory.isLoading,
+      trendCurrent: artifactoryTrend.current,
+      trendPrevious: artifactoryTrend.previous,
     },
   ];
 
