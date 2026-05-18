@@ -8,11 +8,7 @@ import { useGitHubMembersDetail, type GHEMembersDetail } from "@/hooks/useGitHub
 import { useBackstageUsersByBU } from "@/hooks/useBackstageUsers";
 import { useBackstageUsersTrend, useGitHubMembersTrend, type TrendPoint } from "@/hooks/useDeveloperTrends";
 import {
-  useSonarQubeUsers,
   useArtifactoryUsage,
-  buildDeptLookup,
-  aggregateUsersByDept,
-  buildLastActiveTrend,
   SONARQUBE_GROUP_SNAPSHOT,
   SONARQUBE_SNAPSHOT_CAPTURED_AT,
 } from "@/hooks/usePlatformUsers";
