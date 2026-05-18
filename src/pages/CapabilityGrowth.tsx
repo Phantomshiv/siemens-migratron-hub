@@ -63,25 +63,57 @@ function mergeMembersDetail(parts: (GHEMembersDetail | undefined)[]): GHEMembers
   };
 }
 
-function BUBarChart({ data, height = 220 }: { data: Array<{ name: string; count: number }>; height?: number }) {
+function BUBarChart({ data, height = 90 }: { data: Array<{ name: string; count: number }>; height?: number }) {
   if (data.length === 0) {
     return <p className="text-xs text-muted-foreground">No BU data available</p>;
   }
+  const total = data.reduce((s, d) => s + d.count, 0);
+  // Single row, one series per BU → stacked horizontal bar
+  const row: Record<string, number | string> = { name: "Developers" };
+  data.forEach((d) => { row[d.name] = d.count; });
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} layout="vertical" margin={{ left: 50, right: 30, top: 4, bottom: 4 }}>
-        <XAxis type="number" stroke="hsl(215, 15%, 55%)" fontSize={10} />
-        <YAxis type="category" dataKey="name" stroke="hsl(215, 15%, 55%)" fontSize={10} width={45} />
-        <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "hsl(215, 20%, 18%)" }} />
-        <Bar dataKey="count" radius={[0, 3, 3, 0]} name="Developers">
-          {data.map((_, i) => (
-            <Cell key={i} fill={BU_COLORS[i % BU_COLORS.length]} />
+    <div className="space-y-2">
+      <ResponsiveContainer width="100%" height={height}>
+        <BarChart data={[row]} layout="vertical" margin={{ left: 0, right: 0, top: 4, bottom: 4 }}>
+          <XAxis type="number" hide domain={[0, total]} />
+          <YAxis type="category" dataKey="name" hide />
+          <Tooltip
+            contentStyle={tooltipStyle}
+            cursor={{ fill: "hsl(215, 20%, 18%)" }}
+            formatter={(value: number, name: string) => [
+              `${value.toLocaleString()} (${((value / total) * 100).toFixed(1)}%)`,
+              name,
+            ]}
+          />
+          {data.map((d, i) => (
+            <Bar
+              key={d.name}
+              dataKey={d.name}
+              stackId="bu"
+              fill={BU_COLORS[i % BU_COLORS.length]}
+              radius={i === 0 ? [4, 0, 0, 4] : i === data.length - 1 ? [0, 4, 4, 0] : 0}
+            />
           ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+        </BarChart>
+      </ResponsiveContainer>
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {data.map((d, i) => (
+          <div key={d.name} className="flex items-center gap-1.5 text-[10px]">
+            <span
+              className="inline-block h-2 w-2 rounded-sm"
+              style={{ background: BU_COLORS[i % BU_COLORS.length] }}
+            />
+            <span className="text-foreground font-medium">{d.name}</span>
+            <span className="text-muted-foreground tabular-nums">
+              {d.count} · {((d.count / total) * 100).toFixed(0)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
+
 
 export default function CapabilityGrowth() {
   // GitHub: fetch all 3 orgs, dedupe by login
