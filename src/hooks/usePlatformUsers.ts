@@ -51,6 +51,30 @@ async function fetchSonarUsers(): Promise<PlatformUsersResult> {
   return { users, totalUsers: users.length };
 }
 
+/** Cheap live total: ask for 1 user and read paging.total. Falls back to the
+ *  static snapshot if the SonarQube proxy is unreachable. */
+async function fetchSonarTotal(): Promise<{ total: number; live: boolean }> {
+  try {
+    const data = await callSonarQube<{
+      paging: { pageIndex: number; pageSize: number; total: number };
+    }>({ endpoint: "/api/users/search", params: { p: 1, ps: 1 } });
+    const total = data?.paging?.total ?? 0;
+    if (total > 0) return { total, live: true };
+    throw new Error("Sonar total unavailable");
+  } catch {
+    return { total: SONARQUBE_TOTAL_USERS_SNAPSHOT, live: false };
+  }
+}
+
+export function useSonarQubeTotalUsers() {
+  return useQuery({
+    queryKey: ["sonarqube-total-users"],
+    queryFn: fetchSonarTotal,
+    staleTime: 15 * 60 * 1000,
+    retry: 1,
+  });
+}
+
 export function useSonarQubeUsers() {
   return useQuery({
     queryKey: ["sonarqube-users"],
