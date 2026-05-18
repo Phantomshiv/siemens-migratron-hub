@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Github, BookOpen, TrendingUp, Users } from "lucide-react";
 import { useGitHubMembersDetail, type GHEMembersDetail } from "@/hooks/useGitHub";
 import { useBackstageUsersByBU } from "@/hooks/useBackstageUsers";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { useBackstageUsersTrend, useGitHubMembersTrend, type TrendPoint } from "@/hooks/useDeveloperTrends";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from "recharts";
 
 const BU_COLORS = [
   "hsl(174, 100%, 40%)",
@@ -120,6 +121,47 @@ function BUBarChart({ data: raw, height = 90 }: { data: Array<{ name: string; co
   );
 }
 
+function TrendSparkline({ data, height = 70 }: { data: TrendPoint[]; height?: number }) {
+  if (!data || data.length === 0) {
+    return <p className="text-xs text-muted-foreground">No trend data</p>;
+  }
+  const first = data[0]?.value ?? 0;
+  const last = data[data.length - 1]?.value ?? 0;
+  const delta = last - first;
+  const pct = first > 0 ? (delta / first) * 100 : 0;
+  const positive = delta >= 0;
+  const color = positive ? "hsl(174, 100%, 40%)" : "hsl(0, 75%, 60%)";
+  const gradId = `g-${positive ? "up" : "down"}`;
+  return (
+    <div className="space-y-1">
+      <div className="flex items-baseline gap-2">
+        <span className="text-sm font-bold tabular-nums">{last.toLocaleString()}</span>
+        <span className={`text-[10px] tabular-nums ${positive ? "text-[hsl(174,100%,40%)]" : "text-[hsl(0,75%,60%)]"}`}>
+          {positive ? "+" : ""}{delta.toLocaleString()} ({positive ? "+" : ""}{pct.toFixed(1)}%)
+        </span>
+      </div>
+      <ResponsiveContainer width="100%" height={height}>
+        <AreaChart data={data} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.4} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <XAxis dataKey="date" hide />
+          <YAxis hide domain={["dataMin", "dataMax"]} />
+          <Tooltip
+            contentStyle={tooltipStyle}
+            cursor={{ stroke: "hsl(215, 20%, 35%)" }}
+            formatter={(v: number) => [v.toLocaleString(), "Developers"]}
+          />
+          <Area type="monotone" dataKey="value" stroke={color} fill={`url(#${gradId})`} strokeWidth={1.75} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 
 export default function CapabilityGrowth() {
   // GitHub: fetch all 3 orgs, dedupe by login
@@ -138,6 +180,10 @@ export default function CapabilityGrowth() {
   const backstage = useBackstageUsersByBU(30);
   const backstageBU = useMemo(() => aggregateTopLevel(backstage.data?.byBU ?? []), [backstage.data]);
 
+  // 30-day trends
+  const githubTrend = useGitHubMembersTrend(30);
+  const backstageTrend = useBackstageUsersTrend(30);
+
   const capabilities = [
     {
       key: "github",
@@ -149,6 +195,8 @@ export default function CapabilityGrowth() {
       buData: githubBU,
       loading: githubLoading,
       source: "GHE API · members across open / foundation / portfolio",
+      trend: githubTrend.data ?? [],
+      trendLoading: githubTrend.isLoading,
     },
     {
       key: "backstage",
@@ -160,6 +208,8 @@ export default function CapabilityGrowth() {
       buData: backstageBU,
       loading: backstage.isLoading,
       source: "Datadog RUM · @usr.department_level2 · env:prod",
+      trend: backstageTrend.data ?? [],
+      trendLoading: backstageTrend.isLoading,
     },
   ];
 
@@ -183,9 +233,10 @@ export default function CapabilityGrowth() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="grid grid-cols-12 gap-4 px-4 py-2 text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border/40">
-              <div className="col-span-4">Capability</div>
+              <div className="col-span-3">Capability</div>
               <div className="col-span-2">Developers</div>
-              <div className="col-span-6">BU Adoption</div>
+              <div className="col-span-3">Trend (30d)</div>
+              <div className="col-span-4">BU Adoption</div>
             </div>
             {capabilities.map((cap) => {
               const Icon = cap.icon;
@@ -194,7 +245,7 @@ export default function CapabilityGrowth() {
                   key={cap.key}
                   className="grid grid-cols-12 gap-4 px-4 py-4 border-b border-border/30 last:border-b-0 items-start"
                 >
-                  <div className="col-span-4">
+                  <div className="col-span-3">
                     <div className="flex items-start gap-3">
                       <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 shrink-0">
                         <Icon className="h-4 w-4 text-primary" />
@@ -225,9 +276,17 @@ export default function CapabilityGrowth() {
                     )}
                   </div>
 
-                  <div className="col-span-6">
+                  <div className="col-span-3">
+                    {cap.trendLoading ? (
+                      <Skeleton className="h-[70px] w-full" />
+                    ) : (
+                      <TrendSparkline data={cap.trend} />
+                    )}
+                  </div>
+
+                  <div className="col-span-4">
                     {cap.loading ? (
-                      <Skeleton className="h-[220px] w-full" />
+                      <Skeleton className="h-[120px] w-full" />
                     ) : (
                       <BUBarChart data={cap.buData} />
                     )}

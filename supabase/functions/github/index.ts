@@ -1197,6 +1197,90 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Member growth over the last N days, derived from audit log
+    // org.add_member / org.remove_member events. Returns daily series with
+    // added, removed, net, and cumulative (anchored to current member total).
+    if (action === "member-growth") {
+      const days = Math.min(parseInt(url.searchParams.get("days") || "30", 10), 90);
+      const cacheKey = `github:member-growth:${org}:${days}`;
+      if (!noCache) {
+        const cached = await getCache(cacheKey);
+        if (cached) {
+          return new Response(JSON.stringify(cached), {
+            headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "HIT" },
+          });
+        }
+      }
+
+      const sinceMs = Date.now() - days * 24 * 60 * 60 * 1000;
+      const sinceDate = new Date(sinceMs).toISOString().slice(0, 10);
+
+      async function fetchEvents(actionFilter: string): Promise<Array<{ created_at: number }>> {
+        const out: Array<{ created_at: number }> = [];
+        let page = 1;
+        while (page <= 5) {
+          const phrase = `action:${actionFilter} created:>=${sinceDate}`;
+          const u = `${GHE_API_BASE}/api/v3/orgs/${org}/audit-log?per_page=100&page=${page}&include=all&phrase=${encodeURIComponent(phrase)}`;
+          const resp = await fetch(u, { headers: gheHeaders });
+          if (!resp.ok) break;
+          const data = await resp.json();
+          if (!Array.isArray(data) || data.length === 0) break;
+          out.push(...data);
+          if (data.length < 100) break;
+          page++;
+        }
+        return out;
+      }
+
+      // Get current total members so we can anchor cumulative line at today
+      const memberHeadResp = await fetch(`${GHE_BASE}/orgs/${org}/members?per_page=1`, { headers: gheHeaders });
+      const linkHeader = memberHeadResp.headers.get("link") || "";
+      const lastPageMatch = linkHeader.match(/page=(\d+)>;\s*rel="last"/);
+      const currentTotal = lastPageMatch ? parseInt(lastPageMatch[1], 10) : 0;
+
+      const [adds, removes] = await Promise.all([
+        fetchEvents("org.add_member"),
+        fetchEvents("org.remove_member"),
+      ]);
+
+      // Build daily buckets for the last N days (inclusive of today)
+      const buckets: Record<string, { added: number; removed: number }> = {};
+      for (let i = 0; i < days; i++) {
+        const d = new Date(Date.now() - (days - 1 - i) * 86400000).toISOString().slice(0, 10);
+        buckets[d] = { added: 0, removed: 0 };
+      }
+      for (const e of adds) {
+        const d = new Date(e.created_at).toISOString().slice(0, 10);
+        if (buckets[d]) buckets[d].added++;
+      }
+      for (const e of removes) {
+        const d = new Date(e.created_at).toISOString().slice(0, 10);
+        if (buckets[d]) buckets[d].removed++;
+      }
+
+      // Walk backwards from today's currentTotal to compute cumulative per day
+      const days_sorted = Object.keys(buckets).sort();
+      const series: Array<{ date: string; added: number; removed: number; net: number; cumulative: number }> = [];
+      let running = currentTotal;
+      // Today is last in days_sorted; compute forward by initialising the
+      // start-of-window cumulative as currentTotal - sum(net within window)
+      const totalNet = days_sorted.reduce((s, d) => s + (buckets[d].added - buckets[d].removed), 0);
+      running = currentTotal - totalNet;
+      for (const d of days_sorted) {
+        const b = buckets[d];
+        const net = b.added - b.removed;
+        running += net;
+        series.push({ date: d, added: b.added, removed: b.removed, net, cumulative: running });
+      }
+
+      const result = { org, days, currentTotal, series };
+      await setCache(cacheKey, result, 60);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
+      });
+    }
+
+
     // Repo provenance: query audit log for repo.create events in the last N days
     // and bucket by actor type (User / Bot / App / Importer) to estimate
     // how many repos were created via tooling vs manually.
