@@ -9,7 +9,7 @@ import { useBackstageUsersByBU } from "@/hooks/useBackstageUsers";
 import { useBackstageUsersTrend, useGitHubMembersTrend, type TrendPoint } from "@/hooks/useDeveloperTrends";
 import {
   useSonarQubeUsers,
-  useArtifactoryUsers,
+  useArtifactoryUsage,
   buildDeptLookup,
   aggregateUsersByDept,
   buildLastActiveTrend,
