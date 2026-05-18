@@ -63,10 +63,16 @@ function mergeMembersDetail(parts: (GHEMembersDetail | undefined)[]): GHEMembers
   };
 }
 
-function BUBarChart({ data, height = 90 }: { data: Array<{ name: string; count: number }>; height?: number }) {
-  if (data.length === 0) {
+function BUBarChart({ data: raw, height = 90 }: { data: Array<{ name: string; count: number }>; height?: number }) {
+  if (raw.length === 0) {
     return <p className="text-xs text-muted-foreground">No BU data available</p>;
   }
+  const sorted = [...raw].sort((a, b) => b.count - a.count);
+  const top = sorted.slice(0, 5);
+  const rest = sorted.slice(5);
+  const data = rest.length > 0
+    ? [...top, { name: "Others", count: rest.reduce((s, d) => s + d.count, 0) }]
+    : top;
   const total = data.reduce((s, d) => s + d.count, 0);
   // Single row, one series per BU → stacked horizontal bar
   const row: Record<string, number | string> = { name: "Developers" };
