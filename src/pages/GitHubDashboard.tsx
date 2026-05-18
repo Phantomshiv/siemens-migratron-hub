@@ -850,6 +850,7 @@ const GitHubDashboard = () => {
                 }
                 const pieData = Object.entries(divCounts)
                   .map(([name, count]) => ({ name, count }))
+                  .filter(d => d.count >= 5)
                   .sort((a, b) => b.count - a.count);
                 return (
                   <ResponsiveContainer width="100%" height={350}>
