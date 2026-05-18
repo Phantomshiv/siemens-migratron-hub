@@ -208,15 +208,8 @@ export default function CapabilityGrowth() {
   const githubTrend = useGitHubMembersTrend(30, perOrgMembers);
   const backstageTrend = useBackstageUsersTrend(30);
 
-  // SonarQube + Artifactory: total users + last-active trend; departments
-  // resolved by joining against the GHE member roster (login / email).
-  const sonar = useSonarQubeUsers();
+  // Artifactory: live JFrog Projects API with static snapshot fallback.
   const artifactory = useArtifactoryUsage();
-
-  const resolveDept = useMemo(
-    () => buildDeptLookup(github?.members ?? []),
-    [github?.members]
-  );
 
   // SonarQube BU = Sonar group keys (plm, sonar-users, sim, …) from the
   // SonarQube Insights "Top Business Units by Users" widget — static
