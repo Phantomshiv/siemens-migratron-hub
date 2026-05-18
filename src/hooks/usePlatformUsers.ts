@@ -76,6 +76,9 @@ export const SONARQUBE_GROUP_SNAPSHOT: Array<{ name: string; count: number }> = 
   { name: "cds", count: 269 },
   { name: "t_i", count: 198 },
 ];
+/** Total users reported by the SonarQube "Total Users" tile. Larger than the
+ *  sum of SONARQUBE_GROUP_SNAPSHOT because many users aren't in a top-N group. */
+export const SONARQUBE_TOTAL_USERS_SNAPSHOT = 5795;
 export const SONARQUBE_SNAPSHOT_CAPTURED_AT = "2026-05-18";
 
 // ---------------------------------------------------------------------------
