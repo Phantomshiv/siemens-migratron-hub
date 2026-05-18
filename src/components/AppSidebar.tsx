@@ -45,6 +45,7 @@ const mainItems = [
   { title: "Cloud Usage", url: "/metrics", icon: BarChart3 },
   { title: "Jira", url: "/jira", icon: SquareKanban },
   { title: "Capabilities", url: "/capabilities", icon: Layers },
+  { title: "Capability Growth", url: "/growth", icon: BarChart3 },
   { title: "Releases", url: "/releases", icon: Rocket },
   { title: "Roadmap", url: "/roadmap", icon: Map },
   { title: "Risks & Decisions", url: "/risks", icon: AlertTriangle },

@@ -24,6 +24,7 @@ import OKRsDashboard from "./pages/OKRs.tsx";
 import SREIncidents from "./pages/SREIncidents.tsx";
 import ArtifactoryUsage from "./pages/ArtifactoryUsage.tsx";
 import SonarqubeUsage from "./pages/SonarqubeUsage.tsx";
+import CapabilityGrowth from "./pages/CapabilityGrowth.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { RepoProvenanceSettingsProvider } from "./contexts/RepoProvenanceSettingsContext";
 
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/sre" element={<SREIncidents />} />
             <Route path="/artifactory" element={<ArtifactoryUsage />} />
             <Route path="/sonarqube" element={<SonarqubeUsage />} />
+            <Route path="/growth" element={<CapabilityGrowth />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
