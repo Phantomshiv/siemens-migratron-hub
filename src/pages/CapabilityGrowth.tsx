@@ -191,7 +191,16 @@ export default function CapabilityGrowth() {
   const backstageBU = useMemo(() => aggregateTopLevel(backstage.data?.byBU ?? []), [backstage.data]);
 
   // 30-day trends
-  const githubTrend = useGitHubMembersTrend(30);
+  const perOrgMembers = useMemo(() => {
+    const toSet = (d: GHEMembersDetail | undefined) =>
+      new Set((d?.members ?? []).map((m) => m.login.toLowerCase()));
+    return {
+      open: toSet(open.data),
+      foundation: toSet(foundation.data),
+      portfolio: toSet(portfolio.data),
+    };
+  }, [open.data, foundation.data, portfolio.data]);
+  const githubTrend = useGitHubMembersTrend(30, perOrgMembers);
   const backstageTrend = useBackstageUsersTrend(30);
 
   const capabilities = [
