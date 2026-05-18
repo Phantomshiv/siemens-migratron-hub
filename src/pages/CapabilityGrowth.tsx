@@ -3,10 +3,17 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Github, BookOpen, TrendingUp, Users } from "lucide-react";
+import { Github, BookOpen, TrendingUp, Users, ShieldCheck, Package } from "lucide-react";
 import { useGitHubMembersDetail, type GHEMembersDetail } from "@/hooks/useGitHub";
 import { useBackstageUsersByBU } from "@/hooks/useBackstageUsers";
 import { useBackstageUsersTrend, useGitHubMembersTrend, type TrendPoint } from "@/hooks/useDeveloperTrends";
+import {
+  useSonarQubeUsers,
+  useArtifactoryUsers,
+  buildDeptLookup,
+  aggregateUsersByDept,
+  buildLastActiveTrend,
+} from "@/hooks/usePlatformUsers";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from "recharts";
 
 const BU_COLORS = [
