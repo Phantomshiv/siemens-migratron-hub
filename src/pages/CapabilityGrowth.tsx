@@ -10,6 +10,7 @@ import { useBackstageUsersTrend, useGitHubMembersTrend, type TrendPoint } from "
 import {
   useArtifactoryUsage,
   SONARQUBE_GROUP_SNAPSHOT,
+  SONARQUBE_TOTAL_USERS_SNAPSHOT,
   SONARQUBE_SNAPSHOT_CAPTURED_AT,
 } from "@/hooks/usePlatformUsers";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from "recharts";
@@ -215,7 +216,7 @@ export default function CapabilityGrowth() {
   // SonarQube Insights "Top Business Units by Users" widget — static
   // snapshot until we wire the live SonarQube groups API.
   const sonarBU = SONARQUBE_GROUP_SNAPSHOT;
-  const sonarTotalFromSnapshot = SONARQUBE_GROUP_SNAPSHOT.reduce((s, d) => s + d.count, 0);
+  const sonarTotalFromSnapshot = SONARQUBE_TOTAL_USERS_SNAPSHOT;
 
   // Artifactory BU = JFrog Project keys (plm, mdsp, sim, eda, …). Comes
   // either from the live Projects API or the static snapshot fallback.
