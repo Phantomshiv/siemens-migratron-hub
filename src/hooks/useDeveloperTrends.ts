@@ -10,6 +10,12 @@ export interface TrendPoint {
   value: number;
 }
 
+export interface BackstageTrend {
+  series: TrendPoint[];
+  current: number;   // unique users over the window
+  previous: number;  // unique users over the previous window of equal length
+}
+
 async function authHeaders() {
   const { data: session } = await supabase.auth.getSession();
   const token =
@@ -22,46 +28,75 @@ async function authHeaders() {
   };
 }
 
-/** Backstage daily unique users via Datadog RUM cardinality. */
-async function fetchBackstageTrend(days = 30): Promise<TrendPoint[]> {
-  const to = Date.now();
-  const from = to - days * 86400000;
-  const body = {
+/**
+ * Mirrors the "Active Users" widget on the Datadog portal-adoption dashboard:
+ *   RUM cardinality of @usr.id where @type:session env:prod.
+ * We run the same query three ways:
+ *   - daily over the window  -> sparkline
+ *   - single bucket over the window  -> current MAU (matches the 1.62k headline)
+ *   - single bucket over the previous window  -> previous MAU (for the +/- %).
+ */
+async function fetchBackstageTrend(days = 30): Promise<BackstageTrend> {
+  const headers = await authHeaders();
+  const now = Date.now();
+  const win = days * 86400000;
+
+  const baseQuery = {
+    name: "q",
+    data_source: "rum",
+    compute: { aggregation: "cardinality", metric: "@usr.id" },
+    group_by: [],
+    indexes: ["*"],
+    search: { query: "@type:session env:prod" },
+    storage: "hot",
+  };
+
+  const makeBody = (from: number, to: number, interval: number) => ({
     data: {
       type: "timeseries_request",
       attributes: {
         from,
         to,
-        interval: 86_400_000,
-        queries: [
-          {
-            name: "q",
-            data_source: "rum",
-            compute: { aggregation: "cardinality", metric: "@usr.id" },
-            group_by: [],
-            indexes: ["*"],
-            search: { query: "@type:session env:prod" },
-            storage: "hot",
-          },
-        ],
+        interval,
+        queries: [baseQuery],
         formulas: [{ formula: "q" }],
       },
     },
-  };
-  const resp = await fetch(FN_DD, {
-    method: "POST",
-    headers: await authHeaders(),
-    body: JSON.stringify(body),
   });
-  if (!resp.ok) throw new Error(`Datadog timeseries failed: ${resp.status}`);
-  const json = await resp.json();
-  const series = json?.data?.attributes?.series?.[0];
-  const times: number[] = json?.data?.attributes?.times ?? [];
-  const values: number[] = series?.values ?? [];
-  return times.map((t, i) => ({
+
+  const post = async (body: unknown) => {
+    const resp = await fetch(FN_DD, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) throw new Error(`Datadog timeseries failed: ${resp.status}`);
+    return resp.json();
+  };
+
+  const [dailyJson, currentJson, previousJson] = await Promise.all([
+    post(makeBody(now - win, now, 86_400_000)),
+    post(makeBody(now - win, now, win)),
+    post(makeBody(now - 2 * win, now - win, win)),
+  ]);
+
+  const extractFirst = (j: any): number => {
+    const v = j?.data?.attributes?.series?.[0]?.values?.[0];
+    return Number(v ?? 0);
+  };
+
+  const times: number[] = dailyJson?.data?.attributes?.times ?? [];
+  const values: number[] = dailyJson?.data?.attributes?.series?.[0]?.values ?? [];
+  const series: TrendPoint[] = times.map((t, i) => ({
     date: new Date(t).toISOString().slice(0, 10),
     value: Number(values[i] ?? 0),
   }));
+
+  return {
+    series,
+    current: extractFirst(currentJson),
+    previous: extractFirst(previousJson),
+  };
 }
 
 export function useBackstageUsersTrend(days = 30) {
