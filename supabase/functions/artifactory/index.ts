@@ -29,6 +29,9 @@ const emptyStorageSummary = {
 function fallbackForEndpoint(path: string) {
   if (path === "/api/storageinfo") return emptyStorageSummary;
   if (path === "/api/repositories") return [];
+  if (path === "/api/security/users") return [];
+  if (path.startsWith("/access/api/v1/projects")) return [];
+  if (path.startsWith("/access/api/v2/users")) return { users: [], total: 0 };
   return null;
 }
 
