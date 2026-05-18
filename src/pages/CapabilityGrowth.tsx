@@ -9,7 +9,7 @@ import { useBackstageUsersByBU } from "@/hooks/useBackstageUsers";
 import { useBackstageUsersTrend, useGitHubMembersTrend, type TrendPoint } from "@/hooks/useDeveloperTrends";
 import {
   useSonarQubeUsers,
-  useArtifactoryUsers,
+  useArtifactoryUsage,
   buildDeptLookup,
   aggregateUsersByDept,
   buildLastActiveTrend,
@@ -213,7 +213,7 @@ export default function CapabilityGrowth() {
   // SonarQube + Artifactory: total users + last-active trend; departments
   // resolved by joining against the GHE member roster (login / email).
   const sonar = useSonarQubeUsers();
-  const artifactory = useArtifactoryUsers();
+  const artifactory = useArtifactoryUsage();
 
   const resolveDept = useMemo(
     () => buildDeptLookup(github?.members ?? []),
@@ -229,14 +229,9 @@ export default function CapabilityGrowth() {
     [sonar.data]
   );
 
-  const artifactoryBU = useMemo(
-    () => aggregateTopLevel(aggregateUsersByDept(artifactory.data?.users ?? [], resolveDept)),
-    [artifactory.data, resolveDept]
-  );
-  const artifactoryTrend = useMemo(
-    () => buildLastActiveTrend(artifactory.data?.users ?? [], 30),
-    [artifactory.data]
-  );
+  // Artifactory BU = JFrog Project keys (plm, mdsp, sim, eda, …). Comes
+  // either from the live Projects API or the static snapshot fallback.
+  const artifactoryBU = artifactory.data?.byProject ?? [];
 
   const capabilities = [
     {
@@ -290,14 +285,18 @@ export default function CapabilityGrowth() {
       icon: Package,
       description: "Binary repository · build artifacts",
       developers: artifactory.data?.totalUsers,
-      developersLabel: "Enabled users · JFrog Access",
+      developersLabel: artifactory.data?.fromSnapshot
+        ? `Users across JFrog Projects · snapshot ${artifactory.data.capturedAt ?? ""}`
+        : "Users across JFrog Projects",
       buData: artifactoryBU,
       loading: artifactory.isLoading,
-      source: "JFrog Access API · /access/api/v2/users · BU joined via GHE roster",
-      trend: artifactoryTrend.series,
-      trendLoading: artifactory.isLoading,
-      trendCurrent: artifactoryTrend.current,
-      trendPrevious: artifactoryTrend.previous,
+      source: artifactory.data?.fromSnapshot
+        ? "Static snapshot · JFrog Insights “Top BUs by Users” (host unreachable from Lovable Cloud)"
+        : "JFrog Access · /access/api/v1/projects · users-per-project",
+      trend: [],
+      trendLoading: false,
+      trendCurrent: undefined as number | undefined,
+      trendPrevious: undefined as number | undefined,
     },
   ];
 
