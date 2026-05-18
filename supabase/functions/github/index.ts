@@ -1215,8 +1215,8 @@ Deno.serve(async (req) => {
       const sinceMs = Date.now() - days * 24 * 60 * 60 * 1000;
       const sinceDate = new Date(sinceMs).toISOString().slice(0, 10);
 
-      async function fetchEvents(actionFilter: string): Promise<Array<{ created_at: number }>> {
-        const out: Array<{ created_at: number }> = [];
+      async function fetchEvents(actionFilter: string): Promise<Array<{ created_at: number; user: string }>> {
+        const out: Array<{ created_at: number; user: string }> = [];
         let page = 1;
         while (page <= 5) {
           const phrase = `action:${actionFilter} created:>=${sinceDate}`;
@@ -1225,7 +1225,12 @@ Deno.serve(async (req) => {
           if (!resp.ok) break;
           const data = await resp.json();
           if (!Array.isArray(data) || data.length === 0) break;
-          out.push(...data);
+          for (const e of data) {
+            // The affected member login lives in `user` for org.add_member /
+            // org.remove_member events. Fall back to `user_login` just in case.
+            const login = (e.user ?? e.user_login ?? "").toString().toLowerCase();
+            if (e.created_at) out.push({ created_at: e.created_at, user: login });
+          }
           if (data.length < 100) break;
           page++;
         }
@@ -1262,8 +1267,6 @@ Deno.serve(async (req) => {
       const days_sorted = Object.keys(buckets).sort();
       const series: Array<{ date: string; added: number; removed: number; net: number; cumulative: number }> = [];
       let running = currentTotal;
-      // Today is last in days_sorted; compute forward by initialising the
-      // start-of-window cumulative as currentTotal - sum(net within window)
       const totalNet = days_sorted.reduce((s, d) => s + (buckets[d].added - buckets[d].removed), 0);
       running = currentTotal - totalNet;
       for (const d of days_sorted) {
@@ -1273,7 +1276,13 @@ Deno.serve(async (req) => {
         series.push({ date: d, added: b.added, removed: b.removed, net, cumulative: running });
       }
 
-      const result = { org, days, currentTotal, series };
+      // Per-user events for cross-org dedup on the client.
+      const events = [
+        ...adds.map((e) => ({ date: new Date(e.created_at).toISOString().slice(0, 10), user: e.user, type: "add" as const })),
+        ...removes.map((e) => ({ date: new Date(e.created_at).toISOString().slice(0, 10), user: e.user, type: "remove" as const })),
+      ].filter((e) => e.user);
+
+      const result = { org, days, currentTotal, series, events };
       await setCache(cacheKey, result, 60);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
