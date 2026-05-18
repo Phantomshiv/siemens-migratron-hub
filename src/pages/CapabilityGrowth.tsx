@@ -285,14 +285,18 @@ export default function CapabilityGrowth() {
       icon: Package,
       description: "Binary repository · build artifacts",
       developers: artifactory.data?.totalUsers,
-      developersLabel: "Enabled users · JFrog Access",
+      developersLabel: artifactory.data?.fromSnapshot
+        ? `Users across JFrog Projects · snapshot ${artifactory.data.capturedAt ?? ""}`
+        : "Users across JFrog Projects",
       buData: artifactoryBU,
       loading: artifactory.isLoading,
-      source: "JFrog Access API · /access/api/v2/users · BU joined via GHE roster",
-      trend: artifactoryTrend.series,
-      trendLoading: artifactory.isLoading,
-      trendCurrent: artifactoryTrend.current,
-      trendPrevious: artifactoryTrend.previous,
+      source: artifactory.data?.fromSnapshot
+        ? "Static snapshot · JFrog Insights “Top BUs by Users” (host unreachable from Lovable Cloud)"
+        : "JFrog Access · /access/api/v1/projects · users-per-project",
+      trend: [],
+      trendLoading: false,
+      trendCurrent: undefined as number | undefined,
+      trendPrevious: undefined as number | undefined,
     },
   ];
 
