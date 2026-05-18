@@ -294,7 +294,11 @@ export default function CapabilityGrowth() {
                     {cap.trendLoading ? (
                       <Skeleton className="h-[70px] w-full" />
                     ) : (
-                      <TrendSparkline data={cap.trend} />
+                      <TrendSparkline
+                        data={cap.trend}
+                        currentOverride={cap.trendCurrent}
+                        previousOverride={cap.trendPrevious}
+                      />
                     )}
                   </div>
 
