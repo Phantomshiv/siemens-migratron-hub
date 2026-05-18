@@ -121,12 +121,22 @@ function BUBarChart({ data: raw, height = 90 }: { data: Array<{ name: string; co
   );
 }
 
-function TrendSparkline({ data, height = 70 }: { data: TrendPoint[]; height?: number }) {
+function TrendSparkline({
+  data,
+  height = 70,
+  currentOverride,
+  previousOverride,
+}: {
+  data: TrendPoint[];
+  height?: number;
+  currentOverride?: number;
+  previousOverride?: number;
+}) {
   if (!data || data.length === 0) {
     return <p className="text-xs text-muted-foreground">No trend data</p>;
   }
-  const first = data[0]?.value ?? 0;
-  const last = data[data.length - 1]?.value ?? 0;
+  const first = previousOverride ?? data[0]?.value ?? 0;
+  const last = currentOverride ?? data[data.length - 1]?.value ?? 0;
   const delta = last - first;
   const pct = first > 0 ? (delta / first) * 100 : 0;
   const positive = delta >= 0;
@@ -197,6 +207,8 @@ export default function CapabilityGrowth() {
       source: "GHE API · members across open / foundation / portfolio",
       trend: githubTrend.data ?? [],
       trendLoading: githubTrend.isLoading,
+      trendCurrent: undefined as number | undefined,
+      trendPrevious: undefined as number | undefined,
     },
     {
       key: "backstage",
@@ -208,8 +220,10 @@ export default function CapabilityGrowth() {
       buData: backstageBU,
       loading: backstage.isLoading,
       source: "Datadog RUM · @usr.department_level2 · env:prod",
-      trend: backstageTrend.data ?? [],
+      trend: backstageTrend.data?.series ?? [],
       trendLoading: backstageTrend.isLoading,
+      trendCurrent: backstageTrend.data?.current,
+      trendPrevious: backstageTrend.data?.previous,
     },
   ];
 
@@ -280,7 +294,11 @@ export default function CapabilityGrowth() {
                     {cap.trendLoading ? (
                       <Skeleton className="h-[70px] w-full" />
                     ) : (
-                      <TrendSparkline data={cap.trend} />
+                      <TrendSparkline
+                        data={cap.trend}
+                        currentOverride={cap.trendCurrent}
+                        previousOverride={cap.trendPrevious}
+                      />
                     )}
                   </div>
 
