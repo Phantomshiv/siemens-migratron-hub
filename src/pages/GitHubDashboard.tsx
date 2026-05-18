@@ -826,33 +826,40 @@ const GitHubDashboard = () => {
             <CardContent>
               {membersLoading ? (
                 <Skeleton className="h-[350px] w-full" />
-              ) : membersDetail?.departments && membersDetail.departments.length > 0 ? (
-                <ResponsiveContainer width="100%" height={350}>
-                  <PieChart>
-                    <Pie
-                      data={(() => {
-                        const top10 = membersDetail.departments.slice(0, 10);
-                        const rest = membersDetail.departments.slice(10);
-                        const otherCount = rest.reduce((s, d) => s + d.count, 0);
-                        return otherCount > 0 ? [...top10, { name: "Other", count: otherCount }] : top10;
-                      })()}
-                      dataKey="count"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={110}
-                      paddingAngle={2}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {membersDetail.departments.slice(0, 11).map((_, idx) => (
-                        <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={tooltipStyle} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
+              ) : membersDetail?.departments && membersDetail.departments.length > 0 ? (() => {
+                // Re-aggregate by top-level division (first token of the dept code)
+                // so we get a small, deterministic set of buckets instead of an "Other" lump.
+                const divCounts: Record<string, number> = {};
+                for (const d of membersDetail.departments) {
+                  const top = (d.name || "Unknown").split(/\s+/)[0] || "Unknown";
+                  divCounts[top] = (divCounts[top] || 0) + d.count;
+                }
+                const pieData = Object.entries(divCounts)
+                  .map(([name, count]) => ({ name, count }))
+                  .sort((a, b) => b.count - a.count);
+                return (
+                  <ResponsiveContainer width="100%" height={350}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        dataKey="count"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={110}
+                        paddingAngle={2}
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {pieData.map((_, idx) => (
+                          <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={tooltipStyle} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                );
+              })() : (
                 <p className="text-xs text-muted-foreground">No department data available</p>
               )}
             </CardContent>
