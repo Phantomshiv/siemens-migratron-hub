@@ -13,6 +13,8 @@ import {
   buildDeptLookup,
   aggregateUsersByDept,
   buildLastActiveTrend,
+  SONARQUBE_GROUP_SNAPSHOT,
+  SONARQUBE_SNAPSHOT_CAPTURED_AT,
 } from "@/hooks/usePlatformUsers";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from "recharts";
 
