@@ -222,14 +222,11 @@ export default function CapabilityGrowth() {
     [github?.members]
   );
 
-  const sonarBU = useMemo(
-    () => aggregateTopLevel(aggregateUsersByDept(sonar.data?.users ?? [], resolveDept)),
-    [sonar.data, resolveDept]
-  );
-  const sonarTrend = useMemo(
-    () => buildLastActiveTrend(sonar.data?.users ?? [], 30),
-    [sonar.data]
-  );
+  // SonarQube BU = Sonar group keys (plm, sonar-users, sim, …) from the
+  // SonarQube Insights "Top Business Units by Users" widget — static
+  // snapshot until we wire the live SonarQube groups API.
+  const sonarBU = SONARQUBE_GROUP_SNAPSHOT;
+  const sonarTotalFromSnapshot = SONARQUBE_GROUP_SNAPSHOT.reduce((s, d) => s + d.count, 0);
 
   // Artifactory BU = JFrog Project keys (plm, mdsp, sim, eda, …). Comes
   // either from the live Projects API or the static snapshot fallback.
