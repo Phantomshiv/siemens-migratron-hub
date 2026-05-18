@@ -257,11 +257,15 @@ export default function CapabilityGrowth() {
       name: "SonarQube",
       icon: ShieldCheck,
       description: "Code quality, security & coverage",
-      developers: sonarTotalFromSnapshot,
-      developersLabel: `Users across Sonar groups · snapshot ${SONARQUBE_SNAPSHOT_CAPTURED_AT}`,
+      developers: sonarTotal.data?.total,
+      developersLabel: sonarTotal.data?.live
+        ? "Total active users · live"
+        : `Users across Sonar groups · snapshot ${SONARQUBE_SNAPSHOT_CAPTURED_AT}`,
       buData: sonarBU,
-      loading: false,
-      source: "Static snapshot · SonarQube Insights “Top BUs by Users”",
+      loading: sonarTotal.isLoading,
+      source: sonarTotal.data?.live
+        ? "SonarQube API · /api/users/search · paging.total"
+        : "Static snapshot · SonarQube Insights “Top BUs by Users”",
       trend: [],
       trendLoading: false,
       trendCurrent: undefined as number | undefined,
