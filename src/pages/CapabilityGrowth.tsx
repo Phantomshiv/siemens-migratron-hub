@@ -121,12 +121,22 @@ function BUBarChart({ data: raw, height = 90 }: { data: Array<{ name: string; co
   );
 }
 
-function TrendSparkline({ data, height = 70 }: { data: TrendPoint[]; height?: number }) {
+function TrendSparkline({
+  data,
+  height = 70,
+  currentOverride,
+  previousOverride,
+}: {
+  data: TrendPoint[];
+  height?: number;
+  currentOverride?: number;
+  previousOverride?: number;
+}) {
   if (!data || data.length === 0) {
     return <p className="text-xs text-muted-foreground">No trend data</p>;
   }
-  const first = data[0]?.value ?? 0;
-  const last = data[data.length - 1]?.value ?? 0;
+  const first = previousOverride ?? data[0]?.value ?? 0;
+  const last = currentOverride ?? data[data.length - 1]?.value ?? 0;
   const delta = last - first;
   const pct = first > 0 ? (delta / first) * 100 : 0;
   const positive = delta >= 0;
