@@ -61,6 +61,24 @@ export function useSonarQubeUsers() {
 }
 
 // ---------------------------------------------------------------------------
+// SonarQube — "Top Business Units by Users" snapshot from the SonarQube
+// Insights dashboard. SonarQube groups users by Sonar group (plm,
+// sonar-users, sim, …) which doesn't map to HR departments, so we mirror
+// the dashboard one-to-one until we have a live groups API.
+// ---------------------------------------------------------------------------
+export const SONARQUBE_GROUP_SNAPSHOT: Array<{ name: string; count: number }> = [
+  { name: "plm", count: 4361 },
+  { name: "sonar-users", count: 971 },
+  { name: "sim", count: 660 },
+  { name: "cps", count: 632 },
+  { name: "eda", count: 612 },
+  { name: "gs_cs", count: 321 },
+  { name: "cds", count: 269 },
+  { name: "t_i", count: 198 },
+];
+export const SONARQUBE_SNAPSHOT_CAPTURED_AT = "2026-05-18";
+
+// ---------------------------------------------------------------------------
 // Artifactory — the Siemens JFrog host is not reachable from Lovable Cloud
 // (DNS for artifacts.industrysoftware.automation.siemens.com fails inside
 // the edge runtime). We still attempt the live JFrog Projects API, but fall
