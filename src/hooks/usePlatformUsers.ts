@@ -52,12 +52,18 @@ async function fetchSonarUsers(): Promise<PlatformUsersResult> {
 }
 
 /** Cheap live total: ask for 1 user and read paging.total. Falls back to the
- *  static snapshot if the SonarQube proxy is unreachable. */
+ *  static snapshot if SonarQube is unreachable or too slow (>10s). */
 async function fetchSonarTotal(): Promise<{ total: number; live: boolean }> {
   try {
-    const data = await callSonarQube<{
-      paging: { pageIndex: number; pageSize: number; total: number };
-    }>({ endpoint: "/api/users/search", params: { p: 1, ps: 1 } });
+    const data = await Promise.race([
+      callSonarQube<{ paging: { total: number } }>({
+        endpoint: "/api/users/search",
+        params: { p: 1, ps: 1 },
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Sonar total timeout")), 10_000),
+      ),
+    ]);
     const total = data?.paging?.total ?? 0;
     if (total > 0) return { total, live: true };
     throw new Error("Sonar total unavailable");
