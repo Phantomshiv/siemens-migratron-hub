@@ -139,6 +139,10 @@ export default function CapabilityGrowth() {
   const backstage = useBackstageUsersByBU(30);
   const backstageBU = useMemo(() => aggregateTopLevel(backstage.data?.byBU ?? []), [backstage.data]);
 
+  // 30-day trends
+  const githubTrend = useGitHubMembersTrend(30);
+  const backstageTrend = useBackstageUsersTrend(30);
+
   const capabilities = [
     {
       key: "github",
@@ -150,6 +154,8 @@ export default function CapabilityGrowth() {
       buData: githubBU,
       loading: githubLoading,
       source: "GHE API · members across open / foundation / portfolio",
+      trend: githubTrend.data ?? [],
+      trendLoading: githubTrend.isLoading,
     },
     {
       key: "backstage",
@@ -161,6 +167,8 @@ export default function CapabilityGrowth() {
       buData: backstageBU,
       loading: backstage.isLoading,
       source: "Datadog RUM · @usr.department_level2 · env:prod",
+      trend: backstageTrend.data ?? [],
+      trendLoading: backstageTrend.isLoading,
     },
   ];
 
