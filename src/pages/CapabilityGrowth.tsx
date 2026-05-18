@@ -207,6 +207,8 @@ export default function CapabilityGrowth() {
       source: "GHE API · members across open / foundation / portfolio",
       trend: githubTrend.data ?? [],
       trendLoading: githubTrend.isLoading,
+      trendCurrent: undefined as number | undefined,
+      trendPrevious: undefined as number | undefined,
     },
     {
       key: "backstage",
@@ -218,8 +220,10 @@ export default function CapabilityGrowth() {
       buData: backstageBU,
       loading: backstage.isLoading,
       source: "Datadog RUM · @usr.department_level2 · env:prod",
-      trend: backstageTrend.data ?? [],
+      trend: backstageTrend.data?.series ?? [],
       trendLoading: backstageTrend.isLoading,
+      trendCurrent: backstageTrend.data?.current,
+      trendPrevious: backstageTrend.data?.previous,
     },
   ];
 
