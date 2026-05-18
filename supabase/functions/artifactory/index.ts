@@ -87,8 +87,9 @@ serve(async (req) => {
     const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
 
     let targetUrl: string;
-    if (path.startsWith("/xray/")) {
-      // /xray/api/... → <hostRoot>/xray/api/...
+    if (path.startsWith("/xray/") || path.startsWith("/access/")) {
+      // /xray/...  → <hostRoot>/xray/...
+      // /access/... → <hostRoot>/access/...
       targetUrl = `${hostRoot}${path}`;
     } else {
       targetUrl = `${artifactoryBase}${path}`;
