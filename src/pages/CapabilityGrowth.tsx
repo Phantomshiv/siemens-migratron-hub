@@ -213,7 +213,7 @@ export default function CapabilityGrowth() {
   // SonarQube + Artifactory: total users + last-active trend; departments
   // resolved by joining against the GHE member roster (login / email).
   const sonar = useSonarQubeUsers();
-  const artifactory = useArtifactoryUsers();
+  const artifactory = useArtifactoryUsage();
 
   const resolveDept = useMemo(
     () => buildDeptLookup(github?.members ?? []),
@@ -229,14 +229,9 @@ export default function CapabilityGrowth() {
     [sonar.data]
   );
 
-  const artifactoryBU = useMemo(
-    () => aggregateTopLevel(aggregateUsersByDept(artifactory.data?.users ?? [], resolveDept)),
-    [artifactory.data, resolveDept]
-  );
-  const artifactoryTrend = useMemo(
-    () => buildLastActiveTrend(artifactory.data?.users ?? [], 30),
-    [artifactory.data]
-  );
+  // Artifactory BU = JFrog Project keys (plm, mdsp, sim, eda, …). Comes
+  // either from the live Projects API or the static snapshot fallback.
+  const artifactoryBU = artifactory.data?.byProject ?? [];
 
   const capabilities = [
     {
