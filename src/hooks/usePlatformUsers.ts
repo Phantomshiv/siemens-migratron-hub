@@ -51,6 +51,30 @@ async function fetchSonarUsers(): Promise<PlatformUsersResult> {
   return { users, totalUsers: users.length };
 }
 
+/** Cheap live total: ask for 1 user and read paging.total. Falls back to the
+ *  static snapshot if the SonarQube proxy is unreachable. */
+async function fetchSonarTotal(): Promise<{ total: number; live: boolean }> {
+  try {
+    const data = await callSonarQube<{
+      paging: { pageIndex: number; pageSize: number; total: number };
+    }>({ endpoint: "/api/users/search", params: { p: 1, ps: 1 } });
+    const total = data?.paging?.total ?? 0;
+    if (total > 0) return { total, live: true };
+    throw new Error("Sonar total unavailable");
+  } catch {
+    return { total: SONARQUBE_TOTAL_USERS_SNAPSHOT, live: false };
+  }
+}
+
+export function useSonarQubeTotalUsers() {
+  return useQuery({
+    queryKey: ["sonarqube-total-users"],
+    queryFn: fetchSonarTotal,
+    staleTime: 15 * 60 * 1000,
+    retry: 1,
+  });
+}
+
 export function useSonarQubeUsers() {
   return useQuery({
     queryKey: ["sonarqube-users"],
@@ -117,6 +141,28 @@ export interface ArtifactoryUsage {
   capturedAt?: string;
 }
 
+/** Fetch the live total user count via JFrog Access. Tries multiple endpoints
+ *  because availability depends on the host configuration. */
+async function fetchArtifactoryTotalUsers(): Promise<number | null> {
+  // Access API v2: paginated, returns { users, cursor, ... } — use ps=1 and
+  // read the total if exposed; otherwise count.
+  try {
+    const data = await callArtifactory<{ users?: unknown[]; total?: number }>({
+      endpoint: "/access/api/v2/users",
+      params: { limit: 1 },
+    });
+    if (typeof data?.total === "number" && data.total > 0) return data.total;
+  } catch { /* fall through */ }
+  // Artifactory security users — returns the full array of users.
+  try {
+    const users = await callArtifactory<unknown[]>({
+      endpoint: "/api/security/users",
+    });
+    if (Array.isArray(users) && users.length > 0) return users.length;
+  } catch { /* fall through */ }
+  return null;
+}
+
 async function fetchArtifactoryUsage(): Promise<ArtifactoryUsage> {
   try {
     // JFrog Projects API: enumerate projects then count users per project.
@@ -135,17 +181,21 @@ async function fetchArtifactoryUsage(): Promise<ArtifactoryUsage> {
     }
     if (byProject.length === 0) throw new Error("No projects returned");
     byProject.sort((a, b) => b.count - a.count);
+    // Prefer the live tenant-wide total; fall back to summing per-project.
+    const liveTotal = await fetchArtifactoryTotalUsers();
     return {
       fromSnapshot: false,
       byProject,
-      totalUsers: byProject.reduce((s, d) => s + d.count, 0),
+      totalUsers: liveTotal ?? byProject.reduce((s, d) => s + d.count, 0),
     };
   } catch {
+    // Even if the Projects API failed, try once more for a live total.
+    const liveTotal = await fetchArtifactoryTotalUsers();
     return {
-      fromSnapshot: true,
+      fromSnapshot: liveTotal == null,
       byProject: ARTIFACTORY_PROJECT_SNAPSHOT,
-      totalUsers: ARTIFACTORY_TOTAL_USERS_SNAPSHOT,
-      capturedAt: ARTIFACTORY_SNAPSHOT_CAPTURED_AT,
+      totalUsers: liveTotal ?? ARTIFACTORY_TOTAL_USERS_SNAPSHOT,
+      capturedAt: liveTotal == null ? ARTIFACTORY_SNAPSHOT_CAPTURED_AT : undefined,
     };
   }
 }

@@ -9,8 +9,8 @@ import { useBackstageUsersByBU } from "@/hooks/useBackstageUsers";
 import { useBackstageUsersTrend, useGitHubMembersTrend, type TrendPoint } from "@/hooks/useDeveloperTrends";
 import {
   useArtifactoryUsage,
+  useSonarQubeTotalUsers,
   SONARQUBE_GROUP_SNAPSHOT,
-  SONARQUBE_TOTAL_USERS_SNAPSHOT,
   SONARQUBE_SNAPSHOT_CAPTURED_AT,
 } from "@/hooks/usePlatformUsers";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from "recharts";
@@ -212,11 +212,10 @@ export default function CapabilityGrowth() {
   // Artifactory: live JFrog Projects API with static snapshot fallback.
   const artifactory = useArtifactoryUsage();
 
-  // SonarQube BU = Sonar group keys (plm, sonar-users, sim, …) from the
-  // SonarQube Insights "Top Business Units by Users" widget — static
-  // snapshot until we wire the live SonarQube groups API.
+  // SonarQube: live total via /api/users/search?ps=1 (reads paging.total),
+  // falls back to snapshot if the proxy is unreachable.
+  const sonarTotal = useSonarQubeTotalUsers();
   const sonarBU = SONARQUBE_GROUP_SNAPSHOT;
-  const sonarTotalFromSnapshot = SONARQUBE_TOTAL_USERS_SNAPSHOT;
 
   // Artifactory BU = JFrog Project keys (plm, mdsp, sim, eda, …). Comes
   // either from the live Projects API or the static snapshot fallback.
@@ -258,11 +257,15 @@ export default function CapabilityGrowth() {
       name: "SonarQube",
       icon: ShieldCheck,
       description: "Code quality, security & coverage",
-      developers: sonarTotalFromSnapshot,
-      developersLabel: `Users across Sonar groups · snapshot ${SONARQUBE_SNAPSHOT_CAPTURED_AT}`,
+      developers: sonarTotal.data?.total,
+      developersLabel: sonarTotal.data?.live
+        ? "Total active users · live"
+        : `Users across Sonar groups · snapshot ${SONARQUBE_SNAPSHOT_CAPTURED_AT}`,
       buData: sonarBU,
-      loading: false,
-      source: "Static snapshot · SonarQube Insights “Top BUs by Users”",
+      loading: sonarTotal.isLoading,
+      source: sonarTotal.data?.live
+        ? "SonarQube API · /api/users/search · paging.total"
+        : "Static snapshot · SonarQube Insights “Top BUs by Users”",
       trend: [],
       trendLoading: false,
       trendCurrent: undefined as number | undefined,
