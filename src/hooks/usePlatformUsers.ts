@@ -141,7 +141,7 @@ async function fetchArtifactoryUsage(): Promise<ArtifactoryUsage> {
     return {
       fromSnapshot: true,
       byProject: ARTIFACTORY_PROJECT_SNAPSHOT,
-      totalUsers: ARTIFACTORY_PROJECT_SNAPSHOT.reduce((s, d) => s + d.count, 0),
+      totalUsers: ARTIFACTORY_TOTAL_USERS_SNAPSHOT,
       capturedAt: ARTIFACTORY_SNAPSHOT_CAPTURED_AT,
     };
   }
