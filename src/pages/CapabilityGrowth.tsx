@@ -192,9 +192,10 @@ export default function CapabilityGrowth() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="grid grid-cols-12 gap-4 px-4 py-2 text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border/40">
-              <div className="col-span-4">Capability</div>
+              <div className="col-span-3">Capability</div>
               <div className="col-span-2">Developers</div>
-              <div className="col-span-6">BU Adoption</div>
+              <div className="col-span-3">Trend (30d)</div>
+              <div className="col-span-4">BU Adoption</div>
             </div>
             {capabilities.map((cap) => {
               const Icon = cap.icon;
@@ -203,7 +204,7 @@ export default function CapabilityGrowth() {
                   key={cap.key}
                   className="grid grid-cols-12 gap-4 px-4 py-4 border-b border-border/30 last:border-b-0 items-start"
                 >
-                  <div className="col-span-4">
+                  <div className="col-span-3">
                     <div className="flex items-start gap-3">
                       <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 shrink-0">
                         <Icon className="h-4 w-4 text-primary" />
@@ -234,9 +235,17 @@ export default function CapabilityGrowth() {
                     )}
                   </div>
 
-                  <div className="col-span-6">
+                  <div className="col-span-3">
+                    {cap.trendLoading ? (
+                      <Skeleton className="h-[70px] w-full" />
+                    ) : (
+                      <TrendSparkline data={cap.trend} />
+                    )}
+                  </div>
+
+                  <div className="col-span-4">
                     {cap.loading ? (
-                      <Skeleton className="h-[220px] w-full" />
+                      <Skeleton className="h-[120px] w-full" />
                     ) : (
                       <BUBarChart data={cap.buData} />
                     )}
