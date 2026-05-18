@@ -121,6 +121,47 @@ function BUBarChart({ data: raw, height = 90 }: { data: Array<{ name: string; co
   );
 }
 
+function TrendSparkline({ data, height = 70 }: { data: TrendPoint[]; height?: number }) {
+  if (!data || data.length === 0) {
+    return <p className="text-xs text-muted-foreground">No trend data</p>;
+  }
+  const first = data[0]?.value ?? 0;
+  const last = data[data.length - 1]?.value ?? 0;
+  const delta = last - first;
+  const pct = first > 0 ? (delta / first) * 100 : 0;
+  const positive = delta >= 0;
+  const color = positive ? "hsl(174, 100%, 40%)" : "hsl(0, 75%, 60%)";
+  const gradId = `g-${positive ? "up" : "down"}`;
+  return (
+    <div className="space-y-1">
+      <div className="flex items-baseline gap-2">
+        <span className="text-sm font-bold tabular-nums">{last.toLocaleString()}</span>
+        <span className={`text-[10px] tabular-nums ${positive ? "text-[hsl(174,100%,40%)]" : "text-[hsl(0,75%,60%)]"}`}>
+          {positive ? "+" : ""}{delta.toLocaleString()} ({positive ? "+" : ""}{pct.toFixed(1)}%)
+        </span>
+      </div>
+      <ResponsiveContainer width="100%" height={height}>
+        <AreaChart data={data} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.4} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <XAxis dataKey="date" hide />
+          <YAxis hide domain={["dataMin", "dataMax"]} />
+          <Tooltip
+            contentStyle={tooltipStyle}
+            cursor={{ stroke: "hsl(215, 20%, 35%)" }}
+            formatter={(v: number) => [v.toLocaleString(), "Developers"]}
+          />
+          <Area type="monotone" dataKey="value" stroke={color} fill={`url(#${gradId})`} strokeWidth={1.75} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 
 export default function CapabilityGrowth() {
   // GitHub: fetch all 3 orgs, dedupe by login
