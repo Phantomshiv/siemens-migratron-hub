@@ -80,13 +80,20 @@ async function fetchBackstageTrend(days = 30): Promise<BackstageTrend> {
     post(makeBody(now - 2 * win, now - win, win)),
   ]);
 
+  // Datadog v2 timeseries shape: attributes.values is an array indexed by
+  // query_index (NOT nested inside series[i].values). series[i] only carries
+  // metadata (group_tags, unit, query_index).
+  const extractValues = (j: any): number[] => {
+    const vals = j?.data?.attributes?.values?.[0];
+    return Array.isArray(vals) ? vals.map((v: any) => Number(v ?? 0)) : [];
+  };
   const extractFirst = (j: any): number => {
-    const v = j?.data?.attributes?.series?.[0]?.values?.[0];
-    return Number(v ?? 0);
+    const arr = extractValues(j);
+    return arr[0] ?? 0;
   };
 
   const times: number[] = dailyJson?.data?.attributes?.times ?? [];
-  const values: number[] = dailyJson?.data?.attributes?.series?.[0]?.values ?? [];
+  const values: number[] = extractValues(dailyJson);
   const series: TrendPoint[] = times.map((t, i) => ({
     date: new Date(t).toISOString().slice(0, 10),
     value: Number(values[i] ?? 0),
