@@ -8,11 +8,9 @@ import { useGitHubMembersDetail, type GHEMembersDetail } from "@/hooks/useGitHub
 import { useBackstageUsersByBU } from "@/hooks/useBackstageUsers";
 import { useBackstageUsersTrend, useGitHubMembersTrend, type TrendPoint } from "@/hooks/useDeveloperTrends";
 import {
-  useSonarQubeUsers,
   useArtifactoryUsage,
-  buildDeptLookup,
-  aggregateUsersByDept,
-  buildLastActiveTrend,
+  SONARQUBE_GROUP_SNAPSHOT,
+  SONARQUBE_SNAPSHOT_CAPTURED_AT,
 } from "@/hooks/usePlatformUsers";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from "recharts";
 
@@ -210,24 +208,14 @@ export default function CapabilityGrowth() {
   const githubTrend = useGitHubMembersTrend(30, perOrgMembers);
   const backstageTrend = useBackstageUsersTrend(30);
 
-  // SonarQube + Artifactory: total users + last-active trend; departments
-  // resolved by joining against the GHE member roster (login / email).
-  const sonar = useSonarQubeUsers();
+  // Artifactory: live JFrog Projects API with static snapshot fallback.
   const artifactory = useArtifactoryUsage();
 
-  const resolveDept = useMemo(
-    () => buildDeptLookup(github?.members ?? []),
-    [github?.members]
-  );
-
-  const sonarBU = useMemo(
-    () => aggregateTopLevel(aggregateUsersByDept(sonar.data?.users ?? [], resolveDept)),
-    [sonar.data, resolveDept]
-  );
-  const sonarTrend = useMemo(
-    () => buildLastActiveTrend(sonar.data?.users ?? [], 30),
-    [sonar.data]
-  );
+  // SonarQube BU = Sonar group keys (plm, sonar-users, sim, …) from the
+  // SonarQube Insights "Top Business Units by Users" widget — static
+  // snapshot until we wire the live SonarQube groups API.
+  const sonarBU = SONARQUBE_GROUP_SNAPSHOT;
+  const sonarTotalFromSnapshot = SONARQUBE_GROUP_SNAPSHOT.reduce((s, d) => s + d.count, 0);
 
   // Artifactory BU = JFrog Project keys (plm, mdsp, sim, eda, …). Comes
   // either from the live Projects API or the static snapshot fallback.
@@ -269,15 +257,15 @@ export default function CapabilityGrowth() {
       name: "SonarQube",
       icon: ShieldCheck,
       description: "Code quality, security & coverage",
-      developers: sonar.data?.totalUsers,
-      developersLabel: "Active users · SonarQube account",
+      developers: sonarTotalFromSnapshot,
+      developersLabel: `Users across Sonar groups · snapshot ${SONARQUBE_SNAPSHOT_CAPTURED_AT}`,
       buData: sonarBU,
-      loading: sonar.isLoading,
-      source: "SonarQube API · users/search · BU joined via GHE roster",
-      trend: sonarTrend.series,
-      trendLoading: sonar.isLoading,
-      trendCurrent: sonarTrend.current,
-      trendPrevious: sonarTrend.previous,
+      loading: false,
+      source: "Static snapshot · SonarQube Insights “Top BUs by Users”",
+      trend: [],
+      trendLoading: false,
+      trendCurrent: undefined as number | undefined,
+      trendPrevious: undefined as number | undefined,
     },
     {
       key: "artifactory",
