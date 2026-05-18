@@ -212,11 +212,10 @@ export default function CapabilityGrowth() {
   // Artifactory: live JFrog Projects API with static snapshot fallback.
   const artifactory = useArtifactoryUsage();
 
-  // SonarQube BU = Sonar group keys (plm, sonar-users, sim, …) from the
-  // SonarQube Insights "Top Business Units by Users" widget — static
-  // snapshot until we wire the live SonarQube groups API.
+  // SonarQube: live total via /api/users/search?ps=1 (reads paging.total),
+  // falls back to snapshot if the proxy is unreachable.
+  const sonarTotal = useSonarQubeTotalUsers();
   const sonarBU = SONARQUBE_GROUP_SNAPSHOT;
-  const sonarTotalFromSnapshot = SONARQUBE_TOTAL_USERS_SNAPSHOT;
 
   // Artifactory BU = JFrog Project keys (plm, mdsp, sim, eda, …). Comes
   // either from the live Projects API or the static snapshot fallback.
