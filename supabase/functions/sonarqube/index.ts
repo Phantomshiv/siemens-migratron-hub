@@ -53,7 +53,10 @@ serve(async (req) => {
       Authorization: `Basic ${btoa(SONARQUBE_TOKEN + ":")}`,
     };
 
-    const fetchOptions: RequestInit = { method, headers };
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25_000);
+
+    const fetchOptions: RequestInit = { method, headers, signal: controller.signal };
 
     if ((method === "POST" || method === "PUT") && reqBody) {
       headers["Content-Type"] = "application/json";
@@ -62,7 +65,22 @@ serve(async (req) => {
 
     console.log(`SonarQube API: ${method} ${url.toString()}`);
 
-    const response = await fetch(url.toString(), fetchOptions);
+    let response: Response;
+    try {
+      response = await fetch(url.toString(), fetchOptions);
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const aborted = (err as any)?.name === "AbortError";
+      console.error(`SonarQube fetch ${aborted ? "timed out" : "failed"}:`, err);
+      return new Response(
+        JSON.stringify({
+          error: aborted ? "SonarQube upstream timeout (25s)" : "SonarQube fetch failed",
+          details: (err as Error)?.message,
+        }),
+        { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    clearTimeout(timeoutId);
     const data = await response.text();
 
     if (!response.ok) {
