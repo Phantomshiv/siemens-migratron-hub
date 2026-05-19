@@ -21,11 +21,11 @@ const fmtFull = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
 const statusColor: Record<string, string> = {
-  closed: "hsl(var(--chart-2))",
-  current: "hsl(var(--chart-2))",
-  forecast: "hsl(var(--chart-2))",
+  closed: "hsl(var(--chart-1))",
+  current: "hsl(var(--chart-1))",
+  forecast: "hsl(var(--chart-1))",
 };
-const planFill = "hsl(var(--chart-1))";
+const planFill = "hsl(var(--chart-2))";
 
 export function BudgetByQuarter() {
   const { dataset } = useBudgetData();
