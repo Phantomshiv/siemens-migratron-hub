@@ -256,3 +256,49 @@ export function useGitHubMembersTrend(
   });
 }
 
+/**
+ * Generic Datadog v1 timeseries query against the metric "sum:<metric>{*}.rollup(monthly)".
+ * Returns a series of { date: "YYYY-MM", value } plus the latest scalar value.
+ */
+async function fetchDatadogMonthly(metric: string, months = 12): Promise<{
+  series: TrendPoint[];
+  current: number;
+  previous: number;
+}> {
+  const headers = await authHeaders();
+  const now = Math.floor(Date.now() / 1000);
+  const from = now - months * 31 * 86400;
+  const q = `sum:${metric}{*}.rollup(monthly)`;
+  const url = `${FN_DD_BASE}?action=query&q=${encodeURIComponent(q)}&from=${from}&to=${now}`;
+  const resp = await fetch(url, { headers });
+  if (!resp.ok) throw new Error(`Datadog query failed: ${resp.status}`);
+  const json = await resp.json();
+  const points: Array<[number, number]> = json?.series?.[0]?.pointlist ?? [];
+  const series: TrendPoint[] = points.map(([t, v]) => ({
+    date: new Date(t).toISOString().slice(0, 7),
+    value: Math.round(Number(v ?? 0)),
+  }));
+  const current = series[series.length - 1]?.value ?? 0;
+  const previous = series[series.length - 2]?.value ?? current;
+  return { series, current, previous };
+}
+
+export function useSonarQubeMonthlyTrend(months = 12) {
+  return useQuery({
+    queryKey: ["sonarqube-monthly-trend", months],
+    queryFn: () => fetchDatadogMonthly("sonarqube_testing.total_users", months),
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+export function useArtifactoryMonthlyTrend(months = 12) {
+  return useQuery({
+    queryKey: ["artifactory-monthly-trend", months],
+    queryFn: () => fetchDatadogMonthly("artifactory_testing.total_users", months),
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+
