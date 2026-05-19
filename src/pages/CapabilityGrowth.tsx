@@ -206,7 +206,7 @@ export default function CapabilityGrowth() {
       portfolio: toSet(portfolio.data),
     };
   }, [open.data, foundation.data, portfolio.data]);
-  const githubTrend = useGitHubMembersTrend(30, perOrgMembers);
+  const githubTrend = useGitHubMembersTrend(30, perOrgMembers, github?.totalMembers);
   const backstageTrend = useBackstageUsersTrend(30);
 
   // Artifactory: live JFrog Projects API with static snapshot fallback.
