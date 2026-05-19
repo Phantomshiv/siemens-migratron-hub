@@ -260,7 +260,11 @@ export function useGitHubMembersTrend(
  * Generic Datadog v1 timeseries query against the metric "sum:<metric>{*}.rollup(monthly)".
  * Returns a series of { date: "YYYY-MM", value } plus the latest scalar value.
  */
-async function fetchDatadogMonthly(metric: string, months = 12): Promise<{
+async function fetchDatadogMonthly(
+  metric: string,
+  months = 12,
+  overrides: Record<string, number> = {},
+): Promise<{
   series: TrendPoint[];
   current: number;
   previous: number;
@@ -274,19 +278,29 @@ async function fetchDatadogMonthly(metric: string, months = 12): Promise<{
   if (!resp.ok) throw new Error(`Datadog query failed: ${resp.status}`);
   const json = await resp.json();
   const points: Array<[number, number]> = json?.series?.[0]?.pointlist ?? [];
-  const series: TrendPoint[] = points.map(([t, v]) => ({
-    date: new Date(t).toISOString().slice(0, 7),
-    value: Math.round(Number(v ?? 0)),
-  }));
+  const series: TrendPoint[] = points.map(([t, v]) => {
+    const date = new Date(t).toISOString().slice(0, 7);
+    const raw = Math.round(Number(v ?? 0));
+    return { date, value: overrides[date] ?? raw };
+  });
   const current = series[series.length - 1]?.value ?? 0;
   const previous = series[series.length - 2]?.value ?? current;
   return { series, current, previous };
 }
 
+// Manual corrections for known-incorrect Datadog rollups.
+const SONARQUBE_MONTHLY_OVERRIDES: Record<string, number> = {
+  "2026-04": 5100,
+  "2026-05": 5798,
+};
+const ARTIFACTORY_MONTHLY_OVERRIDES: Record<string, number> = {
+  "2026-05": 4963,
+};
+
 export function useSonarQubeMonthlyTrend(months = 12) {
   return useQuery({
-    queryKey: ["sonarqube-monthly-trend", months],
-    queryFn: () => fetchDatadogMonthly("sonarqube_testing.total_users", months),
+    queryKey: ["sonarqube-monthly-trend", months, "v2"],
+    queryFn: () => fetchDatadogMonthly("sonarqube_testing.total_users", months, SONARQUBE_MONTHLY_OVERRIDES),
     staleTime: 30 * 60 * 1000,
     retry: 1,
   });
@@ -294,12 +308,13 @@ export function useSonarQubeMonthlyTrend(months = 12) {
 
 export function useArtifactoryMonthlyTrend(months = 12) {
   return useQuery({
-    queryKey: ["artifactory-monthly-trend", months],
-    queryFn: () => fetchDatadogMonthly("artifactory_testing.total_users", months),
+    queryKey: ["artifactory-monthly-trend", months, "v2"],
+    queryFn: () => fetchDatadogMonthly("artifactory_testing.total_users", months, ARTIFACTORY_MONTHLY_OVERRIDES),
     staleTime: 30 * 60 * 1000,
     retry: 1,
   });
 }
+
 
 /**
  * Run a Datadog v1 timeseries query that is grouped `by {kube_cluster_name}`
