@@ -21,10 +21,11 @@ const fmtFull = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
 const statusColor: Record<string, string> = {
-  closed: "hsl(174, 65%, 45%)",
-  current: "hsl(38, 92%, 55%)",
-  forecast: "hsl(215, 25%, 50%)",
+  closed: "hsl(var(--chart-1))",
+  current: "hsl(var(--chart-2))",
+  forecast: "hsl(var(--chart-4))",
 };
+const planFill = "hsl(var(--muted-foreground) / 0.25)";
 
 export function BudgetByQuarter() {
   const { dataset } = useBudgetData();
@@ -81,7 +82,7 @@ export function BudgetByQuarter() {
                 }
               />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="budget" name="Plan" fill="hsl(215, 25%, 28%)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="budget" name="Plan" fill={planFill} radius={[4, 4, 0, 0]} />
               <Bar dataKey="spend" name="Actual / Forecast" radius={[4, 4, 0, 0]}>
                 {data.map((d) => (
                   <Cell key={d.quarter} fill={statusColor[d.status]} />
