@@ -91,7 +91,7 @@ export function BudgetByQuarter() {
                   dataKey="spend"
                   position="top"
                   formatter={(v: number) => fmt(v)}
-                  style={{ fill: "hsl(210, 20%, 92%)", fontSize: 10 }}
+                  style={{ fill: "hsl(var(--foreground))", fontSize: 10 }}
                 />
               </Bar>
             </BarChart>
