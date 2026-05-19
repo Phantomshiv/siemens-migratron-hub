@@ -514,3 +514,97 @@ export function usePortalTemplates(days = 30) {
   });
 }
 
+// =============================================================
+// Faros.ai · Developer Insights (live metrics from Datadog)
+// =============================================================
+
+export interface FarosStats {
+  current: number;
+  previous: number;
+  teams: number;
+  series: TrendPoint[]; // monthly
+  byBU: Array<{ name: string; count: number }>;
+}
+
+// Map raw Faros business_unit tag → top-level org bucket (FT / DI / SI / SMO).
+function farosTopLevel(bu: string): string {
+  const head = (bu || "").toLowerCase().split(/[._]/)[0];
+  if (head === "ft") return "FT";
+  if (head === "di") return "DI";
+  if (head === "si") return "SI";
+  if (head === "smo") return "SMO";
+  return head ? head.toUpperCase() : "Other";
+}
+
+async function fetchFarosStats(months = 12): Promise<FarosStats> {
+  const headers = await authHeaders();
+  const now = Math.floor(Date.now() / 1000);
+  const monthFrom = now - months * 31 * 86400;
+  const recentFrom = now - 7 * 86400;
+
+  const q = (s: string, from: number) =>
+    fetch(`${FN_DD_BASE}?action=query&q=${encodeURIComponent(s)}&from=${from}&to=${now}`, {
+      headers,
+    }).then((r) => {
+      if (!r.ok) throw new Error(`Faros query failed: ${r.status}`);
+      return r.json();
+    });
+
+  const [trendJson, teamsJson, buJson] = await Promise.all([
+    q("sum:faros.org_employee.count{*}.rollup(monthly)", monthFrom),
+    q("sum:faros.org_team.leaf.count{*}", recentFrom),
+    q(
+      "max:faros.org_employee.by_business_unit{*} by {business_unit}",
+      recentFrom,
+    ),
+  ]);
+
+  const trendPoints: Array<[number, number]> = trendJson?.series?.[0]?.pointlist ?? [];
+  const series: TrendPoint[] = trendPoints
+    .filter(([, v]) => v != null)
+    .map(([t, v]) => ({
+      date: new Date(t).toISOString().slice(0, 7),
+      value: Math.round(Number(v)),
+    }));
+  const current = series[series.length - 1]?.value ?? 0;
+  const previous = series[series.length - 2]?.value ?? current;
+
+  const teamsPoints: Array<[number, number]> = teamsJson?.series?.[0]?.pointlist ?? [];
+  const teams = Math.round(
+    Number([...teamsPoints].reverse().find(([, v]) => v != null)?.[1] ?? 0),
+  );
+
+  // BU breakdown: tags come as both "ft_d" and "ft.d" variants with identical
+  // values. Dedupe by canonicalizing dots → underscores before bucketing.
+  const seen = new Set<string>();
+  const buckets = new Map<string, number>();
+  for (const s of buJson?.series ?? []) {
+    const m = String(s.scope || "").match(/business_unit:([^,]+)/);
+    if (!m) continue;
+    const raw = m[1].trim();
+    const canon = raw.replace(/\./g, "_");
+    if (seen.has(canon)) continue;
+    seen.add(canon);
+    const last = [...(s.pointlist ?? [])].reverse().find(([, v]: any) => v != null);
+    const v = Number(last?.[1] ?? 0);
+    if (!v) continue;
+    const bucket = farosTopLevel(canon);
+    buckets.set(bucket, (buckets.get(bucket) ?? 0) + v);
+  }
+  const byBU = [...buckets.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+
+  return { current, previous, teams, series, byBU };
+}
+
+export function useFarosStats(months = 12) {
+  return useQuery({
+    queryKey: ["faros-stats", months],
+    queryFn: () => fetchFarosStats(months),
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+
