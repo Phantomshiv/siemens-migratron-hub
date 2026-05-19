@@ -264,6 +264,8 @@ export default function CapabilityGrowth() {
       trendLoading: githubTrend.isLoading,
       trendCurrent: undefined as number | undefined,
       trendPrevious: undefined as number | undefined,
+      subCapabilities: ["Source control"],
+
     },
     {
       key: "backstage",
@@ -279,6 +281,12 @@ export default function CapabilityGrowth() {
       trendLoading: backstageTrend.isLoading,
       trendCurrent: backstageTrend.data?.current,
       trendPrevious: backstageTrend.data?.previous,
+      subCapabilities: [
+        "Software Catalog Management",
+        "Enable software documentation using code",
+        "Development Campaign Management",
+      ],
+
     },
     {
       key: "faros",
@@ -306,6 +314,8 @@ export default function CapabilityGrowth() {
       trendLoading: false,
       trendCurrent: 237 as number | undefined,
       trendPrevious: 211 as number | undefined,
+      subCapabilities: ["Developer insights"],
+
     },
     {
       key: "sonarqube",
@@ -325,6 +335,8 @@ export default function CapabilityGrowth() {
       trendLoading: sonarTrend.isLoading,
       trendCurrent: sonarTrend.data?.current,
       trendPrevious: sonarTrend.data?.previous,
+      subCapabilities: ["Code quality analysis"],
+
     },
     {
       key: "artifactory",
@@ -344,6 +356,13 @@ export default function CapabilityGrowth() {
       trendLoading: artifactoryTrend.isLoading,
       trendCurrent: artifactoryTrend.data?.current,
       trendPrevious: artifactoryTrend.data?.previous,
+      subCapabilities: [
+        "Pre-built os and container images",
+        "Artifact management",
+        "Artifact trust management",
+        "Product archiving",
+      ],
+
     },
     {
       key: "paved-path",
@@ -359,6 +378,8 @@ export default function CapabilityGrowth() {
       trendLoading: pavedPath.isLoading,
       trendCurrent: pavedPath.data?.current,
       trendPrevious: pavedPath.data?.previous,
+      subCapabilities: ["Container runtime"],
+
     },
     {
       key: "ucp",
@@ -374,6 +395,17 @@ export default function CapabilityGrowth() {
       trendLoading: ucp.isLoading,
       trendCurrent: ucp.data?.current,
       trendPrevious: ucp.data?.previous,
+      subCapabilities: [
+        "GitOps Engine",
+        "Resource management control plane",
+        "Cloud deployment orchestration",
+        "Cloud environment modeling",
+        "Cloud account management",
+        "Cloud data resource management",
+        "Cloud account connectivity",
+        "Application networking",
+      ],
+
     },
     {
       key: "portal-catalog",
@@ -389,6 +421,8 @@ export default function CapabilityGrowth() {
       trendLoading: portalCatalog.isLoading,
       trendCurrent: portalCatalog.data?.current,
       trendPrevious: portalCatalog.data?.previous,
+      subCapabilities: [] as string[],
+
     },
     {
       key: "portal-templates",
@@ -404,6 +438,8 @@ export default function CapabilityGrowth() {
       trendLoading: portalTemplates.isLoading,
       trendCurrent: portalTemplates.data?.current,
       trendPrevious: portalTemplates.data?.previous,
+      subCapabilities: [] as string[],
+
     },
   ];
 
