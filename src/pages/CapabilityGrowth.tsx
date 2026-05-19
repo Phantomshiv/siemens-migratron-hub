@@ -239,6 +239,12 @@ export default function CapabilityGrowth() {
   const pavedPath = useContainerPavedPathStats(30);
   const ucp = useUCPStats(30);
 
+  // Datadog portal metrics (OSES Central Dashboard · Portal group):
+  // max:catalog_entities_count{service:idp-backstage,env:prod}[,kind:template]
+  const portalCatalog = usePortalCatalogEntries(30);
+  const portalTemplates = usePortalTemplates(30);
+
+
   // Artifactory BU = JFrog Project keys (plm, mdsp, sim, eda, …). Comes
   // either from the live Projects API or the static snapshot fallback.
   const artifactoryBU = artifactory.data?.byProject ?? [];
