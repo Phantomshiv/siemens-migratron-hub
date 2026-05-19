@@ -375,7 +375,38 @@ export default function CapabilityGrowth() {
       trendCurrent: ucp.data?.current,
       trendPrevious: ucp.data?.previous,
     },
+    {
+      key: "portal-catalog",
+      name: "Portal Catalog Entries",
+      icon: FolderTree,
+      description: "Backstage software catalog entities (all kinds)",
+      developers: portalCatalog.data?.current,
+      developersLabel: "Catalog entities · last reported",
+      buData: [],
+      loading: portalCatalog.isLoading,
+      source: "Datadog · max:catalog_entities_count{service:idp-backstage,env:prod}",
+      trend: portalCatalog.data?.series ?? [],
+      trendLoading: portalCatalog.isLoading,
+      trendCurrent: portalCatalog.data?.current,
+      trendPrevious: portalCatalog.data?.previous,
+    },
+    {
+      key: "portal-templates",
+      name: "Portal Templates",
+      icon: FileCode,
+      description: "Backstage scaffolder templates (kind:template)",
+      developers: portalTemplates.data?.current,
+      developersLabel: "Templates available · last reported",
+      buData: [],
+      loading: portalTemplates.isLoading,
+      source: "Datadog · max:catalog_entities_count{service:idp-backstage,env:prod,kind:template}",
+      trend: portalTemplates.data?.series ?? [],
+      trendLoading: portalTemplates.isLoading,
+      trendCurrent: portalTemplates.data?.current,
+      trendPrevious: portalTemplates.data?.previous,
+    },
   ];
+
 
 
   return (
