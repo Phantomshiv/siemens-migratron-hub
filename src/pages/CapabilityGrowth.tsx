@@ -231,6 +231,11 @@ export default function CapabilityGrowth() {
   const sonarTrend = useSonarQubeMonthlyTrend(12);
   const artifactoryTrend = useArtifactoryMonthlyTrend(12);
 
+  // Datadog daily cluster stats (sourced from "ForBobby" dashboard:
+  // Container Paved Path & Universal Control Plane sections).
+  const pavedPath = useContainerPavedPathStats(30);
+  const ucp = useUCPStats(30);
+
   // Artifactory BU = JFrog Project keys (plm, mdsp, sim, eda, …). Comes
   // either from the live Projects API or the static snapshot fallback.
   const artifactoryBU = artifactory.data?.byProject ?? [];
