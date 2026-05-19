@@ -207,6 +207,20 @@ const Index = () => {
   const { data: artRepos } = useArtifactoryRepos();
   const { data: sonarPortfolio } = useSonarPortfolio();
 
+  // Growth / Datadog MAU trends — same data as Capability Growth + tabs
+  const { data: sonarTrend } = useSonarQubeMonthlyTrend(12);
+  const { data: artifactoryTrend } = useArtifactoryMonthlyTrend(12);
+  const { data: backstageTrend } = useBackstageUsersTrend(30);
+  const { data: pavedPath } = useContainerPavedPathStats(30);
+  const { data: ucp } = useUCPStats(30);
+
+  const pctDelta = (cur?: number, prev?: number) => {
+    if (!cur || !prev) return undefined;
+    const d = ((cur - prev) / prev) * 100;
+    const sign = d >= 0 ? "+" : "";
+    return `${sign}${d.toFixed(1)}% MoM`;
+  };
+
   const moveSection = useCallback((id: string, dir: -1 | 1) => {
     setSectionOrder((prev) => {
       const idx = prev.indexOf(id);
