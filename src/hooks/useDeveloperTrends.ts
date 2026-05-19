@@ -43,7 +43,7 @@ async function fetchBackstageTrend(days = 30): Promise<BackstageTrend> {
     storage: "hot",
   };
 
-  const makeBody = (from: number, to: number, interval: number) => ({
+  const makeTimeseriesBody = (from: number, to: number, interval: number) => ({
     data: {
       type: "timeseries_request",
       attributes: {
@@ -56,7 +56,19 @@ async function fetchBackstageTrend(days = 30): Promise<BackstageTrend> {
     },
   });
 
-  const post = async (body: unknown) => {
+  const makeScalarBody = (from: number, to: number) => ({
+    data: {
+      type: "scalar_request",
+      attributes: {
+        from,
+        to,
+        queries: [{ ...baseQuery, aggregator: "sum" }],
+        formulas: [{ formula: "q" }],
+      },
+    },
+  });
+
+  const postTs = async (body: unknown) => {
     const resp = await fetch(FN_DD, {
       method: "POST",
       headers,
@@ -65,24 +77,42 @@ async function fetchBackstageTrend(days = 30): Promise<BackstageTrend> {
     if (!resp.ok) throw new Error(`Datadog timeseries failed: ${resp.status}`);
     return resp.json();
   };
+  const postScalar = async (body: unknown) => {
+    const url = FN_DD.replace("action=timeseries", "action=scalar");
+    const resp = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) throw new Error(`Datadog scalar failed: ${resp.status}`);
+    return resp.json();
+  };
 
   const [dailyJson, currentJson, previousJson] = await Promise.all([
-    post(makeBody(now - win, now, 86_400_000)),
-    post(makeBody(now - win, now, win)),
-    post(makeBody(now - 2 * win, now - win, win)),
+    postTs(makeTimeseriesBody(now - win, now, 86_400_000)),
+    postScalar(makeScalarBody(now - win, now)),
+    postScalar(makeScalarBody(now - 2 * win, now - win)),
   ]);
 
-  const extractValues = (j: any): number[] => {
+  const extractTsValues = (j: any): number[] => {
     const vals = j?.data?.attributes?.values?.[0];
     return Array.isArray(vals) ? vals.map((v: any) => Number(v ?? 0)) : [];
   };
-  const extractFirst = (j: any): number => {
-    const arr = extractValues(j);
-    return arr[0] ?? 0;
+  const extractScalar = (j: any): number => {
+    // v2 scalar shape: data.attributes.columns[].values[0]
+    const cols = j?.data?.attributes?.columns;
+    if (Array.isArray(cols)) {
+      const numCol = cols.find((c: any) => c?.type === "number") ?? cols[0];
+      const v = numCol?.values?.[0];
+      if (typeof v === "number") return v;
+    }
+    // fallback for timeseries-like shape
+    const arr = extractTsValues(j);
+    return arr.reduce((a, b) => Math.max(a, b), 0);
   };
 
   const times: number[] = dailyJson?.data?.attributes?.times ?? [];
-  const values: number[] = extractValues(dailyJson);
+  const values: number[] = extractTsValues(dailyJson);
   const series: TrendPoint[] = times.map((t, i) => ({
     date: new Date(t).toISOString().slice(0, 10),
     value: Number(values[i] ?? 0),
@@ -90,8 +120,8 @@ async function fetchBackstageTrend(days = 30): Promise<BackstageTrend> {
 
   return {
     series,
-    current: extractFirst(currentJson),
-    previous: extractFirst(previousJson),
+    current: extractScalar(currentJson),
+    previous: extractScalar(previousJson),
   };
 }
 
