@@ -430,7 +430,7 @@ export default function CapabilityGrowth() {
           <CardContent className="p-0">
             <div className="grid grid-cols-12 gap-4 px-4 py-2 text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border/40">
               <div className="col-span-3">Capability</div>
-              <div className="col-span-2">Developers</div>
+              <div className="col-span-2">Adoption</div>
               <div className="col-span-3">Trend (30d)</div>
               <div className="col-span-4">BU Adoption</div>
             </div>
