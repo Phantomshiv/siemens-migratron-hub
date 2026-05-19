@@ -53,7 +53,12 @@ export function useBudgetData() {
       }
 
       const row = data[0] as unknown as BudgetUploadRow;
-      return { dataset: row.data, source: "db", upload: row };
+      // Merge static fallbacks for fields older uploads didn't capture
+      const merged: BudgetDataset = {
+        ...row.data,
+        byQuarter: row.data.byQuarter && row.data.byQuarter.length > 0 ? row.data.byQuarter : staticData.byQuarter,
+      };
+      return { dataset: merged, source: "db", upload: { ...row, data: merged } };
     },
     staleTime: 5 * 60 * 1000,
   });
