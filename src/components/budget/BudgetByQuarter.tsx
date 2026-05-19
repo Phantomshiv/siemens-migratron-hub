@@ -75,7 +75,7 @@ export function BudgetByQuarter() {
               />
               <Tooltip
                 contentStyle={tooltipStyle}
-                cursor={{ fill: "hsl(215, 25%, 18%)" }}
+                cursor={{ fill: "hsl(var(--muted))" }}
                 formatter={(v: number, name: string) => [fmtFull(v), name]}
                 labelFormatter={(_, items: any[]) =>
                   items?.[0]?.payload?.label ?? ""
