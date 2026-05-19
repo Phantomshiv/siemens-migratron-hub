@@ -83,7 +83,7 @@ export function BudgetByQuarter() {
               />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="budget" name="Plan" fill={planFill} radius={[4, 4, 0, 0]} />
-              <Bar dataKey="spend" name="Actual / Forecast" radius={[4, 4, 0, 0]}>
+              <Bar dataKey="spend" name="Actual / Forecast" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]}>
                 {data.map((d) => (
                   <Cell key={d.quarter} fill={statusColor[d.status]} />
                 ))}
