@@ -15,8 +15,10 @@ import {
   useUCPStats,
   usePortalCatalogEntries,
   usePortalTemplates,
+  useFarosStats,
   type TrendPoint,
 } from "@/hooks/useDeveloperTrends";
+
 
 
 import {
