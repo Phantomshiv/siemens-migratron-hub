@@ -1217,15 +1217,16 @@ Deno.serve(async (req) => {
 
       async function fetchEvents(actionFilter: string): Promise<Array<{ created_at: number; user: string }>> {
         const out: Array<{ created_at: number; user: string }> = [];
-        let page = 1;
+        const phrase = `action:${actionFilter} created:>=${sinceDate}`;
+        let nextUrl: string | null = `${GHE_API_BASE}/api/v3/orgs/${org}/audit-log?per_page=100&include=all&phrase=${encodeURIComponent(phrase)}`;
+        let page = 0;
         const MAX_PAGES = 50; // safety cap = up to 5000 events
-        while (page <= MAX_PAGES) {
-          const phrase = `action:${actionFilter} created:>=${sinceDate}`;
-          const u = `${GHE_API_BASE}/api/v3/orgs/${org}/audit-log?per_page=100&page=${page}&include=all&phrase=${encodeURIComponent(phrase)}`;
-          const resp = await fetch(u, { headers: gheHeaders });
+        while (nextUrl && page < MAX_PAGES) {
+          const resp = await fetch(nextUrl, { headers: gheHeaders });
           if (!resp.ok) break;
           const data = await resp.json();
           if (!Array.isArray(data) || data.length === 0) break;
+          page++;
           let oldestInPage = Infinity;
           for (const e of data) {
             const login = (e.user ?? e.user_login ?? "").toString().toLowerCase();
@@ -1237,7 +1238,10 @@ Deno.serve(async (req) => {
           // Stop once we've paged past the window (audit log is newest-first).
           if (oldestInPage < sinceMs) break;
           if (data.length < 100) break;
-          page++;
+
+          const link = resp.headers.get("Link") || resp.headers.get("link");
+          const nextMatch = link?.match(/<([^>]+)>;\s*rel="next"/);
+          nextUrl = nextMatch ? nextMatch[1] : null;
         }
         return out;
       }

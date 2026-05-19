@@ -141,7 +141,7 @@ export function useGitHubMembersTrend(
 ) {
   return useQuery({
     queryKey: [
-      "github-members-trend-auditlog",
+      "github-members-trend-auditlog-cursor-v2",
       days,
       currentTotal ?? 0,
       perOrgMembers
