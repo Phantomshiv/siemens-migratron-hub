@@ -7,10 +7,10 @@ import { CalendarDays, Gauge } from "lucide-react";
 import { useBudgetData } from "@/hooks/useBudgetData";
 
 const tooltipStyle = {
-  backgroundColor: "hsl(215, 25%, 13%)",
-  border: "1px solid hsl(215, 18%, 20%)",
+  backgroundColor: "hsl(var(--card))",
+  border: "1px solid hsl(var(--border))",
   borderRadius: "8px",
-  color: "hsl(210, 20%, 92%)",
+  color: "hsl(var(--foreground))",
   fontSize: 12,
 };
 
@@ -75,7 +75,7 @@ export function BudgetByQuarter() {
               />
               <Tooltip
                 contentStyle={tooltipStyle}
-                cursor={{ fill: "hsl(215, 25%, 18%)" }}
+                cursor={{ fill: "hsl(var(--muted))" }}
                 formatter={(v: number, name: string) => [fmtFull(v), name]}
                 labelFormatter={(_, items: any[]) =>
                   items?.[0]?.payload?.label ?? ""
@@ -91,7 +91,7 @@ export function BudgetByQuarter() {
                   dataKey="spend"
                   position="top"
                   formatter={(v: number) => fmt(v)}
-                  style={{ fill: "hsl(210, 20%, 92%)", fontSize: 10 }}
+                  style={{ fill: "hsl(var(--foreground))", fontSize: 10 }}
                 />
               </Bar>
             </BarChart>
