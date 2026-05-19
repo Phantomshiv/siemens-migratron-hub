@@ -336,7 +336,38 @@ export default function CapabilityGrowth() {
       trendCurrent: artifactoryTrend.data?.current,
       trendPrevious: artifactoryTrend.data?.previous,
     },
+    {
+      key: "paved-path",
+      name: "Container Paved Path",
+      icon: Boxes,
+      description: "Self-service Kubernetes clusters · AWS / Azure / on-prem",
+      developers: pavedPath.data?.current,
+      developersLabel: "Active clusters · last day",
+      buData: pavedPath.data?.byGroup ?? [],
+      loading: pavedPath.isLoading,
+      source: "Datadog · kubernetes.pods.running by kube_cluster_name · BU from cluster name",
+      trend: pavedPath.data?.series ?? [],
+      trendLoading: pavedPath.isLoading,
+      trendCurrent: pavedPath.data?.current,
+      trendPrevious: pavedPath.data?.previous,
+    },
+    {
+      key: "ucp",
+      name: "Universal Control Plane",
+      icon: Layers,
+      description: "Tenant control-plane clusters · team:ucp",
+      developers: ucp.data?.current,
+      developersLabel: "Active UCP clusters · last day",
+      buData: ucp.data?.byGroup ?? [],
+      loading: ucp.isLoading,
+      source: "Datadog · kubernetes.pods.running{team:ucp,service:tenant-control-plane} by kube_cluster_name",
+      trend: ucp.data?.series ?? [],
+      trendLoading: ucp.isLoading,
+      trendCurrent: ucp.data?.current,
+      trendPrevious: ucp.data?.previous,
+    },
   ];
+
 
   return (
     <DashboardLayout>
