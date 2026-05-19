@@ -246,6 +246,11 @@ export default function CapabilityGrowth() {
   const portalCatalog = usePortalCatalogEntries(30);
   const portalTemplates = usePortalTemplates(30);
 
+  // Faros.ai · live developer-insights metrics
+  // (Datadog dashboard rvx-vqi-3rg · "Developer efficiency" group)
+  const faros = useFarosStats(12);
+
+
 
   // Artifactory BU = JFrog Project keys (plm, mdsp, sim, eda, …). Comes
   // either from the live Projects API or the static snapshot fallback.
