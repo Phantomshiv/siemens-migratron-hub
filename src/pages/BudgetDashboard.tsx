@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { BudgetKPIs } from "@/components/budget/BudgetKPIs";
 import { BudgetByModuleChart } from "@/components/budget/BudgetByModuleChart";
-import { CostTypeBreakdown } from "@/components/budget/CostTypeBreakdown";
+
 import { ContractorSpend } from "@/components/budget/ContractorSpend";
 import { OrgSpendChart } from "@/components/budget/OrgSpendChart";
 import { BudgetBurndown } from "@/components/budget/BudgetBurndown";
