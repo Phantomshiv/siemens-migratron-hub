@@ -148,6 +148,39 @@ export function parseExcelBudget(buffer: ArrayBuffer): { dataset: BudgetDataset;
   // Spending timeline
   const spendingTimeline = { ...staticData.spendingTimeline };
 
+  // Quarterly breakdown from "OSES Financial overview" tab.
+  // Looks for the row whose column B contains "OSES Total cost" and reads:
+  //   col H (8) = FC Q3 QTD, col I (9) = FC Q4 QTD
+  //   col M (13) = Q1 QTD actual, N (14) = Q2 QTD, O (15) = Q3 QTD, P (16) = Q4 QTD
+  let byQuarter = [...staticData.byQuarter];
+  const finOvWs = findSheet(["oses financial overview", "financial overview"]);
+  if (finOvWs) {
+    const aoa = XLSX.utils.sheet_to_json<unknown[]>(finOvWs, { header: 1, defval: null });
+    const totalRow = aoa.find(
+      (r) => typeof r?.[1] === "string" && /oses total cost/i.test(r[1] as string),
+    );
+    if (totalRow) {
+      const fcQ3 = num(totalRow[7]);
+      const fcQ4 = num(totalRow[8]);
+      const q1 = num(totalRow[12]);
+      const q2 = num(totalRow[13]);
+      const q3 = num(totalRow[14]);
+      const q4 = num(totalRow[15]);
+      const perQ = (staticData.budgetSummary.totalBudget || 40_000_000) / 4;
+      byQuarter = [
+        { quarter: "Q1", label: "Q1 FY26 (Oct–Dec ’25)", actual: q1, forecast: q1,         budget: perQ, status: "closed"  },
+        { quarter: "Q2", label: "Q2 FY26 (Jan–Mar ’26)", actual: q2, forecast: q2,         budget: perQ, status: "closed"  },
+        { quarter: "Q3", label: "Q3 FY26 (Apr–Jun ’26)", actual: q3, forecast: fcQ3 || q3, budget: perQ, status: "current" },
+        { quarter: "Q4", label: "Q4 FY26 (Jul–Sep ’26)", actual: q4, forecast: fcQ4 || q4, budget: perQ, status: "forecast"},
+      ];
+    } else {
+      warnings.push("'OSES Total cost' row not found in 'OSES Financial overview' — using static quarterly data");
+    }
+  } else {
+    warnings.push("'OSES Financial overview' sheet not found — using static quarterly data");
+  }
+
+
   // Line Items
   let lineItems = [...staticData.lineItems];
   const lineWs = findSheet(["line item", "lineitem", "detail"]);
