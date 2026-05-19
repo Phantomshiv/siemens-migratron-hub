@@ -966,7 +966,7 @@ const Index = () => {
 
     /* ── Growth (platform MAU & adoption) ── */
     growth: (
-      S("growth", TrendingUp, "Growth", "Platform adoption — MAU across OSES capabilities", "/capability-growth",
+      S("growth", TrendingUp, "Growth", "Platform adoption — MAU across OSES capabilities", "/growth",
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <KPICard
             title="Backstage MAU"
@@ -975,14 +975,14 @@ const Index = () => {
             changeType={backstageTrend && backstageTrend.current >= backstageTrend.previous ? "positive" : "negative"}
             icon={BookOpen}
             subtitle="RUM · last 30 days"
-            href="/capability-growth"
+            href="/growth"
           />
           <KPICard
             title="GitHub Members"
             value={totalMembers.toLocaleString()}
             icon={GitBranch}
             subtitle="across 3 orgs (deduped)"
-            href="/capability-growth"
+            href="/growth"
             changeType="neutral"
           />
           <KPICard
@@ -1010,7 +1010,7 @@ const Index = () => {
             changeType={pavedPath && pavedPath.current >= pavedPath.previous ? "positive" : "negative"}
             icon={Boxes}
             subtitle="active clusters · today"
-            href="/capability-growth"
+            href="/growth"
           />
           <KPICard
             title="UCP Clusters"
@@ -1019,7 +1019,7 @@ const Index = () => {
             changeType={ucp && ucp.current >= ucp.previous ? "positive" : "negative"}
             icon={Layers}
             subtitle="tenant control planes"
-            href="/capability-growth"
+            href="/growth"
           />
         </div>
       )
