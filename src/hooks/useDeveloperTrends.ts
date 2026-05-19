@@ -123,10 +123,16 @@ async function fetchGHMemberGrowth(org: string, days: number): Promise<GHMemberG
 /**
  * GitHub members trend (deduped across orgs) from audit-log events.
  *
- * Anchors the last day of the window to `currentTotal` (deduped membership
- * today). Walks backwards subtracting unique adds and adding back unique
- * removes per day. Dedup is by lowercase login across all orgs — a user
- * joining "open" while already in "foundation" counts as 0 net new.
+ * A user is "in" the deduped membership at day D if they are a member of at
+ * least one org on that day. So the only events that change the deduped
+ * count are:
+ *   - deduped ADD on day D  = user's FIRST org-join across all orgs is D
+ *     and they are still a member of at least one org today.
+ *   - deduped REMOVE on day D = user's LAST org-leave across all orgs is D
+ *     and they are NOT currently a member of any org.
+ *
+ * We anchor today's deduped count to `currentTotal` (live membership) and
+ * walk backward using only those deduped events.
  */
 export function useGitHubMembersTrend(
   days = 30,
@@ -159,15 +165,45 @@ export function useGitHubMembersTrend(
       }
       const inWindow = new Set(dayList);
 
-      // Per-day unique adds/removes deduped across orgs by user login.
-      const addsByDay = new Map<string, Set<string>>();
-      const removesByDay = new Map<string, Set<string>>();
+      // Currently-deduped membership (any org) today.
+      const currentlyMember = new Set<string>();
+      for (const s of Object.values(perOrgMembers!)) {
+        for (const u of s) currentlyMember.add(u.toLowerCase());
+      }
+
+      // Collect every (user, date, type) event across orgs.
+      type Ev = { date: string; type: "add" | "remove" };
+      const byUser = new Map<string, Ev[]>();
       for (const r of results) {
         for (const e of r.events ?? []) {
-          if (!e.user || !inWindow.has(e.date)) continue;
-          const target = e.type === "add" ? addsByDay : removesByDay;
-          if (!target.has(e.date)) target.set(e.date, new Set());
-          target.get(e.date)!.add(e.user.toLowerCase());
+          if (!e.user) continue;
+          const u = e.user.toLowerCase();
+          if (!byUser.has(u)) byUser.set(u, []);
+          byUser.get(u)!.push({ date: e.date, type: e.type });
+        }
+      }
+
+      const dedupAddsByDay = new Map<string, number>();
+      const dedupRemovesByDay = new Map<string, number>();
+
+      for (const [user, evs] of byUser) {
+        evs.sort((a, b) => a.date.localeCompare(b.date));
+        const firstAdd = evs.find((e) => e.type === "add");
+        const lastRemove = [...evs].reverse().find((e) => e.type === "remove");
+        const isMemberNow = currentlyMember.has(user);
+
+        // Deduped ADD: user is currently a member and their first org-join
+        // in the window is the first time they appear in any org.
+        if (isMemberNow && firstAdd && inWindow.has(firstAdd.date)) {
+          dedupAddsByDay.set(firstAdd.date, (dedupAddsByDay.get(firstAdd.date) ?? 0) + 1);
+        }
+        // Deduped REMOVE: user is not currently a member and their last
+        // org-leave is in the window.
+        if (!isMemberNow && lastRemove && inWindow.has(lastRemove.date)) {
+          dedupRemovesByDay.set(
+            lastRemove.date,
+            (dedupRemovesByDay.get(lastRemove.date) ?? 0) + 1,
+          );
         }
       }
 
@@ -176,8 +212,8 @@ export function useGitHubMembersTrend(
       valueByDay.set(lastDay, currentTotal!);
       for (let i = dayList.length - 1; i > 0; i--) {
         const d = dayList[i];
-        const adds = addsByDay.get(d)?.size ?? 0;
-        const removes = removesByDay.get(d)?.size ?? 0;
+        const adds = dedupAddsByDay.get(d) ?? 0;
+        const removes = dedupRemovesByDay.get(d) ?? 0;
         const prev = (valueByDay.get(d) ?? currentTotal!) - adds + removes;
         valueByDay.set(dayList[i - 1], prev);
       }
@@ -188,3 +224,4 @@ export function useGitHubMembersTrend(
     retry: 1,
   });
 }
+
