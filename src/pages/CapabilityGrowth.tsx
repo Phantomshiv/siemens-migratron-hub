@@ -15,8 +15,10 @@ import {
   useUCPStats,
   usePortalCatalogEntries,
   usePortalTemplates,
+  useFarosStats,
   type TrendPoint,
 } from "@/hooks/useDeveloperTrends";
+
 
 
 import {
@@ -244,6 +246,11 @@ export default function CapabilityGrowth() {
   const portalCatalog = usePortalCatalogEntries(30);
   const portalTemplates = usePortalTemplates(30);
 
+  // Faros.ai · live developer-insights metrics
+  // (Datadog dashboard rvx-vqi-3rg · "Developer efficiency" group)
+  const faros = useFarosStats(12);
+
+
 
   // Artifactory BU = JFrog Project keys (plm, mdsp, sim, eda, …). Comes
   // either from the live Projects API or the static snapshot fallback.
@@ -272,30 +279,21 @@ export default function CapabilityGrowth() {
       name: "Developer Insights (Faros.ai)",
       icon: Activity,
       description: "Engineering metrics · DORA, productivity, flow",
-      developers: 1665,
-      developersLabel: "FTE covered · 384 teams across 4 BUs",
-      buData: [
-        { name: "FT", count: 712 },
-        { name: "DI", count: 535 },
-        { name: "SI", count: 272 },
-        { name: "SMO", count: 146 },
-      ],
-      loading: false,
-      source: "Static snapshot · BU coverage shared by Adam Bergstein · MAU from Faros dashboard",
-      trend: [
-        { date: "2025-11", value: 103 },
-        { date: "2025-12", value: 108 },
-        { date: "2026-01", value: 125 },
-        { date: "2026-02", value: 211 },
-        { date: "2026-03", value: 211 },
-        { date: "2026-04", value: 237 },
-      ],
-      trendLoading: false,
-      trendCurrent: 237 as number | undefined,
-      trendPrevious: 211 as number | undefined,
+      developers: faros.data?.current,
+      developersLabel: faros.data
+        ? `FTE covered · ${faros.data.teams} teams across ${faros.data.byBU.length} BUs`
+        : "FTE covered",
+      buData: faros.data?.byBU ?? [],
+      loading: faros.isLoading,
+      source: "Datadog · faros.org_employee.count / by_business_unit (live)",
+      trend: faros.data?.series ?? [],
+      trendLoading: faros.isLoading,
+      trendCurrent: faros.data?.current,
+      trendPrevious: faros.data?.previous,
       subCapabilities: ["Developer insights"],
 
     },
+
     {
       key: "backstage",
       name: "Backstage (OSES Portal)",
