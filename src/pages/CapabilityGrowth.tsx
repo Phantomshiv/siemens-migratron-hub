@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Github, BookOpen, TrendingUp, Users, ShieldCheck, Package, Activity, Boxes, Layers, FolderTree, FileCode } from "lucide-react";
+import { Github, BookOpen, TrendingUp, Users, ShieldCheck, Package, Activity, Boxes, Layers, FolderTree, FileCode, ShieldHalf } from "lucide-react";
 import { useGitHubMembersDetail, type GHEMembersDetail } from "@/hooks/useGitHub";
 import { useBackstageUsersByBU } from "@/hooks/useBackstageUsers";
 import {
@@ -441,7 +441,35 @@ export default function CapabilityGrowth() {
       subCapabilities: [] as string[],
 
     },
+    {
+      key: "container-hardening",
+      name: "Container Hardening",
+      icon: ShieldHalf,
+      description: "CHS hardened base images · cumulative reuse",
+      developers: 1188,
+      developersLabel: "Cumulative reuses · CHS dashboard",
+      buData: [
+        { name: "DI", count: 340 },
+        { name: "FT", count: 310 },
+        { name: "SI", count: 0 },
+      ],
+      loading: false,
+      source: "OSES Central Dashboard · Container Hardening · CHS reuse snapshot",
+      trend: [
+        { date: "2025-11", value: 58 },
+        { date: "2025-12", value: 30 },
+        { date: "2026-01", value: 56 },
+        { date: "2026-02", value: 55 },
+        { date: "2026-03", value: 133 },
+        { date: "2026-04", value: 149 },
+      ],
+      trendLoading: false,
+      trendCurrent: 149 as number | undefined,
+      trendPrevious: 133 as number | undefined,
+      subCapabilities: ["Pre-built os and container images (hardened base images)"],
+    },
   ];
+
 
 
 
