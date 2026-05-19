@@ -15,6 +15,13 @@ import { useBackstageSummary } from "@/hooks/useBackstage";
 import { useDatadogDashboard } from "@/hooks/useDatadogDashboard";
 import { useArtifactoryStorage, useArtifactoryRepos } from "@/hooks/useArtifactory";
 import { useSonarPortfolio } from "@/hooks/useSonarQube";
+import {
+  useSonarQubeMonthlyTrend,
+  useArtifactoryMonthlyTrend,
+  useBackstageUsersTrend,
+  useContainerPavedPathStats,
+  useUCPStats,
+} from "@/hooks/useDeveloperTrends";
 import { getOrgStats } from "@/lib/people-data";
 import { budgetSummary, fteTotals, byModule } from "@/lib/budget-data";
 import { releases, domains } from "@/lib/oses-data";
