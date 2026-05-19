@@ -7,10 +7,10 @@ import { CalendarDays, Gauge } from "lucide-react";
 import { useBudgetData } from "@/hooks/useBudgetData";
 
 const tooltipStyle = {
-  backgroundColor: "hsl(215, 25%, 13%)",
-  border: "1px solid hsl(215, 18%, 20%)",
+  backgroundColor: "hsl(var(--card))",
+  border: "1px solid hsl(var(--border))",
   borderRadius: "8px",
-  color: "hsl(210, 20%, 92%)",
+  color: "hsl(var(--foreground))",
   fontSize: 12,
 };
 
