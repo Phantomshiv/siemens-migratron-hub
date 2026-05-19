@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Github, BookOpen, TrendingUp, Users, ShieldCheck, Package, Activity } from "lucide-react";
+import { Github, BookOpen, TrendingUp, Users, ShieldCheck, Package, Activity, Boxes, Layers } from "lucide-react";
 import { useGitHubMembersDetail, type GHEMembersDetail } from "@/hooks/useGitHub";
 import { useBackstageUsersByBU } from "@/hooks/useBackstageUsers";
 import {
@@ -11,8 +11,11 @@ import {
   useGitHubMembersTrend,
   useSonarQubeMonthlyTrend,
   useArtifactoryMonthlyTrend,
+  useContainerPavedPathStats,
+  useUCPStats,
   type TrendPoint,
 } from "@/hooks/useDeveloperTrends";
+
 import {
   useArtifactoryUsage,
   useSonarQubeTotalUsers,
