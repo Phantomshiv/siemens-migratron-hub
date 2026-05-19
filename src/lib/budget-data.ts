@@ -102,11 +102,13 @@ export type QuarterBudget = {
   status: "closed" | "current" | "forecast";
 };
 
+// Source: "OSES Financial overview" tab, "OSES Total cost" row.
+// Q1/Q2/Q3/Q4 QTD actuals from cols M-P, FC Q3 QTD / FC Q4 QTD from cols H-I.
 export const byQuarter: QuarterBudget[] = [
-  { quarter: "Q1", label: "Q1 FY26 (Oct–Dec ’25)", actual: 391_015,    forecast: 391_015,    budget: 10_000_000, status: "closed"   },
-  { quarter: "Q2", label: "Q2 FY26 (Jan–Mar ’26)", actual: 5_146_670,  forecast: 5_146_670,  budget: 10_000_000, status: "closed"   },
-  { quarter: "Q3", label: "Q3 FY26 (Apr–Jun ’26)", actual: 0,          forecast: 17_162_467, budget: 10_000_000, status: "current"  },
-  { quarter: "Q4", label: "Q4 FY26 (Jul–Sep ’26)", actual: 0,          forecast: 17_162_467, budget: 10_000_000, status: "forecast" },
+  { quarter: "Q1", label: "Q1 FY26 (Oct–Dec ’25)", actual: 3_622_916, forecast: 3_622_916,  budget: 10_000_000, status: "closed"  },
+  { quarter: "Q2", label: "Q2 FY26 (Jan–Mar ’26)", actual: 9_356_844, forecast: 9_356_844,  budget: 10_000_000, status: "closed"  },
+  { quarter: "Q3", label: "Q3 FY26 (Apr–Jun ’26)", actual: 48_687,    forecast: 10_703_700, budget: 10_000_000, status: "current" },
+  { quarter: "Q4", label: "Q4 FY26 (Jul–Sep ’26)", actual: 0,         forecast: 11_643_786, budget: 10_000_000, status: "forecast"},
 ];
 
 // Line items retained for potential future use / data exports, but
