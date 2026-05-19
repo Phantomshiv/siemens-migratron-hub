@@ -72,10 +72,12 @@ export function useSonarHotspots(projectKey: string | undefined) {
  */
 export function useSonarPortfolio() {
   return useQuery({
-    queryKey: ["sonar", "portfolio", "v1"],
+    queryKey: ["sonar", "portfolio", "v2"],
     queryFn: async () => {
-      const projects = await searchProjects({ ps: 200 });
-      const components = projects.components.slice(0, 50); // safety cap
+      // SonarQube /projects/search is slow at ps=200 and frequently exceeds
+      // the edge-function timeout. Keep the page small and cap measure fan-out.
+      const projects = await searchProjects({ ps: 50 });
+      const components = projects.components.slice(0, 25);
       const measures = await Promise.all(
         components.map((p) => getComponentMeasures(p.key).catch(() => null))
       );
@@ -85,6 +87,7 @@ export function useSonarPortfolio() {
       };
     },
     staleTime: STALE,
+    retry: false,
   });
 }
 
