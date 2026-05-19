@@ -54,7 +54,7 @@ serve(async (req) => {
     };
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25_000);
+    const timeoutId = setTimeout(() => controller.abort(), 90_000);
 
     const fetchOptions: RequestInit = { method, headers, signal: controller.signal };
 
