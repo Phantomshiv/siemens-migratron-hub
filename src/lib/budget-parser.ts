@@ -174,7 +174,7 @@ export function parseExcelBudget(buffer: ArrayBuffer): { dataset: BudgetDataset;
   }
 
   return {
-    dataset: { summary, byModule, byOrg, byCostType, byContractor, fteBreakdown, fteTotals, spendingTimeline, lineItems },
+    dataset: { summary, byModule, byOrg, byCostType, byContractor, byQuarter: staticData.byQuarter, fteBreakdown, fteTotals, spendingTimeline, lineItems },
     warnings,
   };
 }

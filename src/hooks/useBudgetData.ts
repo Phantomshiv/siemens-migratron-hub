@@ -8,6 +8,7 @@ export interface BudgetDataset {
   byOrg: typeof staticData.byOrg;
   byCostType: typeof staticData.byCostType;
   byContractor: typeof staticData.byContractor;
+  byQuarter: typeof staticData.byQuarter;
   fteBreakdown: typeof staticData.fteBreakdown;
   fteTotals: typeof staticData.fteTotals;
   spendingTimeline: typeof staticData.spendingTimeline;
@@ -28,11 +29,13 @@ const staticDataset: BudgetDataset = {
   byOrg: staticData.byOrg,
   byCostType: staticData.byCostType,
   byContractor: staticData.byContractor,
+  byQuarter: staticData.byQuarter,
   fteBreakdown: staticData.fteBreakdown,
   fteTotals: staticData.fteTotals,
   spendingTimeline: staticData.spendingTimeline,
   lineItems: staticData.lineItems,
 };
+
 
 export function useBudgetData() {
   const query = useQuery({
