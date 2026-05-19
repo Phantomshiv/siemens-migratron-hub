@@ -22,10 +22,10 @@ const fmtFull = (n: number) =>
 
 const statusColor: Record<string, string> = {
   closed: "hsl(var(--chart-1))",
-  current: "hsl(var(--chart-2))",
-  forecast: "hsl(var(--chart-4))",
+  current: "hsl(var(--chart-1))",
+  forecast: "hsl(var(--chart-1))",
 };
-const planFill = "hsl(var(--muted-foreground) / 0.25)";
+const planFill = "hsl(var(--chart-2))";
 
 export function BudgetByQuarter() {
   const { dataset } = useBudgetData();
