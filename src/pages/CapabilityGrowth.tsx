@@ -341,7 +341,11 @@ export default function CapabilityGrowth() {
       description: "Backstage scaffolder templates (kind:template)",
       developers: portalTemplates.data?.current,
       developersLabel: "Templates available · last reported",
-      buData: [{ DI: 612 }, { SI: 438 }, { FT: 274 }],
+      buData: [
+        { name: "DI", count: 612 },
+        { name: "SI", count: 438 },
+        { name: "FT", count: 274 },
+      ],
       loading: portalTemplates.isLoading,
       source: "Datadog · Portal Adoption & Usage Overview · template usage by business unit",
       trend: portalTemplates.data?.series ?? [],
