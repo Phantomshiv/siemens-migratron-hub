@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -264,6 +264,8 @@ export default function CapabilityGrowth() {
       trendLoading: githubTrend.isLoading,
       trendCurrent: undefined as number | undefined,
       trendPrevious: undefined as number | undefined,
+      subCapabilities: ["Source control"],
+
     },
     {
       key: "backstage",
@@ -279,6 +281,12 @@ export default function CapabilityGrowth() {
       trendLoading: backstageTrend.isLoading,
       trendCurrent: backstageTrend.data?.current,
       trendPrevious: backstageTrend.data?.previous,
+      subCapabilities: [
+        "Software Catalog Management",
+        "Enable software documentation using code",
+        "Development Campaign Management",
+      ],
+
     },
     {
       key: "faros",
@@ -306,6 +314,8 @@ export default function CapabilityGrowth() {
       trendLoading: false,
       trendCurrent: 237 as number | undefined,
       trendPrevious: 211 as number | undefined,
+      subCapabilities: ["Developer insights"],
+
     },
     {
       key: "sonarqube",
@@ -325,6 +335,8 @@ export default function CapabilityGrowth() {
       trendLoading: sonarTrend.isLoading,
       trendCurrent: sonarTrend.data?.current,
       trendPrevious: sonarTrend.data?.previous,
+      subCapabilities: ["Code quality analysis"],
+
     },
     {
       key: "artifactory",
@@ -344,6 +356,13 @@ export default function CapabilityGrowth() {
       trendLoading: artifactoryTrend.isLoading,
       trendCurrent: artifactoryTrend.data?.current,
       trendPrevious: artifactoryTrend.data?.previous,
+      subCapabilities: [
+        "Pre-built os and container images",
+        "Artifact management",
+        "Artifact trust management",
+        "Product archiving",
+      ],
+
     },
     {
       key: "paved-path",
@@ -359,6 +378,8 @@ export default function CapabilityGrowth() {
       trendLoading: pavedPath.isLoading,
       trendCurrent: pavedPath.data?.current,
       trendPrevious: pavedPath.data?.previous,
+      subCapabilities: ["Container runtime"],
+
     },
     {
       key: "ucp",
@@ -374,6 +395,17 @@ export default function CapabilityGrowth() {
       trendLoading: ucp.isLoading,
       trendCurrent: ucp.data?.current,
       trendPrevious: ucp.data?.previous,
+      subCapabilities: [
+        "GitOps Engine",
+        "Resource management control plane",
+        "Cloud deployment orchestration",
+        "Cloud environment modeling",
+        "Cloud account management",
+        "Cloud data resource management",
+        "Cloud account connectivity",
+        "Application networking",
+      ],
+
     },
     {
       key: "portal-catalog",
@@ -389,6 +421,8 @@ export default function CapabilityGrowth() {
       trendLoading: portalCatalog.isLoading,
       trendCurrent: portalCatalog.data?.current,
       trendPrevious: portalCatalog.data?.previous,
+      subCapabilities: [] as string[],
+
     },
     {
       key: "portal-templates",
@@ -404,10 +438,22 @@ export default function CapabilityGrowth() {
       trendLoading: portalTemplates.isLoading,
       trendCurrent: portalTemplates.data?.current,
       trendPrevious: portalTemplates.data?.previous,
+      subCapabilities: [] as string[],
+
     },
   ];
 
 
+
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const allTags = useMemo(() => {
+    const s = new Set<string>();
+    capabilities.forEach((c) => c.subCapabilities.forEach((t) => s.add(t)));
+    return [...s].sort();
+  }, [capabilities]);
+  const visibleCapabilities = activeTag
+    ? capabilities.filter((c) => c.subCapabilities.includes(activeTag))
+    : capabilities;
 
   return (
     <DashboardLayout>
@@ -422,6 +468,30 @@ export default function CapabilityGrowth() {
           </p>
         </div>
 
+        {/* Sub-capability filter */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1">
+            Filter by sub-capability:
+          </span>
+          <Badge
+            variant={activeTag === null ? "default" : "outline"}
+            className="cursor-pointer text-[10px] font-normal"
+            onClick={() => setActiveTag(null)}
+          >
+            All
+          </Badge>
+          {allTags.map((tag) => (
+            <Badge
+              key={tag}
+              variant={activeTag === tag ? "default" : "outline"}
+              className="cursor-pointer text-[10px] font-normal"
+              onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+            >
+              {tag}
+            </Badge>
+          ))}
+        </div>
+
         {/* Table-style layout: Capability | Developers | BU Adoption */}
         <Card className="glass-card">
           <CardHeader className="pb-3">
@@ -434,7 +504,7 @@ export default function CapabilityGrowth() {
               <div className="col-span-3">Trend (30d)</div>
               <div className="col-span-4">BU Adoption</div>
             </div>
-            {capabilities.map((cap) => {
+            {visibleCapabilities.map((cap) => {
               const Icon = cap.icon;
               return (
                 <div
@@ -449,10 +519,25 @@ export default function CapabilityGrowth() {
                       <div className="min-w-0">
                         <p className="font-medium text-sm">{cap.name}</p>
                         <p className="text-xs text-muted-foreground">{cap.description}</p>
+                        {cap.subCapabilities.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {cap.subCapabilities.map((tag) => (
+                              <Badge
+                                key={tag}
+                                variant={activeTag === tag ? "default" : "secondary"}
+                                className="cursor-pointer text-[9px] font-normal px-1.5 py-0 h-4"
+                                onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                              >
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                         <p className="text-[10px] text-muted-foreground/70 mt-1">{cap.source}</p>
                       </div>
                     </div>
                   </div>
+
 
                   <div className="col-span-2">
                     {cap.loading ? (
