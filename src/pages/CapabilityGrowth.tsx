@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Github, BookOpen, TrendingUp, Users, ShieldCheck, Package, Activity, Boxes, Layers, FolderTree, FileCode, ShieldHalf } from "lucide-react";
+import { Github, BookOpen, TrendingUp, Users, ShieldCheck, Package, Activity, Boxes, Layers, FolderTree, FileCode, ShieldHalf, ScrollText } from "lucide-react";
 import { useGitHubMembersDetail, type GHEMembersDetail } from "@/hooks/useGitHub";
 import { useBackstageUsersByBU } from "@/hooks/useBackstageUsers";
 import {
@@ -467,6 +467,40 @@ export default function CapabilityGrowth() {
       trendCurrent: 149 as number | undefined,
       trendPrevious: 133 as number | undefined,
       subCapabilities: ["Pre-built os and container images (hardened base images)"],
+    },
+    {
+      key: "sbom",
+      name: "SBOM",
+      icon: ScrollText,
+      description: "SBOM generation across business units · format usage trend",
+      developers: 1240,
+      developersLabel: "SBOMs generated (last month) · OSES SBOM dashboard",
+      buData: [
+        { name: "DI", count: 540 },
+        { name: "SI", count: 430 },
+        { name: "FT", count: 270 },
+      ],
+      loading: false,
+      source: "OSES Central Dashboard · SBOM format usage & usage by business unit",
+      trend: [
+        { date: "2025-11", value: 620 },
+        { date: "2025-12", value: 710 },
+        { date: "2026-01", value: 845 },
+        { date: "2026-02", value: 960 },
+        { date: "2026-03", value: 1110 },
+        { date: "2026-04", value: 1240 },
+      ],
+      trendLoading: false,
+      trendCurrent: 1240 as number | undefined,
+      trendPrevious: 1110 as number | undefined,
+      subCapabilities: [
+        "License scanning and policy management",
+        "SBOM Generation",
+        "Known vulnerability scanning",
+        "Security findings management",
+        "Vulnerability monitoring",
+        "Scan and Enforce cloud security policies",
+      ],
     },
   ];
 
