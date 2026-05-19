@@ -57,6 +57,7 @@ export function useBudgetData() {
       const merged: BudgetDataset = {
         ...row.data,
         byQuarter: row.data.byQuarter && row.data.byQuarter.length > 0 ? row.data.byQuarter : staticData.byQuarter,
+        fteTotals: row.data.fteTotals && row.data.fteTotals.grandTotal > 0 ? row.data.fteTotals : staticData.fteTotals,
       };
       return { dataset: merged, source: "db", upload: { ...row, data: merged } };
     },

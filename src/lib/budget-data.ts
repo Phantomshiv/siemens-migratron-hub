@@ -80,9 +80,9 @@ export type FTEBreakdown = {
 export const fteBreakdown: FTEBreakdown[] = [];
 
 export const fteTotals = {
-  ownTotal: 0,
-  contractorTotal: 0,
-  grandTotal: 0,
+  ownTotal: 62.25,
+  contractorTotal: 31.6,
+  grandTotal: 93.85,
 };
 
 export const spendingTimeline = {
