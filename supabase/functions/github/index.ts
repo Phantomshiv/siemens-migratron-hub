@@ -1218,24 +1218,30 @@ Deno.serve(async (req) => {
       async function fetchEvents(actionFilter: string): Promise<Array<{ created_at: number; user: string }>> {
         const out: Array<{ created_at: number; user: string }> = [];
         let page = 1;
-        while (page <= 5) {
+        const MAX_PAGES = 50; // safety cap = up to 5000 events
+        while (page <= MAX_PAGES) {
           const phrase = `action:${actionFilter} created:>=${sinceDate}`;
           const u = `${GHE_API_BASE}/api/v3/orgs/${org}/audit-log?per_page=100&page=${page}&include=all&phrase=${encodeURIComponent(phrase)}`;
           const resp = await fetch(u, { headers: gheHeaders });
           if (!resp.ok) break;
           const data = await resp.json();
           if (!Array.isArray(data) || data.length === 0) break;
+          let oldestInPage = Infinity;
           for (const e of data) {
-            // The affected member login lives in `user` for org.add_member /
-            // org.remove_member events. Fall back to `user_login` just in case.
             const login = (e.user ?? e.user_login ?? "").toString().toLowerCase();
-            if (e.created_at) out.push({ created_at: e.created_at, user: login });
+            if (e.created_at) {
+              out.push({ created_at: e.created_at, user: login });
+              if (e.created_at < oldestInPage) oldestInPage = e.created_at;
+            }
           }
+          // Stop once we've paged past the window (audit log is newest-first).
+          if (oldestInPage < sinceMs) break;
           if (data.length < 100) break;
           page++;
         }
         return out;
       }
+
 
       // Get current total members so we can anchor cumulative line at today
       const memberHeadResp = await fetch(`${GHE_BASE}/orgs/${org}/members?per_page=1`, { headers: gheHeaders });
