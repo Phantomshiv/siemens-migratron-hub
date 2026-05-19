@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const FN_DD = `https://${PROJECT_ID}.supabase.co/functions/v1/datadog?action=timeseries`;
+const FN_DD_BASE = `https://${PROJECT_ID}.supabase.co/functions/v1/datadog`;
 const FN_GH = `https://${PROJECT_ID}.supabase.co/functions/v1/github`;
 
 export interface TrendPoint {
