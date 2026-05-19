@@ -445,6 +445,16 @@ export default function CapabilityGrowth() {
 
 
 
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const allTags = useMemo(() => {
+    const s = new Set<string>();
+    capabilities.forEach((c) => c.subCapabilities.forEach((t) => s.add(t)));
+    return [...s].sort();
+  }, [capabilities]);
+  const visibleCapabilities = activeTag
+    ? capabilities.filter((c) => c.subCapabilities.includes(activeTag))
+    : capabilities;
+
   return (
     <DashboardLayout>
       <div className="space-y-4">
@@ -456,6 +466,30 @@ export default function CapabilityGrowth() {
           <p className="text-sm text-muted-foreground">
             Number of developers using each platform capability, broken down by top-level BU.
           </p>
+        </div>
+
+        {/* Sub-capability filter */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1">
+            Filter by sub-capability:
+          </span>
+          <Badge
+            variant={activeTag === null ? "default" : "outline"}
+            className="cursor-pointer text-[10px] font-normal"
+            onClick={() => setActiveTag(null)}
+          >
+            All
+          </Badge>
+          {allTags.map((tag) => (
+            <Badge
+              key={tag}
+              variant={activeTag === tag ? "default" : "outline"}
+              className="cursor-pointer text-[10px] font-normal"
+              onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+            >
+              {tag}
+            </Badge>
+          ))}
         </div>
 
         {/* Table-style layout: Capability | Developers | BU Adoption */}
@@ -470,7 +504,7 @@ export default function CapabilityGrowth() {
               <div className="col-span-3">Trend (30d)</div>
               <div className="col-span-4">BU Adoption</div>
             </div>
-            {capabilities.map((cap) => {
+            {visibleCapabilities.map((cap) => {
               const Icon = cap.icon;
               return (
                 <div
@@ -485,10 +519,25 @@ export default function CapabilityGrowth() {
                       <div className="min-w-0">
                         <p className="font-medium text-sm">{cap.name}</p>
                         <p className="text-xs text-muted-foreground">{cap.description}</p>
+                        {cap.subCapabilities.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {cap.subCapabilities.map((tag) => (
+                              <Badge
+                                key={tag}
+                                variant={activeTag === tag ? "default" : "secondary"}
+                                className="cursor-pointer text-[9px] font-normal px-1.5 py-0 h-4"
+                                onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                              >
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                         <p className="text-[10px] text-muted-foreground/70 mt-1">{cap.source}</p>
                       </div>
                     </div>
                   </div>
+
 
                   <div className="col-span-2">
                     {cap.loading ? (
