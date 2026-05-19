@@ -6,7 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Github, BookOpen, TrendingUp, Users, ShieldCheck, Package, Activity } from "lucide-react";
 import { useGitHubMembersDetail, type GHEMembersDetail } from "@/hooks/useGitHub";
 import { useBackstageUsersByBU } from "@/hooks/useBackstageUsers";
-import { useBackstageUsersTrend, useGitHubMembersTrend, type TrendPoint } from "@/hooks/useDeveloperTrends";
+import {
+  useBackstageUsersTrend,
+  useGitHubMembersTrend,
+  useSonarQubeMonthlyTrend,
+  useArtifactoryMonthlyTrend,
+  type TrendPoint,
+} from "@/hooks/useDeveloperTrends";
 import {
   useArtifactoryUsage,
   useSonarQubeTotalUsers,
@@ -217,6 +223,11 @@ export default function CapabilityGrowth() {
   const sonarTotal = useSonarQubeTotalUsers();
   const sonarBU = SONARQUBE_GROUP_SNAPSHOT;
 
+  // Datadog monthly trends (sourced from the "ForBobby" dashboard:
+  // sum:sonarqube_testing.total_users / sum:artifactory_testing.total_users)
+  const sonarTrend = useSonarQubeMonthlyTrend(12);
+  const artifactoryTrend = useArtifactoryMonthlyTrend(12);
+
   // Artifactory BU = JFrog Project keys (plm, mdsp, sim, eda, …). Comes
   // either from the live Projects API or the static snapshot fallback.
   const artifactoryBU = artifactory.data?.byProject ?? [];
@@ -284,38 +295,38 @@ export default function CapabilityGrowth() {
       name: "SonarQube",
       icon: ShieldCheck,
       description: "Code quality, security & coverage",
-      developers: sonarTotal.data?.total,
-      developersLabel: sonarTotal.data?.live
+      developers: sonarTrend.data?.current ?? sonarTotal.data?.total,
+      developersLabel: sonarTrend.data?.current
+        ? "Monthly active users · Datadog (sonarqube_testing.total_users)"
+        : sonarTotal.data?.live
         ? "Total active users · live"
         : `Users across Sonar groups · snapshot ${SONARQUBE_SNAPSHOT_CAPTURED_AT}`,
       buData: sonarBU,
       loading: sonarTotal.isLoading,
-      source: sonarTotal.data?.live
-        ? "SonarQube API · /api/users/search · paging.total"
-        : "Static snapshot · SonarQube Insights “Top BUs by Users”",
-      trend: [],
-      trendLoading: false,
-      trendCurrent: undefined as number | undefined,
-      trendPrevious: undefined as number | undefined,
+      source: "Datadog · sum:sonarqube_testing.total_users.rollup(monthly) · BU from Sonar groups",
+      trend: sonarTrend.data?.series ?? [],
+      trendLoading: sonarTrend.isLoading,
+      trendCurrent: sonarTrend.data?.current,
+      trendPrevious: sonarTrend.data?.previous,
     },
     {
       key: "artifactory",
       name: "JFrog Artifactory",
       icon: Package,
       description: "Binary repository · build artifacts",
-      developers: artifactory.data?.totalUsers,
-      developersLabel: artifactory.data?.fromSnapshot
+      developers: artifactoryTrend.data?.current ?? artifactory.data?.totalUsers,
+      developersLabel: artifactoryTrend.data?.current
+        ? "Monthly active users · Datadog (artifactory_testing.total_users)"
+        : artifactory.data?.fromSnapshot
         ? `Users across JFrog Projects · snapshot ${artifactory.data.capturedAt ?? ""}`
         : "Users across JFrog Projects",
       buData: artifactoryBU,
       loading: artifactory.isLoading,
-      source: artifactory.data?.fromSnapshot
-        ? "Static snapshot · JFrog Insights “Top BUs by Users” (host unreachable from Lovable Cloud)"
-        : "JFrog Access · /access/api/v1/projects · users-per-project",
-      trend: [],
-      trendLoading: false,
-      trendCurrent: undefined as number | undefined,
-      trendPrevious: undefined as number | undefined,
+      source: "Datadog · sum:artifactory_testing.total_users.rollup(monthly) · BU from JFrog Projects",
+      trend: artifactoryTrend.data?.series ?? [],
+      trendLoading: artifactoryTrend.isLoading,
+      trendCurrent: artifactoryTrend.data?.current,
+      trendPrevious: artifactoryTrend.data?.previous,
     },
   ];
 
