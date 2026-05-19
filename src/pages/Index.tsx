@@ -15,6 +15,13 @@ import { useBackstageSummary } from "@/hooks/useBackstage";
 import { useDatadogDashboard } from "@/hooks/useDatadogDashboard";
 import { useArtifactoryStorage, useArtifactoryRepos } from "@/hooks/useArtifactory";
 import { useSonarPortfolio } from "@/hooks/useSonarQube";
+import {
+  useSonarQubeMonthlyTrend,
+  useArtifactoryMonthlyTrend,
+  useBackstageUsersTrend,
+  useContainerPavedPathStats,
+  useUCPStats,
+} from "@/hooks/useDeveloperTrends";
 import { getOrgStats } from "@/lib/people-data";
 import { budgetSummary, fteTotals, byModule } from "@/lib/budget-data";
 import { releases, domains } from "@/lib/oses-data";
@@ -25,7 +32,7 @@ import {
   BookOpen, Rocket, Shield, Wallet, Layers, CloudCog, Building2,
   FileText, CheckCircle2, TrendingUp, Server, ChevronUp, ChevronDown, GripVertical,
   Megaphone, MessageSquare, Newspaper, GraduationCap, ChevronRight,
-  Activity, Package, ShieldCheck, Bug, Database, Siren,
+  Activity, Package, ShieldCheck, Bug, Database, Siren, Boxes,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -152,7 +159,7 @@ function SnapshotProgressBanner({ currentMetrics, snapshot }: {
 
 /* ─── Section order persistence ─── */
 const STORAGE_KEY = "oses-overview-section-order";
-const DEFAULT_ORDER = ["budget", "github", "delivery", "incidents", "artifactory", "codequality", "architecture", "people", "security", "risks", "backstage", "clients", "comms"];
+const DEFAULT_ORDER = ["growth", "budget", "github", "delivery", "incidents", "artifactory", "codequality", "architecture", "people", "security", "risks", "backstage", "clients", "comms"];
 
 function loadOrder(): string[] {
   try {
@@ -199,6 +206,20 @@ const Index = () => {
   const { data: artStorage } = useArtifactoryStorage();
   const { data: artRepos } = useArtifactoryRepos();
   const { data: sonarPortfolio } = useSonarPortfolio();
+
+  // Growth / Datadog MAU trends — same data as Capability Growth + tabs
+  const { data: sonarTrend } = useSonarQubeMonthlyTrend(12);
+  const { data: artifactoryTrend } = useArtifactoryMonthlyTrend(12);
+  const { data: backstageTrend } = useBackstageUsersTrend(30);
+  const { data: pavedPath } = useContainerPavedPathStats(30);
+  const { data: ucp } = useUCPStats(30);
+
+  const pctDelta = (cur?: number, prev?: number) => {
+    if (!cur || !prev) return undefined;
+    const d = ((cur - prev) / prev) * 100;
+    const sign = d >= 0 ? "+" : "";
+    return `${sign}${d.toFixed(1)}% MoM`;
+  };
 
   const moveSection = useCallback((id: string, dir: -1 | 1) => {
     setSectionOrder((prev) => {
@@ -825,76 +846,96 @@ const Index = () => {
       )
     ),
 
-    /* ── Artifact Management (Artifactory) ── */
+    /* ── Artifact Management (Artifactory) — mirrors Datadog usage tab ── */
     artifactory: (
-      S("artifactory", Package, "Artifact Management", "Artifactory storage, repos & usage", "/artifactory",
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <KPICard title="Binaries" value={binCount.toLocaleString()} icon={Database}
-              subtitle={binSize} href="/artifactory" changeType="neutral"
-              details={[
-                { label: "Binaries Count", value: binCount.toLocaleString(), changeType: "neutral" },
-                { label: "Binaries Size", value: binSize, changeType: "neutral" },
-                { label: "Artifacts", value: artStorage?.binariesSummary?.artifactsCount ?? "—", changeType: "neutral" },
-                { label: "Optimization", value: artStorage?.binariesSummary?.optimization ?? "—", changeType: "positive" },
-              ]} detailTitle="Artifactory Binaries"
-            />
-            <KPICard title="Storage Used" value={artUsed} icon={CloudCog}
-              subtitle={`${artFree} free`} href="/artifactory" changeType="neutral"
-              details={[
-                { label: "Used", value: artUsed, changeType: "neutral" },
-                { label: "Free", value: artFree, changeType: "positive" },
-                { label: "Total", value: artStorage?.fileStoreSummary?.totalSpace ?? "—", changeType: "neutral" },
-                { label: "Type", value: artStorage?.fileStoreSummary?.storageType ?? "—", changeType: "neutral" },
-              ]} detailTitle="File Store"
-            />
-            <KPICard title="Repositories" value={repoCount} icon={Layers}
-              subtitle={`${localRepos} local · ${remoteRepos} remote`} href="/artifactory" changeType="neutral"
-              details={[
-                { label: "Total", value: repoCount, changeType: "neutral" },
-                { label: "Local", value: localRepos, changeType: "neutral" },
-                { label: "Remote", value: remoteRepos, changeType: "neutral" },
-                { label: "Virtual", value: virtualRepos, changeType: "neutral" },
-              ]} detailTitle="Repository Mix"
-            />
-            <KPICard title="Top Repo" value={topRepoBySpace[0]?.repoKey?.slice(0, 14) ?? "—"} icon={Server}
-              change={topRepoBySpace[0]?.usedSpace} changeType="neutral"
-              subtitle="largest by space" href="/artifactory"
-            />
-          </div>
-          {topRepoBySpace.length > 0 && (
-            <div className="p-3 rounded-lg bg-muted/30 space-y-1.5 mt-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground font-medium">Top Repositories by Space</span>
-                <a href="/artifactory" className="text-[9px] text-primary hover:underline">View all →</a>
-              </div>
-              {topRepoBySpace.map((r) => (
-                <div key={r.repoKey} className="flex items-center gap-2">
-                  <span className="text-[10px] font-medium truncate flex-1">{r.repoKey}</span>
-                  <Badge className="text-[8px] h-3.5 px-1 flex-shrink-0 bg-secondary text-secondary-foreground">{r.packageType}</Badge>
-                  <span className="text-[9px] text-muted-foreground flex-shrink-0 w-16 text-right">{r.usedSpace}</span>
-                  <span className="text-[9px] text-primary flex-shrink-0 w-10 text-right">{r.percentage}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
+      S("artifactory", Package, "Artifact Management", "JFrog Artifactory — monthly active users & adoption", "/artifactory",
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <KPICard
+            title="Monthly Active Users"
+            value={(artifactoryTrend?.current ?? 0).toLocaleString()}
+            change={pctDelta(artifactoryTrend?.current, artifactoryTrend?.previous) ?? "—"}
+            changeType={
+              artifactoryTrend && artifactoryTrend.current >= artifactoryTrend.previous ? "positive" : "negative"
+            }
+            icon={Users}
+            subtitle="last 30 days · Datadog"
+            href="/artifactory"
+            details={[
+              { label: "Current month", value: (artifactoryTrend?.current ?? 0).toLocaleString(), changeType: "positive" },
+              { label: "Previous month", value: (artifactoryTrend?.previous ?? 0).toLocaleString(), changeType: "neutral" },
+              { label: "MoM change", value: pctDelta(artifactoryTrend?.current, artifactoryTrend?.previous) ?? "—", changeType: "neutral" },
+              { label: "Source", value: "sum:artifactory_testing.total_users", changeType: "neutral" },
+            ]}
+            detailTitle="Artifactory MAU"
+          />
+          <KPICard
+            title="Storage Used"
+            value={artUsed}
+            icon={CloudCog}
+            subtitle={`${artFree} free`}
+            href="/artifactory"
+            changeType="neutral"
+            details={[
+              { label: "Used", value: artUsed, changeType: "neutral" },
+              { label: "Free", value: artFree, changeType: "positive" },
+              { label: "Total", value: artStorage?.fileStoreSummary?.totalSpace ?? "—", changeType: "neutral" },
+              { label: "Binaries", value: binCount.toLocaleString(), changeType: "neutral" },
+            ]}
+            detailTitle="File Store"
+          />
+          <KPICard
+            title="Repositories"
+            value={repoCount}
+            icon={Layers}
+            subtitle={`${localRepos} local · ${remoteRepos} remote`}
+            href="/artifactory"
+            changeType="neutral"
+            details={[
+              { label: "Total", value: repoCount, changeType: "neutral" },
+              { label: "Local", value: localRepos, changeType: "neutral" },
+              { label: "Remote", value: remoteRepos, changeType: "neutral" },
+              { label: "Virtual", value: virtualRepos, changeType: "neutral" },
+            ]}
+            detailTitle="Repository Mix"
+          />
+          <KPICard
+            title="Binaries"
+            value={binCount.toLocaleString()}
+            icon={Database}
+            subtitle={binSize}
+            href="/artifactory"
+            changeType="neutral"
+          />
+        </div>
       )
     ),
 
-    /* ── Code Quality (SonarQube) ── */
+    /* ── Code Quality (SonarQube) — mirrors Datadog usage tab ── */
     codequality: (
-      S("codequality", ShieldCheck, "Code Quality", "SonarQube portfolio: bugs, debt & coverage", "/sonarqube",
+      S("codequality", ShieldCheck, "Code Quality", "SonarQube — monthly active users & portfolio quality", "/sonarqube",
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <KPICard
+            title="Monthly Active Users"
+            value={(sonarTrend?.current ?? 0).toLocaleString()}
+            change={pctDelta(sonarTrend?.current, sonarTrend?.previous) ?? "—"}
+            changeType={
+              sonarTrend && sonarTrend.current >= sonarTrend.previous ? "positive" : "negative"
+            }
+            icon={Users}
+            subtitle="last 30 days · Datadog"
+            href="/sonarqube"
+            details={[
+              { label: "Current month", value: (sonarTrend?.current ?? 0).toLocaleString(), changeType: "positive" },
+              { label: "Previous month", value: (sonarTrend?.previous ?? 0).toLocaleString(), changeType: "neutral" },
+              { label: "MoM change", value: pctDelta(sonarTrend?.current, sonarTrend?.previous) ?? "—", changeType: "neutral" },
+              { label: "Source", value: "sum:sonarqube_testing.total_users", changeType: "neutral" },
+            ]}
+            detailTitle="SonarQube MAU"
+          />
           <KPICard title="Quality Gate" value={`${sqGatePct}%`} icon={CheckCircle2}
             change={`${sqGatePassed}/${sonarMeasures.length} passing`}
             changeType={sqGatePct >= 80 ? "positive" : sqGatePct >= 50 ? "neutral" : "negative"}
             subtitle="projects passing" href="/sonarqube"
-            details={[
-              { label: "Passing", value: sqGatePassed, changeType: "positive" },
-              { label: "Failing", value: sonarMeasures.length - sqGatePassed, changeType: "negative" },
-              { label: "Total Projects", value: sonarProjects.length, changeType: "neutral" },
-            ]} detailTitle="Quality Gate Status"
           />
           <KPICard title="Bugs" value={sqBugs.toLocaleString()} icon={Bug}
             changeType={sqBugs > 100 ? "negative" : sqBugs > 0 ? "neutral" : "positive"}
@@ -903,9 +944,6 @@ const Index = () => {
           <KPICard title="Vulnerabilities" value={sqVulns.toLocaleString()} icon={Shield}
             changeType={sqVulns > 0 ? "negative" : "positive"}
             subtitle="open" href="/sonarqube"
-          />
-          <KPICard title="Code Smells" value={sqSmells.toLocaleString()} icon={FileText}
-            changeType="neutral" subtitle="maintainability" href="/sonarqube"
           />
           <KPICard title="Coverage" value={`${sqCoverage.toFixed(1)}%`} icon={CheckCircle2}
             changeType={sqCoverage >= 70 ? "positive" : sqCoverage >= 40 ? "neutral" : "negative"}
@@ -925,6 +963,68 @@ const Index = () => {
         </div>
       )
     ),
+
+    /* ── Growth (platform MAU & adoption) ── */
+    growth: (
+      S("growth", TrendingUp, "Growth", "Platform adoption — MAU across OSES capabilities", "/growth",
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <KPICard
+            title="Backstage MAU"
+            value={(backstageTrend?.current ?? 0).toLocaleString()}
+            change={pctDelta(backstageTrend?.current, backstageTrend?.previous) ?? "—"}
+            changeType={backstageTrend && backstageTrend.current >= backstageTrend.previous ? "positive" : "negative"}
+            icon={BookOpen}
+            subtitle="RUM · last 30 days"
+            href="/growth"
+          />
+          <KPICard
+            title="GitHub Members"
+            value={totalMembers.toLocaleString()}
+            icon={GitBranch}
+            subtitle="across 3 orgs (deduped)"
+            href="/growth"
+            changeType="neutral"
+          />
+          <KPICard
+            title="SonarQube MAU"
+            value={(sonarTrend?.current ?? 0).toLocaleString()}
+            change={pctDelta(sonarTrend?.current, sonarTrend?.previous) ?? "—"}
+            changeType={sonarTrend && sonarTrend.current >= sonarTrend.previous ? "positive" : "negative"}
+            icon={ShieldCheck}
+            subtitle="monthly active · Datadog"
+            href="/sonarqube"
+          />
+          <KPICard
+            title="Artifactory MAU"
+            value={(artifactoryTrend?.current ?? 0).toLocaleString()}
+            change={pctDelta(artifactoryTrend?.current, artifactoryTrend?.previous) ?? "—"}
+            changeType={artifactoryTrend && artifactoryTrend.current >= artifactoryTrend.previous ? "positive" : "negative"}
+            icon={Package}
+            subtitle="monthly active · Datadog"
+            href="/artifactory"
+          />
+          <KPICard
+            title="Paved-Path Clusters"
+            value={(pavedPath?.current ?? 0).toLocaleString()}
+            change={pctDelta(pavedPath?.current, pavedPath?.previous) ?? "—"}
+            changeType={pavedPath && pavedPath.current >= pavedPath.previous ? "positive" : "negative"}
+            icon={Boxes}
+            subtitle="active clusters · today"
+            href="/growth"
+          />
+          <KPICard
+            title="UCP Clusters"
+            value={(ucp?.current ?? 0).toLocaleString()}
+            change={pctDelta(ucp?.current, ucp?.previous) ?? "—"}
+            changeType={ucp && ucp.current >= ucp.previous ? "positive" : "negative"}
+            icon={Layers}
+            subtitle="tenant control planes"
+            href="/growth"
+          />
+        </div>
+      )
+    ),
+
   };
 
   return (
