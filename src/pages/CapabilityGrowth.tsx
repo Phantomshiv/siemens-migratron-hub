@@ -6,7 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Github, BookOpen, TrendingUp, Users, ShieldCheck, Package, Activity } from "lucide-react";
 import { useGitHubMembersDetail, type GHEMembersDetail } from "@/hooks/useGitHub";
 import { useBackstageUsersByBU } from "@/hooks/useBackstageUsers";
-import { useBackstageUsersTrend, useGitHubMembersTrend, type TrendPoint } from "@/hooks/useDeveloperTrends";
+import {
+  useBackstageUsersTrend,
+  useGitHubMembersTrend,
+  useSonarQubeMonthlyTrend,
+  useArtifactoryMonthlyTrend,
+  type TrendPoint,
+} from "@/hooks/useDeveloperTrends";
 import {
   useArtifactoryUsage,
   useSonarQubeTotalUsers,
