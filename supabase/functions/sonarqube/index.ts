@@ -74,7 +74,7 @@ serve(async (req) => {
       console.error(`SonarQube fetch ${aborted ? "timed out" : "failed"}:`, err);
       return new Response(
         JSON.stringify({
-          error: aborted ? "SonarQube upstream timeout (25s)" : "SonarQube fetch failed",
+          error: aborted ? "SonarQube upstream timeout (90s)" : "SonarQube fetch failed",
           details: (err as Error)?.message,
         }),
         { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } },
