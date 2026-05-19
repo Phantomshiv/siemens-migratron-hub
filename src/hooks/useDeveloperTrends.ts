@@ -301,4 +301,150 @@ export function useArtifactoryMonthlyTrend(months = 12) {
   });
 }
 
+/**
+ * Run a Datadog v1 timeseries query that is grouped `by {kube_cluster_name}`
+ * and return a per-day count of distinct clusters that have a non-null value,
+ * plus a breakdown grouped by `bucket(clusterName)`.
+ */
+async function fetchClusterStats(
+  query: string,
+  days: number,
+  bucket: (clusterName: string) => string,
+): Promise<{
+  series: TrendPoint[];
+  current: number;
+  previous: number;
+  byGroup: Array<{ name: string; count: number }>;
+  totalClusters: number;
+}> {
+  const headers = await authHeaders();
+  const now = Math.floor(Date.now() / 1000);
+  const from = now - days * 86400;
+  const url = `${FN_DD_BASE}?action=query&q=${encodeURIComponent(query)}&from=${from}&to=${now}`;
+  const resp = await fetch(url, { headers });
+  if (!resp.ok) throw new Error(`Datadog query failed: ${resp.status}`);
+  const json = await resp.json();
+  const series: Array<{ scope: string; pointlist: Array<[number, number | null]> }> =
+    json?.series ?? [];
+
+  // Extract cluster name from scope like "kube_cluster_name:foo,..."
+  const extractName = (scope: string): string | null => {
+    const m = scope.match(/kube_cluster_name:([^,]+)/);
+    if (!m) return null;
+    const n = m[1].trim();
+    if (!n || n === "N/A") return null;
+    return n;
+  };
+
+  // Per-day distinct cluster count
+  const dayMap = new Map<number, Set<string>>();
+  const activeClusters = new Set<string>();
+  for (const s of series) {
+    const name = extractName(s.scope);
+    if (!name) continue;
+    for (const [t, v] of s.pointlist ?? []) {
+      if (v == null) continue;
+      const set = dayMap.get(t) ?? new Set<string>();
+      set.add(name);
+      dayMap.set(t, set);
+    }
+    // "active today" = has at least one non-null point in the last 2 days
+    const recent = (s.pointlist ?? []).slice(-2).some(([, v]) => v != null);
+    if (recent) activeClusters.add(name);
+  }
+  const sortedDays = [...dayMap.entries()].sort((a, b) => a[0] - b[0]);
+  const trendSeries: TrendPoint[] = sortedDays.map(([t, set]) => ({
+    date: new Date(t).toISOString().slice(0, 10),
+    value: set.size,
+  }));
+  const current = trendSeries[trendSeries.length - 1]?.value ?? activeClusters.size;
+  const previous = trendSeries[0]?.value ?? current;
+
+  // BU breakdown from currently-active clusters
+  const buMap = new Map<string, number>();
+  for (const name of activeClusters) {
+    const g = bucket(name) || "Other";
+    buMap.set(g, (buMap.get(g) ?? 0) + 1);
+  }
+  const byGroup = [...buMap.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+
+  return { series: trendSeries, current, previous, byGroup, totalClusters: activeClusters.size };
+}
+
+// Container Paved Path: clusters generated via the paved path.
+// Cluster naming convention: <cloud>-<region>-<bu>-<env><n>
+// e.g. "aws-euce1-mom-prod02" -> BU = "mom" (3rd token).
+const PAVED_PATH_QUERY =
+  "avg:kubernetes.pods.running{(kube_cluster_name:azm*-*prod* OR kube_cluster_name:aws*-*prod* OR kube_cluster_name:op-orw*-*prod*)} by {kube_cluster_name}.rollup(max, 86400)";
+
+function pavedPathBucket(name: string): string {
+  const parts = name.split("-");
+  // op-orw-... is "op-orw-<bu>-..."
+  const idx = parts[0] === "op" ? 2 : 2;
+  const bu = (parts[idx] ?? "other").toLowerCase();
+  return bu.toUpperCase();
+}
+
+export function useContainerPavedPathStats(days = 30) {
+  return useQuery({
+    queryKey: ["container-paved-path-stats", days],
+    queryFn: () => fetchClusterStats(PAVED_PATH_QUERY, days, pavedPathBucket),
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+// Universal Control Plane: tenant control-plane clusters.
+// Cluster names look like "tcp-portal", "tcp-doe-three-fds-infrastructure".
+// We group by the 2nd token as a coarse "tenant / area".
+const UCP_QUERY =
+  "avg:kubernetes.pods.running{team:ucp,env:prod,service:tenant-control-plane} by {kube_cluster_name}.rollup(max, 86400)";
+
+function ucpBucket(name: string): string {
+  const parts = name.split("-");
+  // Drop the leading "tcp" prefix when present
+  const base = parts[0] === "tcp" ? parts.slice(1) : parts;
+  const head = (base[0] ?? "other").toLowerCase();
+  // Coarse-bucket common areas
+  const map: Record<string, string> = {
+    portal: "Portal",
+    tenant: "Tenant CP",
+    tcp: "Tenant CP",
+    tcpcm: "Tenant CP",
+    tcpprodqvproject: "QV",
+    prod: "Prod",
+    cd: "CI/CD",
+    dr: "DR",
+    documentation: "Docs",
+    donotdelete: "Other",
+    alm: "ALM",
+    ebs: "EBS",
+    himed: "Healthineers",
+    computevtwo: "Compute v2",
+    oses: "OSES",
+    acd: "ACD",
+    xo: "XO",
+    doe: "DOE",
+    systems: "Systems",
+    parth: "Sandbox",
+    kavi: "Sandbox",
+    jothi: "Sandbox",
+    testexecutionmanager2: "Test",
+  };
+  return map[head] ?? head.charAt(0).toUpperCase() + head.slice(1);
+}
+
+export function useUCPStats(days = 30) {
+  return useQuery({
+    queryKey: ["ucp-stats", days],
+    queryFn: () => fetchClusterStats(UCP_QUERY, days, ucpBucket),
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+
+
 
