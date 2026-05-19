@@ -28,7 +28,7 @@ const statusColor: Record<string, string> = {
 
 export function BudgetByQuarter() {
   const { dataset } = useBudgetData();
-  const data = dataset.byQuarter.map((q) => ({
+  const data = (dataset.byQuarter ?? []).map((q) => ({
     ...q,
     spend: q.status === "closed" ? q.actual : q.forecast,
     utilization: q.budget > 0 ? ((q.status === "closed" ? q.actual : q.forecast) / q.budget) * 100 : 0,
