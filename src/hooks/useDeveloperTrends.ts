@@ -127,7 +127,7 @@ async function fetchBackstageTrend(days = 30): Promise<BackstageTrend> {
 
 export function useBackstageUsersTrend(days = 30) {
   return useQuery({
-    queryKey: ["backstage-users-trend", days],
+    queryKey: ["backstage-users-trend-v2", days],
     queryFn: () => fetchBackstageTrend(days),
     staleTime: 10 * 60 * 1000,
     retry: 1,
