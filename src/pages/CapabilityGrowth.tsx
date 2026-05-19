@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Github, BookOpen, TrendingUp, Users, ShieldCheck, Package } from "lucide-react";
+import { Github, BookOpen, TrendingUp, Users, ShieldCheck, Package, Activity } from "lucide-react";
 import { useGitHubMembersDetail, type GHEMembersDetail } from "@/hooks/useGitHub";
 import { useBackstageUsersByBU } from "@/hooks/useBackstageUsers";
 import { useBackstageUsersTrend, useGitHubMembersTrend, type TrendPoint } from "@/hooks/useDeveloperTrends";
@@ -289,6 +289,33 @@ export default function CapabilityGrowth() {
       trendLoading: false,
       trendCurrent: undefined as number | undefined,
       trendPrevious: undefined as number | undefined,
+    },
+    {
+      key: "faros",
+      name: "Developer Insights (Faros.ai)",
+      icon: Activity,
+      description: "Engineering metrics · DORA, productivity, flow",
+      developers: 1665,
+      developersLabel: "FTE covered · 384 teams across 4 BUs",
+      buData: [
+        { name: "FT", count: 712 },
+        { name: "DI", count: 535 },
+        { name: "SI", count: 272 },
+        { name: "SMO", count: 146 },
+      ],
+      loading: false,
+      source: "Static snapshot · BU coverage shared by Adam Bergstein · MAU from Faros dashboard",
+      trend: [
+        { date: "2025-11", value: 103 },
+        { date: "2025-12", value: 108 },
+        { date: "2026-01", value: 125 },
+        { date: "2026-02", value: 211 },
+        { date: "2026-03", value: 211 },
+        { date: "2026-04", value: 237 },
+      ],
+      trendLoading: false,
+      trendCurrent: 237 as number | undefined,
+      trendPrevious: 211 as number | undefined,
     },
   ];
 
