@@ -223,6 +223,11 @@ export default function CapabilityGrowth() {
   const sonarTotal = useSonarQubeTotalUsers();
   const sonarBU = SONARQUBE_GROUP_SNAPSHOT;
 
+  // Datadog monthly trends (sourced from the "ForBobby" dashboard:
+  // sum:sonarqube_testing.total_users / sum:artifactory_testing.total_users)
+  const sonarTrend = useSonarQubeMonthlyTrend(12);
+  const artifactoryTrend = useArtifactoryMonthlyTrend(12);
+
   // Artifactory BU = JFrog Project keys (plm, mdsp, sim, eda, …). Comes
   // either from the live Projects API or the static snapshot fallback.
   const artifactoryBU = artifactory.data?.byProject ?? [];
