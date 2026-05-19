@@ -460,6 +460,57 @@ export function useUCPStats(days = 30) {
   });
 }
 
+/**
+ * Run an arbitrary Datadog v1 timeseries query and return the daily series
+ * along with current/previous scalar values. Used for portal capability widgets
+ * (catalog entries, templates) where the metric has no BU grouping.
+ */
+async function fetchDatadogDaily(
+  query: string,
+  days = 30,
+): Promise<{ series: TrendPoint[]; current: number; previous: number }> {
+  const headers = await authHeaders();
+  const now = Math.floor(Date.now() / 1000);
+  const from = now - days * 86400;
+  const url = `${FN_DD_BASE}?action=query&q=${encodeURIComponent(query)}&from=${from}&to=${now}`;
+  const resp = await fetch(url, { headers });
+  if (!resp.ok) throw new Error(`Datadog query failed: ${resp.status}`);
+  const json = await resp.json();
+  const points: Array<[number, number]> = json?.series?.[0]?.pointlist ?? [];
+  const series: TrendPoint[] = points
+    .filter(([, v]) => v != null && !Number.isNaN(Number(v)))
+    .map(([t, v]) => ({
+      date: new Date(t).toISOString().slice(0, 10),
+      value: Math.round(Number(v)),
+    }));
+  const current = series[series.length - 1]?.value ?? 0;
+  const previous = series[0]?.value ?? current;
+  return { series, current, previous };
+}
 
+export function usePortalCatalogEntries(days = 30) {
+  return useQuery({
+    queryKey: ["portal-catalog-entries", days],
+    queryFn: () =>
+      fetchDatadogDaily(
+        "max:catalog_entities_count{service:idp-backstage,env:prod}",
+        days,
+      ),
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+}
 
+export function usePortalTemplates(days = 30) {
+  return useQuery({
+    queryKey: ["portal-templates", days],
+    queryFn: () =>
+      fetchDatadogDaily(
+        "max:catalog_entities_count{service:idp-backstage,env:prod,kind:template}",
+        days,
+      ),
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+}
 
