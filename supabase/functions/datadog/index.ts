@@ -14,27 +14,33 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Prefer Personal Access Token (PAT) when configured; fall back to
+  // legacy API key + Application key pair for backwards compatibility.
+  const DD_PAT = Deno.env.get("DATADOG_PAT");
   const DD_API_KEY = Deno.env.get("DATADOG_API_KEY");
-  if (!DD_API_KEY) {
-    return new Response(JSON.stringify({ error: "DATADOG_API_KEY is not configured" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
   const DD_APP_KEY = Deno.env.get("DATADOG_APP_KEY");
-  if (!DD_APP_KEY) {
-    return new Response(JSON.stringify({ error: "DATADOG_APP_KEY is not configured" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
 
-  const ddHeaders = {
-    "DD-API-KEY": DD_API_KEY,
-    "DD-APPLICATION-KEY": DD_APP_KEY,
-    "Content-Type": "application/json",
-  };
+  let ddHeaders: Record<string, string>;
+  if (DD_PAT) {
+    ddHeaders = {
+      "Authorization": `Bearer ${DD_PAT}`,
+      "Content-Type": "application/json",
+    };
+  } else if (DD_API_KEY && DD_APP_KEY) {
+    ddHeaders = {
+      "DD-API-KEY": DD_API_KEY,
+      "DD-APPLICATION-KEY": DD_APP_KEY,
+      "Content-Type": "application/json",
+    };
+  } else {
+    return new Response(
+      JSON.stringify({
+        error:
+          "Datadog auth not configured. Set DATADOG_PAT (recommended) or both DATADOG_API_KEY and DATADOG_APP_KEY.",
+      }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
 
   try {
     const url = new URL(req.url);
