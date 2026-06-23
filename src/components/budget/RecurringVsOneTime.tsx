@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid,
   LineChart, Line, Area, ComposedChart, ReferenceLine,
 } from "recharts";
-import { Repeat, Zap, TrendingDown } from "lucide-react";
+import { Repeat, Zap, TrendingDown, Info } from "lucide-react";
 import { useBudgetData } from "@/hooks/useBudgetData";
 
 const tooltipStyle = {
