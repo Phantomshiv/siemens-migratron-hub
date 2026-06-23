@@ -20,7 +20,8 @@ export type ModuleBudget = {
 
 export const byModule: ModuleBudget[] = [
   { module: "Platform Development", actual: 14_508_860, forecast: 22_517_981 },
-  { module: "Migration & Harmonization", actual: 3_417_493, forecast: 8_958_572 },
+  { module: "Harmonization", actual: 2_106_367, forecast: 5_003_332 },
+  { module: "Migration", actual: 1_311_126, forecast: 3_955_240 },
   { module: "Communication & Growth", actual: 698_838, forecast: 1_552_340 },
   { module: "Commercial Software Platforms", actual: 134_230, forecast: 998_000 },
   { module: "PMO Cost", actual: 544_646, forecast: 829_368 },
