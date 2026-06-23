@@ -14,7 +14,7 @@ export function BudgetKPIs() {
     {
       title: "Total Budget FY26",
       value: fmt(totalBudget),
-      sub: `SAP: ${summary.sapNo}`,
+      sub: `Funding: ${summary.fundingSource}`,
       icon: DollarSign,
       accent: "text-primary",
     },

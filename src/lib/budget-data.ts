@@ -2,9 +2,9 @@
 // Source: OSES_Actuals_FC_Reporting_tool overview tab (P08 — May 2026)
 
 export const budgetSummary = {
-  totalBudget: 37_915_155,
+  totalBudget: 40_000_000,
   actualSpend: 19_304_067,
-  forecastFY26: 35_043_618,
+  forecastFY26: 35_417_854,
   sapNo: "ID-00J97",
   fundingSource: "CMC",
   probability: "100%",
@@ -102,10 +102,10 @@ export type QuarterBudget = {
 
 // Source: row 9 of overview tab. Q1/Q2 closed, Q3 in progress (P08), Q4 forecast.
 export const byQuarter: QuarterBudget[] = [
-  { quarter: "Q1", label: "Q1 FY26 (Oct–Dec ’25)", actual: 3_688_087, forecast: 3_688_087,  budget: 9_478_789, status: "closed"  },
-  { quarter: "Q2", label: "Q2 FY26 (Jan–Mar ’26)", actual: 9_947_134, forecast: 9_947_134,  budget: 9_478_789, status: "closed"  },
-  { quarter: "Q3", label: "Q3 FY26 (Apr–Jun ’26)", actual: 5_481_059, forecast: 10_067_194, budget: 9_478_789, status: "current" },
-  { quarter: "Q4", label: "Q4 FY26 (Jul–Sep ’26)", actual: 0,         forecast: 11_384_923, budget: 9_478_789, status: "forecast"},
+  { quarter: "Q1", label: "Q1 FY26 (Oct–Dec ’25)", actual: 3_688_087, forecast: 3_688_087,  budget: 10_000_000, status: "closed"  },
+  { quarter: "Q2", label: "Q2 FY26 (Jan–Mar ’26)", actual: 9_947_134, forecast: 9_947_134,  budget: 10_000_000, status: "closed"  },
+  { quarter: "Q3", label: "Q3 FY26 (Apr–Jun ’26)", actual: 5_481_059, forecast: 10_274_558, budget: 10_000_000, status: "current" },
+  { quarter: "Q4", label: "Q4 FY26 (Jul–Sep ’26)", actual: 0,         forecast: 11_506_223, budget: 10_000_000, status: "forecast"},
 ];
 
 export type BudgetLineItem = {
