@@ -30,7 +30,7 @@ function BudgetDashboardContent() {
             <div>
               <h1 className="text-2xl font-heading font-bold">Budget & Financials</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                OSES Program FY26 · SAP ID-00J97 · Funding: CMC · P06
+                OSES Program FY26 · SAP ID-00J97 · Funding: CMC · P08
               </p>
             </div>
             {source === "db" && (

@@ -1,15 +1,15 @@
-// Budget data extracted from OSES Actuals & FC Status spreadsheet
-// Source: 20260324_OSES_Actuals_FC_P06_1.xlsx · "overview" tab (P06)
+// Budget data extracted from OSES Actuals & FC Reporting tool
+// Source: OSES_Actuals_FC_Reporting_tool overview tab (P08 — May 2026)
 
 export const budgetSummary = {
-  totalBudget: 40_000_000,
-  actualSpend: 16_031_074,
-  forecastFY26: 40_704_955,
+  totalBudget: 37_915_155,
+  actualSpend: 19_304_067,
+  forecastFY26: 35_043_618,
   sapNo: "ID-00J97",
   fundingSource: "CMC",
   probability: "100%",
   customer: "FT FDS TF",
-  reportingPeriod: "P06",
+  reportingPeriod: "P08",
 };
 
 export type ModuleBudget = {
@@ -19,11 +19,12 @@ export type ModuleBudget = {
 };
 
 export const byModule: ModuleBudget[] = [
-  { module: "Platform Development", actual: 12_044_748, forecast: 26_643_289 },
-  { module: "Migration & Harmonization", actual: 2_914_493, forecast: 10_500_000 },
-  { module: "Communication & Growth", actual: 565_778, forecast: 1_568_666 },
-  { module: "ONE SRE Team", actual: 100_000, forecast: 1_200_000 },
-  { module: "PMO Cost", actual: 509_090, forecast: 996_035 },
+  { module: "Platform Development", actual: 14_508_860, forecast: 22_310_317 },
+  { module: "Migration & Harmonization", actual: 3_417_493, forecast: 9_100_000 },
+  { module: "Communication & Growth", actual: 698_838, forecast: 1_552_340 },
+  { module: "Commercial Software Platforms", actual: 134_230, forecast: 690_000 },
+  { module: "PMO Cost", actual: 544_646, forecast: 829_368 },
+  { module: "OSES AI", actual: 0, forecast: 561_592 },
 ];
 
 export type OrgBudget = {
@@ -33,11 +34,12 @@ export type OrgBudget = {
 };
 
 export const byOrg: OrgBudget[] = [
-  { org: "FT FDS DES", actual: 12_205_554, forecast: 18_282_990 },
-  { org: "IT APS", actual: 3_014_493, forecast: 11_900_000 },
-  { org: "CYS", actual: 755_762, forecast: 8_925_000 },
-  { org: "IT", actual: 0, forecast: 1_500_000 },
-  { org: "FT ST", actual: 158_300, forecast: 300_000 },
+  { org: "FT FDS DES", actual: 14_774_947, forecast: 19_599_997 },
+  { org: "IT APS", actual: 3_551_723, forecast: 9_990_000 },
+  { org: "CYS", actual: 755_763, forecast: 3_851_229 },
+  { org: "DI IT", actual: 0, forecast: 802_392 },
+  { org: "IT", actual: 0, forecast: 500_000 },
+  { org: "FT ST", actual: 221_633, forecast: 300_000 },
 ];
 
 export type CostTypeBudget = {
@@ -47,11 +49,11 @@ export type CostTypeBudget = {
 };
 
 export const byCostType: CostTypeBudget[] = [
-  { type: "Labour Cost", actual: 9_647_340, forecast: 23_904_570 },
-  { type: "Contractors", actual: 3_539_132, forecast: 7_762_207 },
-  { type: "Licence", actual: 1_707_576, forecast: 7_806_667 },
-  { type: "Infrastructure", actual: 40_061, forecast: 1_434_546 },
-  { type: "Other", actual: 1_200_000, forecast: 0 },
+  { type: "Labour Cost", actual: 12_792_570, forecast: 19_294_970 },
+  { type: "Contractors", actual: 3_964_699, forecast: 8_403_007 },
+  { type: "Licence", actual: 2_504_445, forecast: 6_056_667 },
+  { type: "Infrastructure", actual: 42_353, forecast: 1_284_546 },
+  { type: "Direct", actual: 0, forecast: 50_000 },
 ];
 
 export type ContractorBudget = {
@@ -61,15 +63,14 @@ export type ContractorBudget = {
 };
 
 export const byContractor: ContractorBudget[] = [
-  { contractor: "External (IT APS)", actual: 1_401_215, forecast: 2_802_430 },
-  { contractor: "FT RPD", actual: 651_565, forecast: 1_764_233 },
-  { contractor: "FT D India", actual: 568_367, forecast: 1_255_700 },
-  { contractor: "FT UX", actual: 413_032, forecast: 988_756 },
-  { contractor: "Evosoft gmbH / FT D", actual: 504_953, forecast: 951_088 },
+  { contractor: "External (IT APS)", actual: 1_401_215, forecast: 3_202_430 },
+  { contractor: "FT RPD", actual: 824_974, forecast: 1_764_233 },
+  { contractor: "FT D India", actual: 686_235, forecast: 1_255_700 },
+  { contractor: "FT UX", actual: 495_856, forecast: 988_756 },
+  { contractor: "Evosoft gmbH / FT D", actual: 556_419, forecast: 951_088 },
 ];
 
-// Kept for backward compat with any consumer that still imports it, but
-// no longer rendered in the UI.
+// Kept for backward compat; not rendered.
 export type FTEBreakdown = {
   country: string;
   countryCode: string;
@@ -81,38 +82,32 @@ export const fteBreakdown: FTEBreakdown[] = [];
 
 export const fteTotals = {
   ownTotal: 62.25,
-  contractorTotal: 31.6,
-  grandTotal: 93.85,
+  contractorTotal: 36.2,
+  grandTotal: 98.45,
 };
 
 export const spendingTimeline = {
-  oneTime: { actual: 4_898_158, forecast: 16_500_753 },
-  recurring: { actual: 11_235_951, forecast: 24_407_237 },
+  oneTime: { actual: 4_157_956, forecast: 13_745_001 },
+  recurring: { actual: 15_146_111, forecast: 20_994_189 },
 };
 
-// Quarterly breakdown derived from periodic columns on the "overview"
-// tab. Q1 = P01-P03 actual, Q2 = P04-P06 actual, Q3/Q4 are forecast.
-// Budget per quarter is the annual €40M plan evenly distributed.
 export type QuarterBudget = {
   quarter: "Q1" | "Q2" | "Q3" | "Q4";
   label: string;
-  actual: number;       // actual spend if quarter is closed, else 0
-  forecast: number;     // forecast for that quarter (actual for closed quarters)
-  budget: number;       // planned budget for the quarter
+  actual: number;
+  forecast: number;
+  budget: number;
   status: "closed" | "current" | "forecast";
 };
 
-// Source: "OSES Financial overview" tab, "OSES Total cost" row.
-// Q1/Q2/Q3/Q4 QTD actuals from cols M-P, FC Q3 QTD / FC Q4 QTD from cols H-I.
+// Source: row 9 of overview tab. Q1/Q2 closed, Q3 in progress (P08), Q4 forecast.
 export const byQuarter: QuarterBudget[] = [
-  { quarter: "Q1", label: "Q1 FY26 (Oct–Dec ’25)", actual: 3_622_916, forecast: 3_622_916,  budget: 10_000_000, status: "closed"  },
-  { quarter: "Q2", label: "Q2 FY26 (Jan–Mar ’26)", actual: 9_356_844, forecast: 9_356_844,  budget: 10_000_000, status: "closed"  },
-  { quarter: "Q3", label: "Q3 FY26 (Apr–Jun ’26)", actual: 48_687,    forecast: 10_703_700, budget: 10_000_000, status: "current" },
-  { quarter: "Q4", label: "Q4 FY26 (Jul–Sep ’26)", actual: 0,         forecast: 11_643_786, budget: 10_000_000, status: "forecast"},
+  { quarter: "Q1", label: "Q1 FY26 (Oct–Dec ’25)", actual: 3_688_087, forecast: 3_688_087,  budget: 9_478_789, status: "closed"  },
+  { quarter: "Q2", label: "Q2 FY26 (Jan–Mar ’26)", actual: 9_947_134, forecast: 9_947_134,  budget: 9_478_789, status: "closed"  },
+  { quarter: "Q3", label: "Q3 FY26 (Apr–Jun ’26)", actual: 5_481_059, forecast: 10_067_194, budget: 9_478_789, status: "current" },
+  { quarter: "Q4", label: "Q4 FY26 (Jul–Sep ’26)", actual: 0,         forecast: 11_384_923, budget: 9_478_789, status: "forecast"},
 ];
 
-// Line items retained for potential future use / data exports, but
-// no longer rendered in the UI.
 export type BudgetLineItem = {
   id: string;
   module: string;
