@@ -57,6 +57,9 @@ function BudgetDashboardContent() {
 
         <BudgetByQuarter />
 
+        <RecurringVsOneTime />
+
+
         <ContractorSpend />
 
         <OrgSpendChart />
