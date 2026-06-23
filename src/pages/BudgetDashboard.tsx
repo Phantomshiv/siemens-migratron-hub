@@ -2,6 +2,7 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { BudgetKPIs } from "@/components/budget/BudgetKPIs";
 import { BudgetByModuleChart } from "@/components/budget/BudgetByModuleChart";
+import { RecurringVsOneTime } from "@/components/budget/RecurringVsOneTime";
 
 import { ContractorSpend } from "@/components/budget/ContractorSpend";
 import { OrgSpendChart } from "@/components/budget/OrgSpendChart";
@@ -55,6 +56,9 @@ function BudgetDashboardContent() {
         </div>
 
         <BudgetByQuarter />
+
+        <RecurringVsOneTime />
+
 
         <ContractorSpend />
 
