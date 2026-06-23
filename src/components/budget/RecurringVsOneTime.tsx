@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid,
   LineChart, Line, Area, ComposedChart, ReferenceLine,
 } from "recharts";
-import { Repeat, Zap, TrendingDown } from "lucide-react";
+import { Repeat, Zap, TrendingDown, Info } from "lucide-react";
 import { useBudgetData } from "@/hooks/useBudgetData";
 
 const tooltipStyle = {
@@ -27,9 +27,22 @@ const MONTHS = [
 ];
 const MONTHS_ELAPSED = 8; // through P08 (May '26)
 
+// Classification of cost types — recurring = ongoing/continuous, one-time = project / non-repeating
+const RECURRING_TYPES = new Set(["Labour Cost", "Licence", "Infrastructure"]);
+const ONETIME_TYPES = new Set(["Contractors", "Direct"]);
+
+const typeColors: Record<string, string> = {
+  "Labour Cost":    "hsl(var(--chart-1))",
+  "Licence":        "hsl(var(--chart-2))",
+  "Infrastructure": "hsl(var(--chart-3))",
+  "Contractors":    "hsl(var(--chart-4))",
+  "Direct":         "hsl(var(--chart-5))",
+};
+
 export function RecurringVsOneTime() {
   const { dataset } = useBudgetData();
   const { oneTime, recurring } = dataset.spendingTimeline;
+  const byCostType = dataset.byCostType ?? [];
 
   // ---- Comparison chart data ----
   const comparison = [
@@ -225,6 +238,86 @@ export function RecurringVsOneTime() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Cost-type breakdown — what makes up recurring vs one-time */}
+      <Card className="glass-card border-border/50">
+        <CardHeader>
+          <CardTitle className="text-sm font-heading font-bold">Cost-Type Breakdown</CardTitle>
+          <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+            <Info className="h-3 w-3" />
+            Recurring = ongoing engineering, licences & infrastructure. One-time = project-based contractors & direct costs.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {(["Recurring", "One-Time"] as const).map((bucket) => {
+              const set = bucket === "Recurring" ? RECURRING_TYPES : ONETIME_TYPES;
+              const items = byCostType.filter((c) => set.has(c.type));
+              const totalActual = items.reduce((s, c) => s + c.actual, 0);
+              const totalForecast = items.reduce((s, c) => s + c.forecast, 0);
+
+              return (
+                <div key={bucket}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      {bucket === "Recurring" ? (
+                        <Repeat className="h-3.5 w-3.5 text-chart-1" />
+                      ) : (
+                        <Zap className="h-3.5 w-3.5 text-chart-2" />
+                      )}
+                      <span className="text-xs font-heading font-bold">{bucket}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-muted-foreground">Forecast</p>
+                      <p className="text-sm font-mono font-bold">{fmt(totalForecast)}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {items.map((c) => {
+                      const pct = totalForecast > 0 ? (c.forecast / totalForecast) * 100 : 0;
+                      const burnPct = c.forecast > 0 ? (c.actual / c.forecast) * 100 : 0;
+                      return (
+                        <div key={c.type} className="space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="h-2 w-2 rounded-sm shrink-0"
+                                style={{ background: typeColors[c.type] ?? "hsl(var(--chart-1))" }}
+                              />
+                              <span className="font-medium">{c.type}</span>
+                              <Badge variant="outline" className="text-[9px] h-4 px-1.5">
+                                {pct.toFixed(0)}%
+                              </Badge>
+                            </div>
+                            <span className="font-mono text-muted-foreground" title={fmtFull(c.forecast)}>
+                              {fmt(c.actual)} / {fmt(c.forecast)}
+                            </span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-secondary/60 overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{
+                                width: `${Math.min(100, burnPct)}%`,
+                                background: typeColors[c.type] ?? "hsl(var(--chart-1))",
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>Actual to date</span>
+                    <span className="font-mono">{fmt(totalActual)} ({totalForecast > 0 ? ((totalActual / totalForecast) * 100).toFixed(0) : 0}% burned)</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
