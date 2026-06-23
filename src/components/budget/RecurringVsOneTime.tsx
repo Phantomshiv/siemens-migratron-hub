@@ -27,9 +27,22 @@ const MONTHS = [
 ];
 const MONTHS_ELAPSED = 8; // through P08 (May '26)
 
+// Classification of cost types — recurring = ongoing/continuous, one-time = project / non-repeating
+const RECURRING_TYPES = new Set(["Labour Cost", "Licence", "Infrastructure"]);
+const ONETIME_TYPES = new Set(["Contractors", "Direct"]);
+
+const typeColors: Record<string, string> = {
+  "Labour Cost":    "hsl(var(--chart-1))",
+  "Licence":        "hsl(var(--chart-2))",
+  "Infrastructure": "hsl(var(--chart-3))",
+  "Contractors":    "hsl(var(--chart-4))",
+  "Direct":         "hsl(var(--chart-5))",
+};
+
 export function RecurringVsOneTime() {
   const { dataset } = useBudgetData();
   const { oneTime, recurring } = dataset.spendingTimeline;
+  const byCostType = dataset.byCostType ?? [];
 
   // ---- Comparison chart data ----
   const comparison = [
