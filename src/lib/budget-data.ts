@@ -19,10 +19,10 @@ export type ModuleBudget = {
 };
 
 export const byModule: ModuleBudget[] = [
-  { module: "Platform Development", actual: 14_508_860, forecast: 22_310_317 },
-  { module: "Migration & Harmonization", actual: 3_417_493, forecast: 9_100_000 },
+  { module: "Platform Development", actual: 14_508_860, forecast: 22_517_981 },
+  { module: "Migration & Harmonization", actual: 3_417_493, forecast: 8_958_572 },
   { module: "Communication & Growth", actual: 698_838, forecast: 1_552_340 },
-  { module: "Commercial Software Platforms", actual: 134_230, forecast: 690_000 },
+  { module: "Commercial Software Platforms", actual: 134_230, forecast: 998_000 },
   { module: "PMO Cost", actual: 544_646, forecast: 829_368 },
   { module: "OSES AI", actual: 0, forecast: 561_592 },
 ];
@@ -35,8 +35,8 @@ export type OrgBudget = {
 
 export const byOrg: OrgBudget[] = [
   { org: "FT FDS DES", actual: 14_774_947, forecast: 19_599_997 },
-  { org: "IT APS", actual: 3_551_723, forecast: 9_990_000 },
-  { org: "CYS", actual: 755_763, forecast: 3_851_229 },
+  { org: "IT APS", actual: 3_551_723, forecast: 10_156_572 },
+  { org: "CYS", actual: 755_763, forecast: 3_998_093 },
   { org: "DI IT", actual: 0, forecast: 802_392 },
   { org: "IT", actual: 0, forecast: 500_000 },
   { org: "FT ST", actual: 221_633, forecast: 300_000 },
@@ -49,10 +49,10 @@ export type CostTypeBudget = {
 };
 
 export const byCostType: CostTypeBudget[] = [
-  { type: "Labour Cost", actual: 12_792_570, forecast: 19_294_970 },
+  { type: "Labour Cost", actual: 12_792_570, forecast: 19_623_634 },
   { type: "Contractors", actual: 3_964_699, forecast: 8_403_007 },
   { type: "Licence", actual: 2_504_445, forecast: 6_056_667 },
-  { type: "Infrastructure", actual: 42_353, forecast: 1_284_546 },
+  { type: "Infrastructure", actual: 42_352, forecast: 1_284_546 },
   { type: "Direct", actual: 0, forecast: 50_000 },
 ];
 
@@ -87,8 +87,8 @@ export const fteTotals = {
 };
 
 export const spendingTimeline = {
-  oneTime: { actual: 4_157_956, forecast: 13_745_001 },
-  recurring: { actual: 15_146_111, forecast: 20_994_189 },
+  oneTime: { actual: 4_157_956, forecast: 14_360_665 },
+  recurring: { actual: 15_146_111, forecast: 21_057_189 },
 };
 
 export type QuarterBudget = {
